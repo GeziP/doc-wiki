@@ -1,0 +1,240 @@
+<!--
+  doc-writer module 内容黄金样本
+  ================================
+  本文件展示填入 module-design.html 模板的正确内容写法。
+  不包含 CSS/JS/HTML 骨架——那些由模板提供。
+  生成文档时，对照本文件检查：组件用法、源码引用、callout 质量、折叠层级选择。
+-->
+
+<!-- ===== 文档元信息（替换模板占位符后的效果） ===== -->
+<div class="doc-meta">
+  <span class="doc-version">v1.0</span>
+  <h1>TaskScheduler 技术设计文档</h1>
+  <dl class="doc-info">
+    <dt>实现文件</dt><dd><code>src/scheduler/task_scheduler.h</code></dd>
+    <dt>测试文件</dt><dd><code>tests/test_task_scheduler.cpp</code></dd>
+    <dt>关联文档</dt><dd><a href="TaskManager_Design.html">TaskManager</a> · <a href="ThreadPool_Design.html">ThreadPool</a></dd>
+    <dt>更新日期</dt><dd>2026-05-16</dd>
+  </dl>
+</div>
+
+<!-- ===== Scope 声明 ===== -->
+<div class="scope-block">
+  <strong>Scope:</strong> 本文覆盖 TaskScheduler 的调度策略、优先级队列和任务生命周期管理。
+  不覆盖 TaskManager 的创建/销毁流程和 ThreadPool 的线程管理细节。
+</div>
+
+<!-- ===== 关联源文件 ===== -->
+<div class="relevant-sources">
+  <h4>关联源文件</h4>
+  <ul>
+    <li><a class="source-ref" href="src/scheduler/task_scheduler.h#L1-L180"><code>src/scheduler/task_scheduler.h:1-180</code></a> — 主类定义</li>
+    <li><a class="source-ref" href="src/scheduler/task_scheduler.cpp#L1-L320"><code>src/scheduler/task_scheduler.cpp:1-320</code></a> — 实现</li>
+    <li><a class="source-ref" href="src/scheduler/priority_queue.h#L1-L95"><code>src/scheduler/priority_queue.h:1-95</code></a> — 优先级队列</li>
+  </ul>
+</div>
+
+<!-- ===== 第1章: 概述 (section — 核心章节始终展开) ===== -->
+<section class="section" id="sec-overview">
+  <div class="section-header">
+    <h2 id="sec-overview">1. 概述</h2>
+  </div>
+  <div class="section-body">
+
+    <h3 id="sec-overview-bg">1.1 背景</h3>
+    <p>系统需要协调多个异步任务的执行顺序，确保高优先级任务优先调度，同时避免低优先级任务饥饿。
+    TaskScheduler 提供基于优先级的抢占式调度，支持任务依赖关系和取消传播。</p>
+
+    <h3 id="sec-overview-solution">1.2 解决方案</h3>
+    <p>采用多级反馈队列（MLFQ）算法，将任务分为 4 个优先级层，每层独立管理。
+    调度器从最高优先级层开始扫描，空层跳过。层内使用时间片轮转，防止饥饿。</p>
+
+    <!-- 内联 SVG 图表：所有颜色用 var() + fallback -->
+    <figure class="diagram">
+      <svg viewBox="0 0 560 200" role="img" aria-label="TaskScheduler 架构概览">
+        <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted,#66737c)"/></marker></defs>
+        <rect x="20" y="20" width="140" height="40" rx="6" fill="var(--bg,#fafbfc)" stroke="var(--border,#d8dee4)"/>
+        <text x="90" y="45" text-anchor="middle" font-size="12" fill="var(--text,#1a2332)">TaskManager</text>
+        <rect x="210" y="20" width="140" height="40" rx="6" fill="var(--accent-soft,#e9fbfa)" stroke="var(--accent,#1c8790)" stroke-width="2"/>
+        <text x="280" y="45" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--accent,#1c8790)">TaskScheduler</text>
+        <rect x="400" y="20" width="140" height="40" rx="6" fill="var(--bg,#fafbfc)" stroke="var(--border,#d8dee4)"/>
+        <text x="470" y="45" text-anchor="middle" font-size="12" fill="var(--text,#1a2332)">ThreadPool</text>
+        <line x1="160" y1="40" x2="210" y2="40" stroke="var(--text-muted,#66737c)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="350" y1="40" x2="400" y2="40" stroke="var(--text-muted,#66737c)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <rect x="210" y="90" width="140" height="30" rx="4" fill="var(--accent-purple-light,#f5f3ff)" stroke="var(--accent-purple,#7c3aed)"/>
+        <text x="280" y="110" text-anchor="middle" font-size="11" fill="var(--accent-purple,#7c3aed)">PriorityQueue</text>
+        <rect x="210" y="140" width="140" height="30" rx="4" fill="var(--accent-green-light,#edf7f0)" stroke="var(--accent-green,#16a34a)"/>
+        <text x="280" y="160" text-anchor="middle" font-size="11" fill="var(--accent-green,#16a34a)">DependencyGraph</text>
+        <line x1="280" y1="60" x2="280" y2="90" stroke="var(--text-muted,#66737c)" stroke-dasharray="4"/>
+        <line x1="280" y1="120" x2="280" y2="140" stroke="var(--text-muted,#66737c)" stroke-dasharray="4"/>
+      </svg>
+      <figcaption>图 1.1 — TaskScheduler 在系统中的位置及内部组件</figcaption>
+    </figure>
+
+    <!-- 设计决策 Callout — 解释 WHY，带具体数据 -->
+    <div class="callout note">
+      <strong>设计决策</strong>
+      选择 MLFQ 而非简单的优先级队列，因为生产环境中观察到低优先级清理任务
+      长期得不到执行，导致内存泄漏。MLFQ 的时间片机制保证每层在 500ms 内至少被调度一次。
+    </div>
+
+    <!-- 章节尾部 Sources -->
+    <div class="sources-block">
+      <span class="sources-label">Sources:</span>
+      <a class="source-ref" href="src/scheduler/task_scheduler.h#L25-L42"><code>task_scheduler.h:25-42</code></a>
+      <a class="source-ref" href="src/scheduler/priority_queue.h#L10-L30"><code>priority_queue.h:10-30</code></a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== 第4章: 核心概念 (details open — 重要但较长) ===== -->
+<details open id="sec-core-concepts">
+  <summary><h2 id="sec-core-concepts">4. 核心概念</h2></summary>
+  <div class="section-body">
+
+    <h3 id="sec-priority">4.1 优先级定义</h3>
+    <p>任务优先级由枚举 <code>TaskPriority</code> 定义，
+    位于 <a class="source-ref" href="src/scheduler/task_scheduler.h#L30-L35"><code>task_scheduler.h:30-35</code></a>。
+    数值越小优先级越高：</p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>枚举值</th><th>数值</th><th>用途</th><th>时间片</th></tr></thead>
+        <tbody>
+          <tr><td><code>CRITICAL</code></td><td>0</td><td>安全相关、紧急停机</td><td>无限制（立即执行）</td></tr>
+          <tr><td><code>HIGH</code></td><td>1</td><td>实时控制循环</td><td>100ms</td></tr>
+          <tr><td><code>NORMAL</code></td><td>2</td><td>常规业务逻辑</td><td>50ms</td></tr>
+          <tr><td><code>LOW</code></td><td>3</td><td>后台清理、日志归档</td><td>20ms</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="sec-state">4.2 任务状态</h3>
+    <p>任务在生命周期中经历以下状态转换
+    （定义于 <a class="source-ref" href="src/scheduler/task_scheduler.h#L38-L45"><code>task_scheduler.h:38-45</code></a>）：</p>
+
+    <div class="code-block" data-lang="cpp"><pre><code class="language-cpp">enum class TaskState {
+    Pending,    // 已创建，等待依赖满足
+    Ready,      // 依赖已满足，可被调度
+    Running,    // 正在执行
+    Suspended,  // 被更高优先级任务抢占
+    Completed,  // 执行成功
+    Failed,     // 执行失败
+    Cancelled   // 被取消（含依赖取消传播）
+};</code></pre></div>
+
+    <div class="callout note">
+      <strong>设计决策</strong>
+      <code>Suspended</code> 状态独立于 <code>Pending</code>，因为被抢占的任务不需要重新检查依赖关系，
+      恢复时直接进入 <code>Ready</code> 队列头部，减少调度延迟约 40%。
+    </div>
+
+    <div class="sources-block">
+      <span class="sources-label">Sources:</span>
+      <a class="source-ref" href="src/scheduler/task_scheduler.h#L30-L45"><code>task_scheduler.h:30-45</code></a>
+    </div>
+
+  </div>
+</details>
+
+<!-- ===== 第8章: API 参考 (Tabs 组件展示) ===== -->
+<details open id="sec-api">
+  <summary><h2 id="sec-api">8. API 参考</h2></summary>
+  <div class="section-body">
+
+    <div class="tabs">
+      <input type="radio" name="api-tabs" id="api-t1" checked>
+      <input type="radio" name="api-tabs" id="api-t2">
+      <div class="tab-bar">
+        <label for="api-t1">调度接口</label>
+        <label for="api-t2">查询接口</label>
+      </div>
+      <div class="tab-panel">
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>方法</th><th>参数</th><th>返回值</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>schedule(task)</code></td>
+                <td><code>shared_ptr&lt;Task&gt;</code></td>
+                <td><code>ScheduleResult</code></td>
+                <td>将任务加入调度队列。如果任务优先级高于当前执行任务，触发抢占。</td>
+              </tr>
+              <tr>
+                <td><code>cancel(taskId)</code></td>
+                <td><code>TaskId</code></td>
+                <td><code>bool</code></td>
+                <td>取消指定任务。如果任务有下游依赖，级联取消。已完成的任务不受影响。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="tab-panel">
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>方法</th><th>参数</th><th>返回值</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>getState(taskId)</code></td>
+                <td><code>TaskId</code></td>
+                <td><code>TaskState</code></td>
+                <td>查询任务当前状态。O(1) 时间复杂度。</td>
+              </tr>
+              <tr>
+                <td><code>getPendingCount()</code></td>
+                <td>无</td>
+                <td><code>size_t</code></td>
+                <td>返回所有层级的待执行任务总数。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="sources-block">
+      <span class="sources-label">Sources:</span>
+      <a class="source-ref" href="src/scheduler/task_scheduler.h#L60-L120"><code>task_scheduler.h:60-120</code></a>
+    </div>
+
+  </div>
+</details>
+
+<!-- ===== 第10章: FAQ (默认折叠) ===== -->
+<details id="sec-faq">
+  <summary><h2 id="sec-faq">10. 常见问题</h2></summary>
+  <div class="section-body">
+    <details class="faq">
+      <summary>高优先级任务持续涌入，低优先级任务会饿死吗？</summary>
+      <div>不会。MLFQ 的时间片轮转保证每个优先级层在 500ms 内至少执行一次。
+      如果高优先级层持续满载，低优先级层的时间片会缩短但不会归零。
+      具体参数见 <a class="source-ref" href="src/scheduler/task_scheduler.cpp#L85-L92"><code>task_scheduler.cpp:85-92</code></a>。</div>
+    </details>
+    <details class="faq">
+      <summary>如何处理循环依赖？</summary>
+      <div>DependencyGraph 在 <code>addDependency()</code> 时执行拓扑排序检测。
+      发现环时返回 <code>DependencyError::CycleDetected</code>，拒绝添加该边，
+      已有的合法边不受影响。</div>
+    </details>
+  </div>
+</details>
+
+<!-- ===== 术语表 ===== -->
+<details id="sec-glossary">
+  <summary><h2 id="sec-glossary">术语表</h2></summary>
+  <div class="section-body">
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>术语</th><th>说明</th><th>出处</th></tr></thead>
+        <tbody>
+          <tr><td>MLFQ</td><td>多级反馈队列（Multi-Level Feedback Queue），一种 CPU 调度算法</td><td><code>task_scheduler.h:25</code></td></tr>
+          <tr><td>时间片</td><td>每个优先级层单次调度的最大执行时间</td><td><code>task_scheduler.h:50</code></td></tr>
+          <tr><td>抢占</td><td>高优先级任务中断低优先级任务的执行</td><td><code>task_scheduler.cpp:110</code></td></tr>
+          <tr><td>级联取消</td><td>取消一个任务时自动取消其所有下游依赖任务</td><td><code>task_scheduler.cpp:200</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</details>

@@ -1,0 +1,324 @@
+<!--
+  doc-writer guide 内容黄金样本
+  ================================
+  本文件展示填入 guide.html 模板 {{SECTIONS}} 占位符的正确内容写法。
+  不包含 CSS/JS/HTML 骨架——那些由模板提供。
+  生成文档时，对照本文件检查：badge 标注、步骤指示器、flow 组件、代码嵌入叙事、FAQ 基于真实故障。
+  图表示范：概述章使用内联 SVG（HTML 首选），ASCII 仅在 Markdown 输出时使用。
+-->
+
+<!-- ===== Scope 声明 ===== -->
+<div class="scope-block">
+  <strong>Scope:</strong> 本文覆盖 SmartFactory 嵌入式工控系统的端到端数据流、核心模块交互、配置系统和故障排查。
+  不覆盖 MES 侧工单生成逻辑和硬件电气设计。
+</div>
+
+<!-- ===== 第1章: 概述 ===== -->
+<section class="section" id="sec-overview">
+  <div class="section-header">
+    <h2 id="sec-overview">1. 概述</h2>
+  </div>
+  <div class="section-body">
+
+    <p>SmartFactory 是一个嵌入式工控系统，控制产线上的机械臂、传送带和质检设备。
+    系统接收来自 MES（制造执行系统）的工单，将其分解为设备指令序列，调度执行并采集运行数据。</p>
+
+    <p>本文档面向<strong>新接手项目的开发者</strong>，帮助你理解数据如何从 MES 工单流经系统，
+    最终变成设备动作和质检报告。阅读完成后，你应该能独立修改配方参数并排查常见故障。</p>
+
+    <!-- guide HTML 输出优先使用内联 SVG（标注数据流方向和数据类型） -->
+    <figure class="diagram">
+      <svg viewBox="0 0 600 380" role="img" aria-label="SmartFactory 系统架构与数据流">
+        <!-- 顶层: MES 工单 -->
+        <rect x="230" y="10" width="140" height="36" rx="6" fill="var(--bg-secondary,#f4f6f8)" stroke="var(--border,#d8dee4)"/>
+        <text x="300" y="33" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text,#1a2332)">MES 工单</text>
+        <text x="300" y="60" text-anchor="middle" font-size="10" fill="var(--text-muted,#64748b)">(JSON via FTP)</text>
+        <!-- 箭头 -->
+        <line x1="300" y1="46" x2="300" y2="80" stroke="var(--text-muted,#64748b)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- RecipeManager -->
+        <rect x="210" y="80" width="180" height="36" rx="6" fill="var(--accent-soft,#e7f8f7)" stroke="var(--accent,#1c8790)"/>
+        <text x="300" y="103" text-anchor="middle" font-size="12" fill="var(--accent,#1c8790)">RecipeManager</text>
+        <text x="300" y="130" text-anchor="middle" font-size="10" fill="var(--text-muted,#64748b)">校验 + 加载</text>
+        <line x1="300" y1="116" x2="300" y2="150" stroke="var(--text-muted,#64748b)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- SequenceEngine -->
+        <rect x="210" y="150" width="180" height="36" rx="6" fill="var(--bg-secondary,#f4f6f8)" stroke="var(--border,#d8dee4)"/>
+        <text x="300" y="173" text-anchor="middle" font-size="12" fill="var(--text,#1a2332)">SequenceEngine</text>
+        <text x="300" y="200" text-anchor="middle" font-size="10" fill="var(--text-muted,#64748b)">编译为 Task[]</text>
+        <line x1="300" y1="186" x2="300" y2="220" stroke="var(--text-muted,#64748b)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- TaskScheduler -->
+        <rect x="210" y="220" width="180" height="36" rx="6" fill="var(--bg-secondary,#f4f6f8)" stroke="var(--border,#d8dee4)"/>
+        <text x="300" y="243" text-anchor="middle" font-size="12" fill="var(--text,#1a2332)">TaskScheduler</text>
+        <text x="300" y="270" text-anchor="middle" font-size="10" fill="var(--text-muted,#64748b)">MLFQ 优先级调度</text>
+        <!-- 分叉到 DeviceDriver 和 DataCollector -->
+        <line x1="260" y1="256" x2="160" y2="300" stroke="var(--text-muted,#64748b)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="340" y1="256" x2="440" y2="300" stroke="var(--text-muted,#64748b)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- DeviceDriver -->
+        <rect x="70" y="300" width="180" height="36" rx="6" fill="var(--bg-secondary,#f4f6f8)" stroke="var(--border,#d8dee4)"/>
+        <text x="160" y="323" text-anchor="middle" font-size="12" fill="var(--text,#1a2332)">DeviceDriver</text>
+        <text x="160" y="350" text-anchor="middle" font-size="10" fill="var(--text-muted,#64748b)">Modbus TCP → PLC</text>
+        <!-- DataCollector -->
+        <rect x="350" y="300" width="180" height="36" rx="6" fill="var(--bg-secondary,#f4f6f8)" stroke="var(--border,#d8dee4)"/>
+        <text x="440" y="323" text-anchor="middle" font-size="12" fill="var(--text,#1a2332)">DataCollector</text>
+        <text x="440" y="350" text-anchor="middle" font-size="10" fill="var(--text-muted,#64748b)">采集 → SQLite</text>
+        <!-- Arrow marker -->
+        <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted,#64748b)"/></marker></defs>
+      </svg>
+      <figcaption>图 1.1 — SmartFactory 系统架构与数据流<span class="fig-source">Source: src/main.cpp</span></figcaption>
+    </figure>
+
+    <div class="callout note">
+      <strong>设计决策</strong>
+      系统不直接与 MES 通信。RecipeManager 从本地文件系统读取工单 JSON，MES 通过 FTP
+      将文件推送到约定目录。这样做是因为工控网络与 IT 网络物理隔离，无法直接 HTTP 调用。
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== 第2章: 快速开始 (带 badge) ===== -->
+<section class="section" id="sec-quickstart">
+  <div class="section-header">
+    <h2 id="sec-quickstart">2. 快速开始</h2>
+    <span class="section-badge badge-config">Config</span>
+  </div>
+  <div class="section-body">
+
+    <!-- 前置条件框 -->
+    <div class="prereq">
+      <h4>前置条件</h4>
+      <ul>
+        <li>GCC 11.4+ 或 ARM 交叉编译工具链</li>
+        <li>CMake 3.24+</li>
+        <li>FreeRTOS 10.5 SDK（已包含在 <code>vendor/</code>）</li>
+      </ul>
+    </div>
+
+    <!-- 步骤指示器 -->
+    <div class="steps">
+      <div class="step" data-step="1">
+        <h4>克隆并构建</h4>
+        <p>cmake -B build && cmake --build build</p>
+      </div>
+      <div class="step" data-step="2">
+        <h4>准备配方文件</h4>
+        <p>cp config/sample-recipe.json config/recipe.json</p>
+      </div>
+      <div class="step" data-step="3">
+        <h4>启动仿真模式</h4>
+        <p>./build/smartfactory --sim</p>
+      </div>
+    </div>
+
+    <p>启动后控制台输出如下，表示系统就绪：</p>
+
+    <div class="code-block" data-lang="log"><pre><code class="language-plaintext">[INFO] RecipeManager: loaded recipe "sample-recipe" v1.2
+[INFO] SequenceEngine: compiled 12 tasks from recipe
+[INFO] TaskScheduler: ready, 4 priority levels active
+[INFO] DeviceDriver: SIM mode — no Modbus connection
+[INFO] System ready. Awaiting commands...</code></pre></div>
+
+    <div class="callout warning">
+      <strong>注意</strong>
+      仿真模式下 DeviceDriver 不连接真实设备。所有 Modbus 指令会被记录到
+      <code>logs/sim-commands.log</code> 而不是发送到 PLC。生产环境启动时去掉 <code>--sim</code> 参数。
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== 第3章: 配置 ===== -->
+<section class="section" id="sec-config">
+  <div class="section-header">
+    <h2 id="sec-config">3. 配置</h2>
+    <span class="section-badge badge-config">Config</span>
+  </div>
+  <div class="section-body">
+
+    <!-- 代码嵌在叙事段落中，不是孤立 code block -->
+    <p>系统配置位于 <a class="source-ref" href="config/system.yaml#L1-L80"><code>config/system.yaml:1-80</code></a>，
+    下面是关键字段及其具体含义：</p>
+
+    <div class="code-block" data-lang="yaml"><pre><code class="language-yaml">scheduler:
+  max_queue_size: 256          # 调度队列上限，超过则拒绝新任务
+  time_slice_ms:               # 各优先级层的时间片（毫秒）
+    critical: 0                # 0 = 无限制，立即执行到完成
+    high: 100
+    normal: 50
+    low: 20
+  starvation_guard_ms: 500     # 防饥饿：每层至少每 500ms 被调度一次
+
+device:
+  protocol: modbus_tcp
+  host: "192.168.1.100"        # PLC 地址
+  port: 502
+  timeout_ms: 2000             # 通信超时，超过视为设备离线
+  retry_count: 3               # 超时后重试次数</code></pre></div>
+
+    <p><code>starvation_guard_ms</code> 是防止低优先级任务饿死的关键参数。如果你的产线有大量实时控制任务，
+    可以适当增大到 1000ms，但不建议超过 2000ms，否则清理任务积压会导致内存增长。</p>
+
+  </div>
+</section>
+
+<!-- ===== 第4章: 核心流程 (带 Runtime badge) ===== -->
+<section class="section" id="sec-core-flow">
+  <div class="section-header">
+    <h2 id="sec-core-flow">4. 核心流程</h2>
+    <span class="section-badge badge-runtime">Runtime</span>
+  </div>
+  <div class="section-body">
+
+    <p>一个完整的生产周期从 MES 推送工单开始，到质检报告生成结束。
+    数据在系统中经过 5 个阶段：</p>
+
+    <!-- flow 组件 -->
+    <div class="flow">
+      <div class="flow-step"><b>1. 接收</b><span>JSON 工单 → RecipeManager</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><b>2. 编译</b><span>Recipe → Task[]</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><b>3. 调度</b><span>MLFQ 优先级排序</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><b>4. 执行</b><span>Modbus → PLC</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><b>5. 采集</b><span>结果 → SQLite</span></div>
+    </div>
+
+    <h3 id="sec-compile">4.1 配方编译（Recipe → Task）</h3>
+
+    <p>SequenceEngine 的 <code>compile()</code> 方法
+    （<a class="source-ref" href="src/sequence/sequence_engine.cpp#L45-L80"><code>sequence_engine.cpp:45-80</code></a>）
+    将配方中的每个步骤转换为一个 Task 对象。例如，下面的配方步骤：</p>
+
+    <div class="code-block" data-lang="json"><pre><code class="language-json">{
+  "step": "move_arm",
+  "params": { "axis": "X", "position": 150.0, "speed": 80 },
+  "priority": "high",
+  "depends_on": ["home_position"]
+}</code></pre></div>
+
+    <p>会被编译为一个 <code>Task</code>，优先级设为 <code>HIGH</code>（数值 1），
+    并在 DependencyGraph 中建立对 <code>home_position</code> 任务的依赖边。
+    只有当 <code>home_position</code> 完成后，这个 <code>move_arm</code> 任务才会进入 Ready 状态。</p>
+
+    <div class="callout note">
+      <strong>设计决策</strong>
+      编译阶段会进行拓扑排序检测循环依赖。如果配方中存在 A→B→C→A 的环，编译直接失败并返回
+      <code>CycleDetectedError</code>，而不是等到运行时死锁。这比运行时检测的成本低 10 倍以上。
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== 第7章: 完整示例（必须有，不可省略） ===== -->
+<section class="section" id="sec-example">
+  <div class="section-header">
+    <h2 id="sec-example">7. 完整示例：单工单生产周期</h2>
+    <span class="section-badge badge-example">Example</span>
+  </div>
+  <div class="section-body">
+
+    <h3 id="sec-example-setup">场景设定</h3>
+    <p>MES 推送一个 3 步工单：机械臂归零 → 移动到取料位 → 抓取工件。我们跟踪这个工单的完整生命周期。</p>
+
+    <h3 id="sec-example-input">输入：配方文件</h3>
+    <div class="code-block" data-lang="json"><pre><code class="language-json">{
+  "recipe_id": "R-2026-0516",
+  "version": "1.0",
+  "steps": [
+    { "id": "home",     "action": "home_all",  "priority": "critical" },
+    { "id": "move",     "action": "move_arm",  "priority": "high",
+      "params": { "axis": "X", "position": 150.0 },
+      "depends_on": ["home"] },
+    { "id": "grip",     "action": "grip",      "priority": "high",
+      "params": { "force": 30 },
+      "depends_on": ["move"] }
+  ]
+}</code></pre></div>
+
+    <h3 id="sec-example-runtime">运行时流程</h3>
+    <div class="flow">
+      <div class="flow-step"><b>home_all</b><span>CRITICAL → 立即执行</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><b>move_arm</b><span>依赖 home ✓ → Ready</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step"><b>grip</b><span>依赖 move ✓ → Ready</span></div>
+    </div>
+
+    <h3 id="sec-example-output">输出结果</h3>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>时间</th><th>任务</th><th>状态</th><th>耗时</th></tr></thead>
+        <tbody>
+          <tr><td>T+0ms</td><td>home_all</td><td>Running → Completed</td><td>320ms</td></tr>
+          <tr><td>T+320ms</td><td>move_arm</td><td>Running → Completed</td><td>450ms</td></tr>
+          <tr><td>T+770ms</td><td>grip</td><td>Running → Completed</td><td>180ms</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>DataCollector 将结果写入 SQLite：</p>
+    <div class="code-block" data-lang="sql"><pre><code class="language-sql">SELECT task_id, state, duration_ms FROM task_log
+WHERE recipe_id = 'R-2026-0516';
+
+-- task_id  | state     | duration_ms
+-- home     | completed | 320
+-- move     | completed | 450
+-- grip     | completed | 180</code></pre></div>
+
+  </div>
+</section>
+
+<!-- ===== 第8章: FAQ / 排障 ===== -->
+<section class="section" id="sec-faq">
+  <div class="section-header">
+    <h2 id="sec-faq">8. FAQ / 排障</h2>
+  </div>
+  <div class="section-body">
+    <details class="faq">
+      <summary>启动报 "Modbus connection refused"</summary>
+      <div>
+        <p>检查 <code>config/system.yaml</code> 中 <code>device.host</code> 和 <code>device.port</code> 是否正确。
+        确认 PLC 已上电且在同一子网。用 <code>ping 192.168.1.100</code> 验证网络连通性。</p>
+        <p>如果只是开发调试，加 <code>--sim</code> 参数启动仿真模式。</p>
+      </div>
+    </details>
+    <details class="faq">
+      <summary>任务一直卡在 Pending 状态</summary>
+      <div>
+        <p>通常是依赖的上游任务失败或被取消。运行 <code>smartfactory --status</code> 查看所有任务状态，
+        找到状态为 <code>Failed</code> 的上游任务。级联取消机制会自动取消下游，但 Pending 任务不会被取消——
+        它们只是永远等不到依赖满足。</p>
+        <p>修复方法：<code>smartfactory --cancel-stale</code> 清理所有无法满足依赖的 Pending 任务。</p>
+      </div>
+    </details>
+    <details class="faq">
+      <summary>内存持续增长</summary>
+      <div>
+        <p>检查 <code>starvation_guard_ms</code> 配置。如果设得太大（>2000ms），低优先级的清理任务
+        得不到及时执行，导致完成的任务对象堆积在内存中。建议保持默认值 500ms。</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ===== 术语表 ===== -->
+<section class="section" id="sec-glossary">
+  <div class="section-header">
+    <h2 id="sec-glossary-heading">术语表</h2>
+  </div>
+  <div class="section-body">
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>术语</th><th>说明</th><th>出处</th></tr></thead>
+        <tbody>
+          <tr><td>MES</td><td>Manufacturing Execution System，制造执行系统，下发工单</td><td>外部系统</td></tr>
+          <tr><td>Recipe</td><td>配方，JSON 格式的工单描述，定义生产步骤序列</td><td><code>config/recipe.json</code></td></tr>
+          <tr><td>Task</td><td>调度单元，由 SequenceEngine 从 Recipe 步骤编译生成</td><td><code>src/task/task.h</code></td></tr>
+          <tr><td>MLFQ</td><td>Multi-Level Feedback Queue，多级反馈队列调度算法</td><td><code>src/scheduler/mlfq.cpp</code></td></tr>
+          <tr><td>Modbus TCP</td><td>工业通信协议，用于控制器与 PLC 之间的指令传输</td><td><code>src/device/modbus_driver.cpp</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

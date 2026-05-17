@@ -1,0 +1,175 @@
+<!--
+  doc-writer system 内容黄金样本
+  ================================
+  本文件展示填入 system-design.html 模板 {{SECTIONS}} 占位符的正确内容写法。
+  不包含 CSS/JS/HTML 骨架——那些由模板提供。
+  生成文档时，对照本文件检查：Layer Stack、Mermaid 图、模块职责表、跨模块约束 callout。
+-->
+
+<!-- ===== Scope 声明 ===== -->
+<div class="scope-block">
+  <strong>Scope:</strong> 本文覆盖 SmartFactory 系统的整体架构、模块职责划分、数据流和线程模型。
+  不覆盖各模块内部实现细节（详见各模块设计文档）。
+</div>
+
+<!-- ===== 关联源文件 ===== -->
+<div class="relevant-sources">
+  <h4>关联源文件</h4>
+  <ul>
+    <li><a class="source-ref" href="src/main.cpp#L1-L45"><code>src/main.cpp:1-45</code></a> — 系统入口</li>
+    <li><a class="source-ref" href="src/app/application.h#L1-L60"><code>src/app/application.h:1-60</code></a> — 应用层编排</li>
+    <li><a class="source-ref" href="config/system.yaml#L1-L80"><code>config/system.yaml:1-80</code></a> — 系统配置</li>
+  </ul>
+</div>
+
+<!-- ===== 第2章: 技术栈 (section — 始终展开) ===== -->
+<section class="section" id="sec-stack">
+  <div class="section-header">
+    <h2 id="sec-stack">2. 技术栈</h2>
+  </div>
+  <div class="section-body">
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>层次</th><th>技术</th><th>版本</th><th>用途</th></tr></thead>
+        <tbody>
+          <tr><td>语言</td><td>C++17</td><td>GCC 11.4</td><td>核心业务逻辑</td></tr>
+          <tr><td>构建</td><td>CMake</td><td>3.24+</td><td>跨平台构建系统</td></tr>
+          <tr><td>RTOS</td><td>FreeRTOS</td><td>10.5</td><td>实时任务调度</td></tr>
+          <tr><td>通信</td><td>Modbus TCP</td><td>—</td><td>设备控制协议</td></tr>
+          <tr><td>存储</td><td>SQLite</td><td>3.42</td><td>本地日志与配置持久化</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 第3章: 分层架构 (details open — 核心章节但内容长) ===== -->
+<details open id="sec-architecture">
+  <summary><h2 id="sec-architecture">3. 分层架构</h2></summary>
+  <div class="section-body">
+
+    <p>系统按职责分为 4 个层级，上层依赖下层，禁止反向依赖：</p>
+
+    <!-- Layer Stack 组件 -->
+    <div class="layer-stack">
+      <div class="layer app">Interface Layer <span class="layer-label">CLI + Web UI + REST API</span></div>
+      <div class="layer core">Application Layer <span class="layer-label">业务编排：RecipeManager, SequenceEngine</span></div>
+      <div class="layer infra">Domain Layer <span class="layer-label">TaskScheduler, DeviceDriver, DataCollector</span></div>
+      <div class="layer hw">Infrastructure Layer <span class="layer-label">Modbus, SQLite, FileSystem, Logger</span></div>
+    </div>
+
+    <!-- Mermaid 架构图 -->
+    <div class="mermaid-wrap">
+      <p>系统核心模块及数据流向</p>
+      <pre class="mermaid">flowchart TD
+  subgraph Interface
+    CLI[CLI 控制台]
+    API[REST API]
+  end
+  subgraph Application
+    RM[RecipeManager]
+    SE[SequenceEngine]
+  end
+  subgraph Domain
+    TS[TaskScheduler]
+    DD[DeviceDriver]
+    DC[DataCollector]
+  end
+  subgraph Infra
+    MB[Modbus TCP]
+    DB[(SQLite)]
+    LOG[Logger]
+  end
+  CLI --> RM
+  API --> RM
+  RM --> SE --> TS
+  TS --> DD --> MB
+  DC --> DB
+  DD --> DC
+  TS --> LOG</pre>
+      <figcaption>图 3.1 — 系统架构与核心数据流</figcaption>
+    </div>
+
+    <div class="callout note">
+      <strong>设计决策</strong>
+      DeviceDriver 独立于 Application 层，直接属于 Domain。这样做是因为设备通信协议（Modbus）
+      的时序约束需要直接访问底层 Timer，经过 Application 层的间接调用会引入不可接受的延迟（>5ms）。
+    </div>
+
+    <div class="sources-block">
+      <span class="sources-label">Sources:</span>
+      <a class="source-ref" href="src/app/application.h#L15-L40"><code>application.h:15-40</code></a>
+      <a class="source-ref" href="src/main.cpp#L10-L30"><code>main.cpp:10-30</code></a>
+    </div>
+
+  </div>
+</details>
+
+<!-- ===== 第4章: 核心模块职责 (details open) ===== -->
+<details open id="sec-modules">
+  <summary><h2 id="sec-modules">4. 核心模块职责</h2></summary>
+  <div class="section-body">
+
+    <h3 id="sec-recipe-manager">4.1 RecipeManager</h3>
+    <p><strong>职责：</strong>管理配方（Recipe）的加载、校验和版本切换。</p>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>维度</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>路径</td><td><code>src/recipe/</code></td></tr>
+          <tr><td>核心 API</td><td><code>loadRecipe()</code>, <code>validateRecipe()</code>, <code>switchVersion()</code></td></tr>
+          <tr><td>依赖</td><td>FileSystem（配方文件读取）, Logger</td></tr>
+          <tr><td>被依赖</td><td>CLI, REST API, SequenceEngine</td></tr>
+          <tr><td>故障模式</td><td>配方文件损坏 → 回退到上一个有效版本</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="sec-task-scheduler">4.2 TaskScheduler</h3>
+    <p><strong>职责：</strong>基于优先级的任务调度，支持依赖关系和取消传播。</p>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>维度</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>路径</td><td><code>src/scheduler/</code></td></tr>
+          <tr><td>核心 API</td><td><code>schedule()</code>, <code>cancel()</code>, <code>getState()</code></td></tr>
+          <tr><td>依赖</td><td>ThreadPool, PriorityQueue</td></tr>
+          <tr><td>被依赖</td><td>SequenceEngine</td></tr>
+          <tr><td>故障模式</td><td>队列满 → 拒绝新任务并返回 <code>QueueFullError</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>详细设计见 <a href="tech-docs/TaskScheduler_Design.html">TaskScheduler 模块设计文档</a>。</p>
+
+    <!-- 跨模块约束 Callout — 指出具体架构约束 -->
+    <div class="callout warning">
+      <strong>注意</strong>
+      RecipeManager 和 TaskScheduler 之间不存在直接依赖。SequenceEngine 负责将 Recipe
+      转换为 Task 序列后再交给 Scheduler。如果发现二者直接交互的代码，属于架构违规。
+    </div>
+
+    <div class="sources-block">
+      <span class="sources-label">Sources:</span>
+      <a class="source-ref" href="src/recipe/recipe_manager.h#L1-L50"><code>recipe_manager.h:1-50</code></a>
+      <a class="source-ref" href="src/scheduler/task_scheduler.h#L1-L60"><code>task_scheduler.h:1-60</code></a>
+    </div>
+
+  </div>
+</details>
+
+<!-- ===== 术语表 (默认折叠) ===== -->
+<details id="sec-glossary">
+  <summary><h2 id="sec-glossary">术语表</h2></summary>
+  <div class="section-body">
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>术语</th><th>说明</th><th>出处</th></tr></thead>
+        <tbody>
+          <tr><td>Recipe</td><td>工艺配方，定义一次生产过程的参数和步骤序列</td><td><code>recipe_manager.h:10</code></td></tr>
+          <tr><td>Sequence</td><td>由 Recipe 编译后的可执行任务序列</td><td><code>sequence_engine.h:20</code></td></tr>
+          <tr><td>MLFQ</td><td>多级反馈队列，TaskScheduler 的核心调度算法</td><td><code>task_scheduler.h:25</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</details>
