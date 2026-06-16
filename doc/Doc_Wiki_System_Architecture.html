@@ -1,0 +1,714 @@
+<!--
+  Doc-Wiki 系统架构文档（全力模式）
+  ===================================
+  生成方式：全力模式 — 多 subagent 并行分析 + 渐进式披露
+  生成日期：2026-06-16
+  源码规模：33 文件，~13,000 行代码，5 个子系统
+-->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="keywords" content="doc-writer, Claude Code skill, technical documentation, HTML generator, DeepWiki-style">
+  <title>Doc-Wiki 系统架构设计文档</title>
+  <style>
+    :root {
+      --font-sans: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+      --font-mono: Consolas, "Courier New", monospace;
+      --bg: #fafbfc; --bg-secondary: #f4f6f8; --text: #1a2332; --text-secondary: #475569;
+      --border: #d8dee4; --accent: #1c8790; --accent-soft: #e7f8f7;
+      --note: #7c3aed; --note-bg: #f5f3ff; --note-border: #ddd6fe;
+      --info: #3b82f6; --info-bg: #eff6ff; --info-border: #bfdbfe;
+      --warning: #ca8a04; --warning-bg: #fefce8; --warning-border: #fde68a;
+      --radius: 6px; --max-width: 960px;
+    }
+    [data-theme="dark"] {
+      --bg: #0d1117; --bg-secondary: #161b22; --text: #e6edf3; --text-secondary: #b1bac4;
+      --border: #30363d; --accent: #2dd4bf; --accent-soft: #0d2d2d;
+    }
+    body { font-family: var(--font-sans); color: var(--text); background: var(--bg); max-width: var(--max-width); margin: 0 auto; padding: 24px; line-height: 1.7; }
+    h1 { font-size: 32px; letter-spacing: -0.5px; }
+    h2 { font-size: 22px; letter-spacing: -0.3px; margin-top: 40px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
+    h3 { font-size: 17px; margin-top: 24px; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+    th { background: var(--bg-secondary); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; }
+    code { font-family: var(--font-mono); font-size: 14px; background: var(--bg-secondary); padding: 2px 4px; border-radius: 3px; }
+    pre { background: var(--bg-secondary); padding: 16px; border-radius: var(--radius); overflow-x: auto; }
+    pre code { background: none; padding: 0; }
+    .callout { border-left: 4px solid var(--note); background: var(--note-bg); padding: 12px 16px; border-radius: var(--radius); margin: 16px 0; }
+    .callout.info { border-color: var(--info); background: var(--info-bg); }
+    .section-summary { background: var(--accent-soft); padding: 12px 16px; border-radius: var(--radius); margin: 12px 0; }
+    details { margin: 8px 0; }
+    summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+    .doc-tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+    .tag { background: var(--bg-secondary); border: 1px solid var(--border); padding: 2px 8px; border-radius: 12px; font-size: 13px; }
+    .scope-block { background: var(--info-bg); border: 1px solid var(--info-border); padding: 12px 16px; border-radius: var(--radius); margin: 16px 0; }
+    .source-ref { color: var(--accent); text-decoration: none; }
+    .source-ref:hover { text-decoration: underline; }
+    .sources-block { font-size: 13px; color: var(--text-secondary); margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+    .sources-label { font-weight: 600; }
+    figcaption { font-size: 14px; color: var(--text-secondary); margin-top: 8px; }
+    nav#toc { background: var(--bg-secondary); padding: 16px 20px; border-radius: var(--radius); margin: 20px 0; }
+    nav#toc h4 { margin: 0 0 8px; font-size: 15px; }
+    nav#toc ul { margin: 0; padding-left: 20px; }
+    nav#toc li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+
+<!-- 文档元信息 -->
+<div class="doc-meta">
+  <h1>Doc-Wiki 系统架构设计文档</h1>
+  <p><em>Claude Code Skill — 技术文档生成器</em></p>
+  <div class="doc-tags">
+    <span class="tag">claude-code-skill</span>
+    <span class="tag">documentation-generator</span>
+    <span class="tag">HTML-template</span>
+    <span class="tag">Node.js</span>
+    <span class="tag">progressive-disclosure</span>
+    <span class="tag">DeepWiki-style</span>
+  </div>
+</div>
+
+<div class="scope-block">
+  <strong>Scope:</strong> 本文覆盖 Doc-Wiki 的整体架构、五层子系统设计、模板引擎机制、校验流水线和全力模式工作流。
+  不覆盖单个模板的 HTML 细节（见 <code>references/html-components.md</code>）和校验脚本的逐函数实现。
+</div>
+
+<!-- 关联源文件 -->
+<div class="relevant-sources">
+  <h4>关联源文件</h4>
+  <ul>
+    <li><a class="source-ref" href="../SKILL.md"><code>SKILL.md</code></a> — Skill 主入口，路由 + 铁律 + 工作流</li>
+    <li><a class="source-ref" href="../scripts/validate-doc.js#L1-L18"><code>scripts/validate-doc.js:1-18</code></a> — 17 类校验 + 交互测试</li>
+    <li><a class="source-ref" href="../scripts/md-to-html.js#L1-L19"><code>scripts/md-to-html.js:1-19</code></a> — MD→HTML 转换器</li>
+    <li><a class="source-ref" href="../scripts/inline-shared.js#L1-L17"><code>scripts/inline-shared.js:1-17</code></a> — CSS/JS 模板同步</li>
+    <li><a class="source-ref" href="../scripts/doc-shell.js#L1-L30"><code>scripts/doc-shell.js:1-30</code></a> — 运行时交互功能</li>
+    <li><a class="source-ref" href="../scripts/doc-shell.css#L1-L70"><code>scripts/doc-shell.css:1-70</code></a> — 设计系统</li>
+    <li><a class="source-ref" href="../scripts/skin-switcher.js#L1-L30"><code>scripts/skin-switcher.js:1-30</code></a> — 6 套皮肤切换</li>
+    <li><a class="source-ref" href="../references/module-workflow.md"><code>references/module-workflow.md</code></a> — Module 工作流</li>
+    <li><a class="source-ref" href="../references/system-workflow.md"><code>references/system-workflow.md</code></a> — System 工作流</li>
+    <li><a class="source-ref" href="../references/guide-workflow.md"><code>references/guide-workflow.md</code></a> — Guide 工作流</li>
+    <li><a class="source-ref" href="../references/html-components.md"><code>references/html-components.md</code></a> — HTML 组件规范</li>
+  </ul>
+</div>
+
+<!-- 目录 -->
+<nav id="toc">
+  <h4>目录</h4>
+  <ul>
+    <li><a href="#sec-overview">1. 概述</a></li>
+    <li><a href="#sec-architecture">2. 分层架构</a></li>
+    <li><a href="#sec-skill-core">3. Skill 核心（SKILL.md）</a></li>
+    <li><a href="#sec-template-engine">4. 模板引擎</a></li>
+    <li><a href="#sec-validation">5. 校验流水线</a></li>
+    <li><a href="#sec-runtime">6. 运行时系统</a></li>
+    <li><a href="#sec-fullpower">7. 全力模式</a></li>
+    <li><a href="#sec-dataflow">8. 数据流</a></li>
+    <li><a href="#sec-glossary">术语表</a></li>
+  </ul>
+</nav>
+
+<!-- ===== 第1章: 概述 ===== -->
+<section id="sec-overview">
+  <h2 id="sec-overview-h2">1. 概述</h2>
+
+  <div class="section-summary">
+    <p>Doc-Wiki 是一个 <strong>Claude Code Skill</strong>，将真实源码转成可验证的、离线可用的技术文档。支持三种文档类型（module/system/guide），共享一套设计系统（6 套皮肤、暗色模式、响应式布局），通过 17 类自动化校验保证质量。</p>
+  </div>
+
+  <details open id="sec-overview-details">
+    <summary>详细说明</summary>
+    <div>
+      <h3 id="sec-overview-bg">1.1 背景</h3>
+      <p>AI 生成的技术文档存在普遍问题：编造代码引用、视觉风格不一致、缺乏可验证性。
+      Doc-Wiki 通过<strong>7 条铁律</strong>（先读后写、不许编造、颜色锁死、零装饰、零外链、每图必说、引用溯源）
+      和<strong>17 类自动化校验</strong>解决了这些问题。</p>
+      <p>核心理念：<strong>把真实源码转成可验证的、离线可用的工程文档。不是营销页、不是 PPT——是"读完能上手干活"的技术文档。</strong></p>
+
+      <h3 id="sec-overview-types">1.2 文档类型</h3>
+      <table>
+        <thead><tr><th>类型</th><th>定位</th><th>输出</th><th>适用场景</th></tr></thead>
+        <tbody>
+          <tr><td><strong>module</strong></td><td>API 参考手册</td><td><code>.md</code> + <code>.html</code>，12 章框架</td><td>单个模块/类的详细设计</td></tr>
+          <tr><td><strong>system</strong></td><td>架构全景图</td><td><code>.md</code> + <code>.html</code>，Mermaid 架构图</td><td>整个系统的分层架构</td></tr>
+          <tr><td><strong>guide</strong></td><td>端到端教程</td><td>单文件 <code>.html</code>，沿数据流叙事</td><td>新人上手、排障</td></tr>
+          <tr><td><strong>batch</strong></td><td>批量生成</td><td>多个 <code>doc/tech-docs/*.html</code></td><td>所有模块文档 + 索引页</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-overview-scale">1.3 项目规模</h3>
+      <table>
+        <thead><tr><th>指标</th><th>数值</th></tr></thead>
+        <tbody>
+          <tr><td>文件总数</td><td>33</td></tr>
+          <tr><td>代码行数</td><td>~13,000</td></tr>
+          <tr><td>子系统数</td><td>5（Skill 核心、模板、脚本、示例、参考）</td></tr>
+          <tr><td>技术栈</td><td>Node.js / HTML / CSS / JavaScript / Markdown</td></tr>
+          <tr><td>校验项</td><td>17 类（含交互测试 7 项）</td></tr>
+          <tr><td>皮肤数</td><td>6（Teal/Editorial/Vellum/Mono/Carto/Signal）</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>设计决策</strong>
+        选择纯 Node.js + HTML 而非 React/Vue 等框架，因为文档必须<strong>离线可用</strong>——
+        单文件 HTML，零外部依赖（仅 highlight.js CDN，离线时回退到手动 span）。
+        这使得文档可以在任何浏览器中打开，无需构建步骤。
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="../SKILL.md"><code>SKILL.md:14-16</code></a>
+        <a class="source-ref" href="../README.md"><code>README.md:1-12</code></a>
+      </div>
+    </div>
+  </details>
+
+  <details id="sec-overview-deep">
+    <summary>深入分析</summary>
+    <div>
+      <h3 id="sec-overview-principles">核心设计原则</h3>
+      <table>
+        <thead><tr><th>#</th><th>原则</th><th>含义</th><th>校验覆盖</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>不读源码不动手</td><td>没读过的函数/类 = 不存在</td><td>人工审查</td></tr>
+          <tr><td>2</td><td>不许编造</td><td>宁可 <code>&lt;!-- TODO --&gt;</code> 也不造假</td><td><code>checkSourceRefs</code></td></tr>
+          <tr><td>3</td><td>颜色锁死</td><td>只用 CSS 变量，禁止 inline <code>color: #hex</code></td><td><code>checkVisualConstraints</code></td></tr>
+          <tr><td>4</td><td>零装饰</td><td>无渐变、大阴影、blur、浮起动画</td><td><code>checkVisualConstraints</code></td></tr>
+          <tr><td>5</td><td>零外链</td><td>图表用 SVG/CSS/Mermaid 内联</td><td><code>checkVisualConstraints</code></td></tr>
+          <tr><td>6</td><td>每图必说</td><td>所有图表必须有 <code>&lt;figcaption&gt;</code></td><td><code>checkFigCaptions</code></td></tr>
+          <tr><td>7</td><td>引用溯源</td><td>代码引用必须带 <code>file:line</code></td><td><code>checkSourceRefs</code></td></tr>
+          <tr><td>8</td><td>全力模式独立审核</td><td>审核必须由独立 subagent 执行</td><td>流程约束</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第2章: 分层架构 ===== -->
+<section id="sec-architecture">
+  <h2 id="sec-architecture-h2">2. 分层架构</h2>
+
+  <div class="section-summary">
+    <p>Doc-Wiki 采用五层架构：SKILL.md（路由+规则）→ references/（工作流）→ templates/（骨架）→ scripts/（工具链）→ examples/（样本）。每层职责清晰，通过文件引用和占位符约定解耦。</p>
+  </div>
+
+  <details open id="sec-architecture-details">
+    <summary>架构详解</summary>
+    <div>
+      <h3 id="sec-arch-layers">五层架构</h3>
+      <p>Doc-Wiki 采用五层架构，每层职责单一，通过文件引用和占位符约定解耦。
+      这种分层设计的核心优势是<strong>独立演进</strong>——新增文档类型只需添加 reference + template，
+      不影响校验逻辑；新增校验规则只需修改 validate-doc.js，不影响模板结构。</p>
+      <p>层间依赖是单向的：L1（路由）→ L2（工作流）→ L3（模板）← L4（工具链）← L5（样本）。
+      L4 和 L3 之间通过 <code>@sync</code> 标记实现双向同步，但这是开发时的同步，不是运行时的依赖。</p>
+        <thead><tr><th>层级</th><th>目录</th><th>职责</th><th>关键文件</th></tr></thead>
+        <tbody>
+          <tr><td>L1: 路由层</td><td><code>SKILL.md</code></td><td>文档类型路由、执行模式选择、铁律定义、工作流编排</td><td><code>SKILL.md</code></td></tr>
+          <tr><td>L2: 工作流层</td><td><code>references/</code></td><td>每种文档类型的详细 Phase 0→1→2→3 流程</td><td><code>*-workflow.md</code>, <code>html-components.md</code></td></tr>
+          <tr><td>L3: 模板层</td><td><code>templates/</code></td><td>HTML 骨架（CSS/JS 内嵌）、MD 模板、章节模板</td><td><code>*.html</code>, <code>sections/*.html</code></td></tr>
+          <tr><td>L4: 工具链层</td><td><code>scripts/</code></td><td>校验、转换、同步、皮肤切换、设计系统</td><td><code>validate-doc.js</code>, <code>md-to-html.js</code></td></tr>
+          <tr><td>L5: 样本层</td><td><code>examples/</code></td><td>各文档类型的黄金样本，对照参考</td><td><code>*-content-example.html</code></td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>设计决策</strong>
+        五层架构而非单一配置文件，是因为文档生成涉及<strong>路由决策</strong>（选类型）、<strong>内容规范</strong>（怎么写）、
+        <strong>视觉规范</strong>（怎么排版）、<strong>质量校验</strong>（怎么检查）四个独立关注点。
+        分层使得每层可以独立演进——新增文档类型只需添加 reference + template，不影响校验逻辑。
+      </div>
+
+      <h3 id="sec-arch-files">文件结构</h3>
+      <pre><code class="language-text">doc-writer/
+├── SKILL.md                          # L1: Skill 主入口
+├── references/                       # L2: 工作流定义
+│   ├── module-workflow.md            #   Module 类型详细流程
+│   ├── system-workflow.md            #   System 类型详细流程
+│   ├── guide-workflow.md             #   Guide 类型详细流程
+│   └── html-components.md            #   共享 HTML 组件规范
+├── templates/                        # L3: HTML 骨架 + 章节模板
+│   ├── module-design.html            #   Module HTML 骨架
+│   ├── system-design.html            #   System HTML 骨架
+│   ├── guide.html                    #   Guide HTML 骨架
+│   ├── module-index.html             #   Module 索引页
+│   ├── system-index.html             #   System 索引页
+│   └── sections/                     #   渐进式披露章节模板
+│       ├── overview.html             #     概述模板
+│       ├── architecture.html         #     架构模板
+│       ├── module-detail.html        #     模块详情模板
+│       ├── state-machine.html        #     状态机模板
+│       ├── flowchart.html            #     流程图模板
+│       ├── faq.html                  #     FAQ 模板
+│       └── glossary.html             #     术语表模板
+├── scripts/                          # L4: 工具链
+│   ├── validate-doc.js               #   17 类校验 + 交互测试
+│   ├── md-to-html.js                 #   MD→HTML 转换
+│   ├── inline-shared.js              #   CSS/JS 模板同步
+│   ├── doc-shell.css                 #   设计系统（~30KB）
+│   ├── doc-shell.js                  #   运行时功能（~15KB）
+│   └── skin-switcher.js              #   6 套皮肤切换（~22KB）
+└── examples/                         # L5: 黄金样本
+    ├── module-content-example.html
+    ├── system-content-example.html
+    ├── guide-content-example.html
+    └── fullpower-content-example.html</code></pre>
+    </div>
+  </details>
+
+  <details id="sec-architecture-deep">
+    <summary>深入分析</summary>
+    <div>
+      <h3 id="sec-arch-coupling">层间耦合</h3>
+      <table>
+        <thead><tr><th>依赖方向</th><th>机制</th><th>示例</th></tr></thead>
+        <tbody>
+          <tr><td>L1 → L2</td><td>Markdown 链接</td><td><code>SKILL.md</code> 中 <code>[module-workflow.md](references/module-workflow.md)</code></td></tr>
+          <tr><td>L2 → L3</td><td>文件路径约定</td><td><code>references/module-workflow.md</code> 引用 <code>templates/module-design.html</code></td></tr>
+          <tr><td>L3 → L4</td><td><code>@sync</code> 标记</td><td>HTML 模板中 <code>/* @sync:doc-shell.css:start */</code> 占位符</td></tr>
+          <tr><td>L4 → L3</td><td><code>inline-shared.js --sync</code></td><td>将 CSS/JS 内容注入模板的 <code>@sync</code> 区域</td></tr>
+          <tr><td>L5 → L2</td><td>对照参考</td><td>examples 展示 L2 规范的实际输出效果</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第3章: Skill 核心 ===== -->
+<section id="sec-skill-core">
+  <h2 id="sec-skill-core-h2">3. Skill 核心（SKILL.md）</h2>
+
+  <div class="section-summary">
+    <p>SKILL.md 是整个系统的入口，包含文档类型路由、执行模式选择、7+1 条铁律、内容驱动深度规则、普通模式工作流（Phase 0→1→2→3）和全力模式工作流（7 阶段）。</p>
+  </div>
+
+  <details open id="sec-skill-core-details">
+    <summary>核心机制详解</summary>
+    <div>
+      <h3 id="sec-skill-routing">3.1 文档类型路由</h3>
+      <p>用户触发后，SKILL.md 根据意图关键词自动路由到四种文档类型。路由规则基于触发词匹配——
+      用户说"模块文档"或"给 X 写文档"时路由到 module，说"系统设计"时路由到 system，
+      说"项目指南"或"guide"时路由到 guide。意图不明确时，必须用 AskQuestion 让用户选择。</p>
+      <p>确定类型后，立即读取对应 reference 文件获取详细工作流指导，同时读取 <code>html-components.md</code> 获取共享组件规范。</p>
+      <table>
+        <thead><tr><th>触发词</th><th>路由目标</th><th>详细流程</th></tr></thead>
+        <tbody>
+          <tr><td>"模块文档"、"给 X 写文档"</td><td>module</td><td><code>references/module-workflow.md</code></td></tr>
+          <tr><td>"系统设计"、"架构设计"</td><td>system</td><td><code>references/system-workflow.md</code></td></tr>
+          <tr><td>"项目指南"、"guide"</td><td>guide</td><td><code>references/guide-workflow.md</code></td></tr>
+          <tr><td>"分模块写文档"、"批量生成"</td><td>batch</td><td>循环复用 module 流程</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-skill-modes">3.2 执行模式</h3>
+      <p>确定文档类型后，SKILL.md 必须询问用户选择执行模式。普通模式适合日常文档需求，单 agent 单次完成；
+      全力模式适合高质量文档需求，采用多 subagent 并行分析 + 深度研究 + 多轮自审，不计 token 消耗。</p>
+      <p>全力模式的核心差异在于：不区分文档类型，自动分析项目并生成完整文档体系（系统架构 + 核心模块 + Guide + 索引页）。</p>
+      <table>
+        <thead><tr><th>模式</th><th>特征</th><th>适用场景</th></tr></thead>
+        <tbody>
+          <tr><td>⚡ 普通模式</td><td>单 agent 单次完成，快速生成</td><td>日常文档需求</td></tr>
+          <tr><td>🔥 全力模式</td><td>多 subagent 并行 + 深度研究 + 多轮自审</td><td>高质量文档需求</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-skill-depth">3.3 内容驱动深度</h3>
+      <p>模板只定义"可用的组件库和章节池"，<strong>不硬编码输出的章节数量和深度</strong>。
+      章节取舍的判据是源码复杂度，不是模板框架。这是 Doc-Wiki 最重要的设计决策之一——
+      传统的文档模板会预定义固定的章节结构（如"必须有 12 章"），导致简单模块被迫填充无意义的章节，
+      复杂模块又被强制压缩到有限的章节中。</p>
+      <p>Doc-Wiki 的解决方案是：<strong>源码驱动深度</strong>。一个 30 行的工具函数不需要 12 章；
+      一个 2000 行的状态机模块可能每章都要。每章的最低内容密度也有明确要求——
+      每个 <code>## H2</code> 章节必须包含 ≥2 段叙述性文字 + ≥1 个结构化元素。</p>
+      <table>
+        <thead><tr><th>文档类型</th><th>源码规模</th><th>最低章节数</th><th>最低代码块</th></tr></thead>
+        <tbody>
+          <tr><td>module</td><td>&lt; 200 行</td><td>5 章</td><td>3</td></tr>
+          <tr><td>module</td><td>200-1000 行</td><td>7 章</td><td>5</td></tr>
+          <tr><td>module</td><td>&gt; 1000 行</td><td>9+ 章</td><td>8</td></tr>
+          <tr><td>system</td><td>3-5 模块</td><td>6 章</td><td>-</td></tr>
+          <tr><td>system</td><td>&gt; 10 模块</td><td>10+ 章</td><td>-</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout">
+        <strong>设计决策</strong>
+        内容驱动深度而非模板驱动，是因为一个 30 行的工具函数不需要 12 章，
+        而一个 2000 行的状态机模块可能每章都要。<strong>章节取舍的判据是源码复杂度，不是模板框架。</strong>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第4章: 模板引擎 ===== -->
+<section id="sec-template-engine">
+  <h2 id="sec-template-engine-h2">4. 模板引擎</h2>
+
+  <div class="section-summary">
+    <p>模板引擎采用<strong>骨架+内容分离</strong>模式：HTML 模板提供骨架（CSS/JS 内嵌），agent 生成内容填入 <code>{{SECTIONS}}</code> 占位符。支持渐进式披露三层结构（Summary → Details → Deep Dive）。</p>
+  </div>
+
+  <details open id="sec-template-engine-details">
+    <summary>模板机制详解</summary>
+    <div>
+      <h3 id="sec-tpl-architecture">4.1 骨架+内容分离</h3>
+      <p>模板引擎的核心设计是<strong>骨架+内容分离</strong>——HTML 模板提供完整的骨架（CSS/JS/sidebar/TOC），
+      agent 只负责生成内容片段填入 <code>{{SECTIONS}}</code> 占位符。这确保了所有文档的视觉一致性，
+      无论由哪个 agent 生成。</p>
+      <p>骨架包含：DOCTYPE、charset、viewport、内嵌的 CSS（通过 @sync 标记）、侧边栏 TOC、
+      主内容区域、暗色模式切换按钮、内嵌的 JS（通过 @sync 标记）。agent 生成的内容只需是合法的 HTML 片段，
+      不需要包含任何样式或脚本。</p>
+      <pre><code class="language-text">HTML 模板（templates/*.html）
+  ├── CSS（@sync:doc-shell.css:start/end 内嵌）
+  ├── JS（@sync:doc-shell.js/start/end 内嵌）
+  ├── HTML 骨架（head, body, sidebar, main）
+  └── {{SECTIONS}} 占位符 ← agent 生成的内容填入这里</code></pre>
+
+      <h3 id="sec-tpl-sync">4.2 @sync 同步机制</h3>
+      <p>三个共享运行时文件（CSS/JS/Skin）通过 <code>@sync</code> 标记嵌入模板。
+      当 CSS 或 JS 修改后，运行 <code>inline-shared.js --sync</code> 自动替换所有模板中的对应区域。</p>
+      <pre><code class="language-javascript">// inline-shared.js 同步逻辑
+const SHARED_FILES = {
+  'doc-shell.css': path.join(SCRIPTS_DIR, 'doc-shell.css'),
+  'doc-shell.js': path.join(SCRIPTS_DIR, 'doc-shell.js'),
+  'skin-switcher.js': path.join(SCRIPTS_DIR, 'skin-switcher.js'),
+};
+
+// 替换模板中 @sync:xxx:start ... @sync:xxx:end 区域
+function syncTemplate(templatePath, sharedContent) {
+  let html = fs.readFileSync(templatePath, 'utf8');
+  for (const [name, content] of Object.entries(sharedContent)) {
+    const startMark = `/* @sync:${name}:start */`;
+    const endMark = `/* @sync:${name}:end */`;
+    const re = new RegExp(`${startMark}[\\s\\S]*?${endMark}`, 'g');
+    html = html.replace(re, `${startMark}\n${content}\n${endMark}`);
+  }
+  fs.writeFileSync(templatePath, html, 'utf8');
+}</code></pre>
+      <p>模板专属的 CSS 覆盖（如 module 的 <code>--max-width: 880px</code>）位于标记区域之外，不受同步影响。</p>
+      <table>
+        <thead><tr><th>文件</th><th>职责</th><th>大小</th><th>同步命令</th></tr></thead>
+        <tbody>
+          <tr><td><code>doc-shell.css</code></td><td>设计系统 + 全部组件样式</td><td>~30KB</td><td rowspan="3"><code>node inline-shared.js --sync</code></td></tr>
+          <tr><td><code>doc-shell.js</code></td><td>TOC/ScrollSpy/高亮/缩放/Mermaid</td><td>~15KB</td></tr>
+          <tr><td><code>skin-switcher.js</code></td><td>6 套皮肤切换</td><td>~22KB</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-tpl-sections">4.3 渐进式披露章节模板</h3>
+      <p>7 个章节模板，每个遵循三层渐进式披露结构。这种结构的设计灵感来自 DeepWiki 和 ZRead.ai——
+      读者可以快速扫描 Summary 判断是否需要深入，大多数读者只需阅读 Details 层，
+      高级读者可以展开 Deep Dive 获取实现细节和边界情况分析。</p>
+      <p>模板使用 <code>{{占位符}}</code> 标记需要填充的内容，agent 替换占位符后即可生成完整的章节 HTML。
+      每个模板都包含设计决策 Callout 和 Sources 块，确保内容有 WHY 解释和源码溯源。</p>
+      <table>
+        <thead><tr><th>模板</th><th>适用场景</th><th>三层结构</th></tr></thead>
+        <tbody>
+          <tr><td><code>overview.html</code></td><td>概述</td><td>Summary → 背景/解决方案 → 深入分析</td></tr>
+          <tr><td><code>architecture.html</code></td><td>架构</td><td>Summary → 架构图/分层 → 依赖/性能</td></tr>
+          <tr><td><code>module-detail.html</code></td><td>模块详情</td><td>Summary → API/示例 → 实现/边界</td></tr>
+          <tr><td><code>state-machine.html</code></td><td>状态机</td><td>Summary → 转换表/图 → 详细行为</td></tr>
+          <tr><td><code>flowchart.html</code></td><td>流程图</td><td>Summary → 流程图/步骤 → 异常/性能</td></tr>
+          <tr><td><code>faq.html</code></td><td>FAQ</td><td>Summary → 5+ Q&A 折叠</td></tr>
+          <tr><td><code>glossary.html</code></td><td>术语表</td><td>Summary → 术语/说明/出处</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第5章: 校验流水线 ===== -->
+<section id="sec-validation">
+  <h2 id="sec-validation-h2">5. 校验流水线</h2>
+
+  <div class="section-summary">
+    <p><code>validate-doc.js</code> 实现 17 类自动化校验，覆盖内容质量、视觉约束、交互功能三个维度。<code>--fix</code> 可自动修复部分问题，<code>--test-interactive</code> 启用全力模式交互测试。</p>
+  </div>
+
+  <details open id="sec-validation-details">
+    <summary>校验项详解</summary>
+    <div>
+      <h3 id="sec-val-checks">17 类校验项</h3>
+      <p>校验脚本采用插件式架构，每类检查是一个独立函数，通过 Report 对象收集结果。
+      <code>--fix</code> 模式下，Mermaid 块、heading ID、代码块等可自动修复；其他问题报告后由 agent 就地修复。</p>
+      <pre><code class="language-javascript">// validate-doc.js 校验架构
+function validateFile(filePath, fix) {
+  let html = fs.readFileSync(filePath, 'utf-8');
+  const report = new Report(path.basename(filePath));
+
+  // 17 类校验
+  html = checkMermaid(html, report, fix);        // 1. Mermaid 语法
+  html = checkHeadingIds(html, report, fix);      // 2. 标题 ID
+  html = checkCodeBlocks(html, report, fix);      // 3. 代码块
+  checkTables(html, report);                       // 4. 表格结构
+  checkInlineMarkdown(html, report);               // 5. 内联 MD
+  checkCollapsibleSections(html, report);          // 6. 折叠章节
+  html = checkTOC(html, report, fix);             // 7. TOC 完整性
+  checkHtmlSkeleton(html, report);                 // 8. HTML 骨架
+  checkSourceRefs(html, report);                   // 9. 源码引用
+  checkGlossary(html, report);                     // 10. 术语表
+  checkScopeBlock(html, report);                   // 11. Scope 声明
+  checkVisualConstraints(html, report);            // 12. 视觉约束
+  checkSvgGuardrails(html, report);                // 13. SVG 护栏
+  checkFigCaptions(html, report, isNewDoc);        // 14. 图说完整性
+  checkEmptySections(html, report);                // 15. 空章节
+  checkDuplicateContent(html, report);             // 16. 重复内容
+  checkContentDensity(html, report);               // 17. 内容密度
+
+  // 交互测试（全力模式）
+  if (testInteractive) {
+    checkProgressiveDisclosure(html, report);      // I1. 渐进式披露
+    checkInteractionFeatures(html, report);        // I2-I7. 交互功能
+  }
+}</code></pre>
+      <p>Report 对象收集所有检查结果后，按类别分组输出，统计 pass/warn/fail/fix 数量。</p>
+        <thead><tr><th>#</th><th>类别</th><th>检查内容</th><th>自动修复</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Mermaid 块</td><td>HTML 实体、箭头语法、花括号</td><td>✓</td></tr>
+          <tr><td>2</td><td>章节标题 ID</td><td>h2/h3 唯一 id、TOC 可定位</td><td>✓</td></tr>
+          <tr><td>3</td><td>代码块</td><td>language tag、HTML 转义</td><td>✓</td></tr>
+          <tr><td>4</td><td>表格</td><td>thead/tbody 结构</td><td>报告</td></tr>
+          <tr><td>5</td><td>内联 Markdown</td><td>链接、粗体已解析</td><td>报告</td></tr>
+          <tr><td>6</td><td>可折叠章节</td><td>details/summary 结构</td><td>报告</td></tr>
+          <tr><td>7</td><td>TOC 完整性</td><td>非空、链接有效</td><td>✓</td></tr>
+          <tr><td>8</td><td>HTML 骨架</td><td>charset、viewport、lang</td><td>报告</td></tr>
+          <tr><td>9</td><td>源码引用</td><td>source-ref + href 含行号</td><td>--new-doc 必填</td></tr>
+          <tr><td>10</td><td>术语表</td><td>glossary 章节存在</td><td>--new-doc 必填</td></tr>
+          <tr><td>11</td><td>Scope 声明</td><td>scope-block 存在</td><td>--new-doc 必填</td></tr>
+          <tr><td>12</td><td>视觉约束</td><td>外链图片、渐变、大阴影、硬编码色</td><td>报告</td></tr>
+          <tr><td>13</td><td>SVG 护栏</td><td>行数、节点数、无障碍</td><td>报告</td></tr>
+          <tr><td>14</td><td>图说完整性</td><td>figcaption + 编号格式</td><td>报告</td></tr>
+          <tr><td>15</td><td>空章节</td><td>section-body 不为空</td><td>报告</td></tr>
+          <tr><td>16</td><td>重复内容</td><td>重复 callout/段落</td><td>报告</td></tr>
+          <tr><td>17</td><td>内容密度</td><td>每节 ≥2 段 + ≥1 结构元素</td><td>warn</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-val-interactive">交互测试（--test-interactive）</h3>
+      <p>交互测试是全力模式的专属功能，验证文档的交互特性是否正常工作。
+      这 7 项测试覆盖了渐进式披露、折叠/展开、代码高亮、暗色模式、响应式布局、搜索友好和图表交互——
+      这些是 DeepWiki/ZRead 级别文档的必备交互能力。</p>
+      <p>交互测试与内容校验是互补的——内容校验确保"写得对"，交互测试确保"用得好"。
+      全力模式下，两类测试都必须通过才能交付。</p>
+        <thead><tr><th>#</th><th>测试项</th><th>通过标准</th></tr></thead>
+        <tbody>
+          <tr><td>I1</td><td>渐进式披露</td><td>每个 H2 章节有 section-summary</td></tr>
+          <tr><td>I2</td><td>折叠/展开</td><td>details + summary 结构正确</td></tr>
+          <tr><td>I3</td><td>代码高亮</td><td>所有代码块有 language class</td></tr>
+          <tr><td>I4</td><td>暗色模式</td><td>[data-theme="dark"] CSS 存在</td></tr>
+          <tr><td>I5</td><td>响应式布局</td><td>@media 查询存在</td></tr>
+          <tr><td>I6</td><td>搜索友好</td><td>id 唯一、TOC 链接有效</td></tr>
+          <tr><td>I7</td><td>图表交互</td><td>SVG role="img" + aria-label</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第6章: 运行时系统 ===== -->
+<section id="sec-runtime">
+  <h2 id="sec-runtime-h2">6. 运行时系统</h2>
+
+  <div class="section-summary">
+    <p>运行时由三个共享文件组成：CSS 设计系统（6 套皮肤 + 暗色模式）、JS 交互功能（TOC/ScrollSpy/代码高亮/图表缩放）、皮肤切换器。所有文档类型共享同一套运行时。</p>
+  </div>
+
+  <details open id="sec-runtime-details">
+    <summary>运行时详解</summary>
+    <div>
+      <h3 id="sec-rt-css">6.1 设计系统（doc-shell.css）</h3>
+      <p>CSS 设计系统定义了完整的视觉规范，所有文档类型共享同一套 CSS 变量。
+      设计系统的核心理念是<strong>约束即自由</strong>——通过严格的变量约束（禁止硬编码颜色、禁止渐变、禁止大阴影），
+      确保所有生成的文档具有一致的视觉风格，无论由哪个 agent 生成。</p>
+      <p>CSS 变量分为语义层（<code>--text</code>, <code>--bg</code>, <code>--accent</code>）和组件层（<code>--callout-info</code>, <code>--code-bg</code>），
+      语义层在暗色模式下自动切换，组件层通过 <code>var(--xxx, fallback)</code> 确保离线可用。</p>
+      <table>
+        <thead><tr><th>维度</th><th>规范</th><th>CSS 变量</th></tr></thead>
+        <tbody>
+          <tr><td>字号梯度</td><td>H1 32 > H2 22 > H3 17 > body 15 > small 0.85rem</td><td><code>--font-sans</code>, <code>--font-mono</code></td></tr>
+          <tr><td>间距</td><td>4px 步进（4/8/12/16/20/24/28/32/40）</td><td><code>--radius</code>, <code>--radius-sm</code></td></tr>
+          <tr><td>颜色</td><td>暖灰系，非纯黑白</td><td><code>--bg</code>, <code>--text</code>, <code>--accent</code> 等</td></tr>
+          <tr><td>圆角</td><td>最大 8px（药丸 badge 除外）</td><td><code>--radius: 6px</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-rt-js">6.2 交互功能（doc-shell.js）</h3>
+      <p>doc-shell.js 实现了 6 项核心交互功能，所有功能采用 try-catch 包裹的 features[] 数组模式，
+      单个功能失败不影响其他功能。主题切换采用 3 层回退：localStorage 保存 → OS 偏好检测 → 默认 light。</p>
+      <p>TOC 自动生成扫描所有 h2/h3 标签，生成侧边栏导航；ScrollSpy 使用 IntersectionObserver
+      高亮当前章节；图表缩放支持点击全屏 + 滚轮缩放 + Esc 关闭；Mermaid 暗色模式在主题切换时自动重渲染。</p>
+        <thead><tr><th>功能</th><th>实现方式</th><th>线程安全</th></tr></thead>
+        <tbody>
+          <tr><td>主题切换</td><td>localStorage + OS preference + 默认 light</td><td>-</td></tr>
+          <tr><td>TOC 自动生成</td><td>扫描 h2/h3 生成侧边栏</td><td>-</td></tr>
+          <tr><td>ScrollSpy</td><td>IntersectionObserver 高亮当前章节</td><td>-</td></tr>
+          <tr><td>代码高亮</td><td>highlight.js CDN（离线回退）</td><td>-</td></tr>
+          <tr><td>图表缩放</td><td>点击全屏 + 滚轮缩放 + Esc 关闭</td><td>-</td></tr>
+          <tr><td>Mermaid 暗色</td><td>主题切换时自动重渲染</td><td>-</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-rt-skin">6.3 皮肤系统（skin-switcher.js）</h3>
+      <p>皮肤系统提供 6 套预设视觉风格，通过覆盖 CSS 变量实现。每套皮肤定义了完整的颜色方案
+      （背景、文字、强调色、代码高亮等），切换时只需更新 <code>data-skin</code> 属性。
+      皮肤选择保存在 localStorage 中，下次打开时自动恢复。</p>
+      <p>皮肤设计遵循<strong>约束即自由</strong>原则——所有皮肤共享相同的字号梯度、间距规则和圆角限制，
+      只在颜色方案上做差异化。这确保了无论选择哪个皮肤，文档的排版和结构始终保持一致。</p>
+        <thead><tr><th>皮肤</th><th>色调</th><th>适用场景</th></tr></thead>
+        <tbody>
+          <tr><td>Teal</td><td>青绿色（默认）</td><td>通用技术文档</td></tr>
+          <tr><td>Editorial</td><td>编辑风格</td><td>长文阅读</td></tr>
+          <tr><td>Vellum</td><td>羊皮纸色</td><td>经典风格</td></tr>
+          <tr><td>Mono</td><td>单色灰度</td><td>打印友好</td></tr>
+          <tr><td>Carto</td><td>高对比度</td><td>演示展示</td></tr>
+          <tr><td>Signal</td><td>信号风格</td><td>嵌入式/硬件文档</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第7章: 全力模式 ===== -->
+<section id="sec-fullpower">
+  <h2 id="sec-fullpower-h2">7. 全力模式</h2>
+
+  <div class="section-summary">
+    <p>全力模式是 Doc-Wiki 的高级工作流，<strong>不区分文档类型</strong>，自动分析项目并生成完整文档体系。采用 7 阶段流程：项目探测→任务规划→并行分析→深度研究→内容生成→自审→修订循环→交付。</p>
+  </div>
+
+  <details open id="sec-fullpower-details">
+    <summary>全力模式详解</summary>
+    <div>
+      <h3 id="sec-fp-flow">7.1 七阶段流程</h3>
+      <p>全力模式的核心创新是<strong>不区分文档类型</strong>——普通模式需要用户先选类型再生成，
+      全力模式自动探测项目结构，一次性生成完整文档体系。这消除了用户的选择负担，
+      也避免了"选错类型导致文档不完整"的问题。</p>
+      <p>另一个关键设计是<strong>独立审核 subagent</strong>（铁律 §8）——生成者自审容易"自我感觉良好"，
+      独立审核者用"新鲜眼光"审查，更容易发现问题。审核采用 6 维度评分（总分 60，≥ 50 通过），
+      不通过时返回修订清单，主 agent 按清单逐项修改后重新审核，最多循环 5 轮。</p>
+        <thead><tr><th>阶段</th><th>执行者</th><th>动作</th><th>输出</th></tr></thead>
+        <tbody>
+          <tr><td>0. 项目探测</td><td>主 agent</td><td>扫描目录、统计规模、识别技术栈</td><td>项目概况报告</td></tr>
+          <tr><td>1. 任务规划</td><td>主 agent</td><td>规划 subagent 任务表</td><td>任务分配计划</td></tr>
+          <tr><td>2. 并行分析</td><td>多 subagent</td><td>同时读取源码，返回结构化发现</td><td>知识图谱</td></tr>
+          <tr><td>3. 深度研究</td><td>主 agent + 补充</td><td>gap-driven 补充 + 外部参考</td><td>补充分析 + 参考摘要</td></tr>
+          <tr><td>4. 内容生成</td><td>主 agent</td><td>生成完整文档体系</td><td>HTML 文档集</td></tr>
+          <tr><td>5. 自审</td><td>独立审核 subagent</td><td>6 维度评分（总分 60）</td><td>审核报告 + 修订清单</td></tr>
+          <tr><td>6. 修订循环</td><td>主 agent</td><td>按修订清单逐项修改（最多 5 轮）</td><td>修订后文档</td></tr>
+          <tr><td>7. 交付</td><td>主 agent</td><td>校验 + 交互测试 + 质量报告</td><td>最终文档 + 质量报告</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-fp-output">7.2 产出物</h3>
+      <p>全力模式一次性生成完整文档体系，不需要用户选择类型。系统架构文档覆盖整个项目的分层架构和模块职责；
+      核心模块文档为每个核心模块生成独立的 API 参考和实现细节；端到端 Guide 沿数据流叙事，适合新人上手；
+      索引页提供所有文档的导航入口。</p>
+      <p>产出物之间有清晰的引用关系——系统架构文档引用各模块文档，Guide 引用系统架构和模块文档，
+      索引页汇总所有文档。这形成了一个自洽的文档体系，而非孤立的文档集合。</p>
+        <thead><tr><th>产出物</th><th>内容</th><th>输出路径</th></tr></thead>
+        <tbody>
+          <tr><td>系统架构文档</td><td>分层架构图、模块职责、数据流</td><td><code>doc/&lt;Project&gt;_Architecture_Design.html</code></td></tr>
+          <tr><td>核心模块文档</td><td>每个核心模块的 API + 实现细节</td><td><code>doc/tech-docs/&lt;Module&gt;_Design.html</code></td></tr>
+          <tr><td>端到端 Guide</td><td>沿数据流叙事的上手教程</td><td><code>doc/&lt;Project&gt;_Guide.html</code></td></tr>
+          <tr><td>索引页</td><td>所有文档的导航入口</td><td><code>doc/index.html</code></td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-fp-review">7.3 自审评分体系</h3>
+      <p>自审采用 6 维度评分体系，每个维度 0-10 分，总分 60 分。通过线设为 50/60（83%），
+      这是"高质量但不追求完美"的平衡点——设得太高会导致过多轮循环，设得太低则质量提升不明显。</p>
+      <p>审核 subagent 必须返回结构化结果：总分、各维度分数、修订清单。修订清单包含具体的操作（补充/修正/增加）、
+      目标位置（章节编号）和详细说明。主 agent 按清单逐项修改，每项完成后标记 done。</p>
+        <thead><tr><th>维度</th><th>满分</th><th>评分标准</th></tr></thead>
+        <tbody>
+          <tr><td>准确性</td><td>10</td><td>代码引用真实、API 签名正确</td></tr>
+          <tr><td>完整性</td><td>10</td><td>覆盖所有核心模块、不遗漏关键流程</td></tr>
+          <tr><td>深度</td><td>10</td><td>解释 WHY、算法分析、性能说明</td></tr>
+          <tr><td>可操作性</td><td>10</td><td>读者能照着上手、代码示例可运行</td></tr>
+          <tr><td>结构</td><td>10</td><td>章节层次清晰、编号一致、术语表完整</td></tr>
+          <tr><td>视觉合规</td><td>10</td><td>符合全部铁律、CSS 变量、无硬编码色</td></tr>
+        </tbody>
+      </table>
+      <p><strong>通过线：≥ 50/60（83%）</strong></p>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第8章: 数据流 ===== -->
+<section id="sec-dataflow">
+  <h2 id="sec-dataflow-h2">8. 数据流</h2>
+
+  <div class="section-summary">
+    <p>Doc-Wiki 的数据流沿两个方向流动：正向（源码→文档）和反向（校验→修复）。正向流经 SKILL.md 路由→reference 指导→template 骨架→agent 内容填充→校验交付。</p>
+  </div>
+
+  <details open id="sec-dataflow-details">
+    <summary>数据流详解</summary>
+    <div>
+      <h3 id="sec-df-forward">8.1 正向流：源码→文档</h3>
+      <p>正向流是文档生成的主流程，从用户触发到最终交付。每个阶段的输出是下一阶段的输入，
+      形成清晰的管道。SKILL.md 负责路由决策，references 负责内容规范，templates 负责视觉骨架，
+      agent 负责内容填充，validate-doc 负责质量把关。</p>
+      <p>关键设计：agent 生成的内容是<strong>HTML 片段</strong>（填入 <code>{{SECTIONS}}</code>），而非完整 HTML 文件。
+      骨架（CSS/JS/sidebar/TOC）由模板提供，确保视觉一致性。</p>
+      <pre><code class="language-text">用户触发（"写文档"）
+  → SKILL.md 路由（判断类型 + 选择模式）
+  → references/*-workflow.md（指导 Phase 0→1→2→3）
+  → Phase 0: 读源码（记录 file:line）
+  → Phase 1: 结构设计（选章节框架）
+  → Phase 2: 内容生成（填入模板 {{SECTIONS}}）
+  → Phase 3: 校验交付（validate-doc.js 17 类检查）</code></pre>
+
+      <h3 id="sec-df-reverse">8.2 反向流：校验→修复</h3>
+      <p>反向流是质量保障的核心机制。校验脚本发现问题后，分为两类处理：
+      <code>--fix</code> 可自动修复的问题（如 Mermaid 语法、heading ID）直接写回文件；
+      不可自动修复的问题（如视觉违规、空章节）报告给 agent 就地修复。</p>
+      <p>修复后重新校验，形成"生成→校验→修复→再校验"的闭环。新文档必须所有校验通过才能交付。</p>
+      <pre><code class="language-text">validate-doc.js 发现问题
+  → report.fail() / report.warn()
+  → --fix 自动修复（Mermaid、heading ID、代码块）
+  → agent 就地修复（视觉违规、空章节）
+  → 重新校验直到通过</code></pre>
+
+      <h3 id="sec-df-sync">8.3 同步流：CSS/JS→模板</h3>
+      <p>同步流确保三个共享运行时文件的修改能自动传播到所有 HTML 模板。
+      这解决了"改了 CSS 忘了同步模板"的一致性问题——只需运行一条命令，所有模板自动更新。</p>
+      <p>每个模板通过 <code>@sync</code> 标记区域嵌入共享内容，模板专属的 CSS 覆盖位于标记区域之外，
+      不受同步影响。这使得每个文档类型可以有独特的视觉调整（如 module 的 <code>--max-width: 880px</code>），
+      同时共享完整的设计系统。</p>
+      <pre><code class="language-text">修改 doc-shell.css / doc-shell.js / skin-switcher.js
+  → node inline-shared.js --sync
+  → 替换 templates/*.html 中 @sync 标记区域
+  → 所有模板自动更新</code></pre>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 术语表 ===== -->
+<section id="sec-glossary">
+  <h2 id="sec-glossary-h2">术语表</h2>
+  <div class="section-summary">
+    <p>Doc-Wiki 系统核心术语定义，涵盖文档生成、模板引擎、校验、皮肤等领域概念。</p>
+  </div>
+  <table>
+    <thead><tr><th>术语</th><th>说明</th><th>出处</th></tr></thead>
+    <tbody>
+      <tr><td><code>Skill</code></td><td>Claude Code 的能力扩展单元，通过 SKILL.md 定义</td><td>Claude Code 文档</td></tr>
+      <tr><td><code>@sync</code></td><td>HTML 模板中的标记，用于同步共享 CSS/JS 内容</td><td><code>scripts/inline-shared.js</code></td></tr>
+      <tr><td><code>{{SECTIONS}}</code></td><td>HTML 模板中的占位符，agent 生成的内容填入此处</td><td><code>templates/*.html</code></td></tr>
+      <tr><td><code>doc-shell</code></td><td>共享设计系统（CSS + JS + Skin），所有文档类型共用</td><td><code>scripts/doc-shell.*</code></td></tr>
+      <tr><td><code>渐进式披露</code></td><td>三层内容结构：Summary（始终可见）→ Details（默认展开）→ Deep Dive（默认折叠）</td><td><code>templates/sections/</code></td></tr>
+      <tr><td><code>铁律</code></td><td>8 条不可违反的文档质量规则，违反 = 不合格</td><td><code>SKILL.md</code></td></tr>
+      <tr><td><code>全力模式</code></td><td>高级工作流：多 subagent 并行 + 深度研究 + 多轮自审</td><td><code>SKILL.md</code></td></tr>
+      <tr><td><code>validate-doc</code></td><td>17 类自动化校验脚本，支持 --fix 和 --test-interactive</td><td><code>scripts/validate-doc.js</code></td></tr>
+      <tr><td><code>md-to-html</code></td><td>Markdown→HTML 转换器，支持 module/system/guide 三种类型</td><td><code>scripts/md-to-html.js</code></td></tr>
+      <tr><td><code>skin</code></td><td>视觉皮肤，6 套可切换（Teal/Editorial/Vellum/Mono/Carto/Signal）</td><td><code>scripts/skin-switcher.js</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+</body>
+</html>
