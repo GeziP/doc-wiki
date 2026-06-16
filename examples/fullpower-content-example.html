@@ -41,7 +41,7 @@
 
 <!-- ===== 关联源文件 ===== -->
 <div class="relevant-sources">
-  <h4>关联源文件</h4>
+  <h4 id="sec-relevant-sources">关联源文件</h4>
   <ul>
     <li><a class="source-ref" href="src/scheduler/task_scheduler.h#L1-L180"><code>src/scheduler/task_scheduler.h:1-180</code></a> — 主类定义</li>
     <li><a class="source-ref" href="src/scheduler/task_scheduler.cpp#L1-L320"><code>src/scheduler/task_scheduler.cpp:1-320</code></a> — 实现</li>
@@ -272,11 +272,11 @@ stateDiagram-v2
   <details id="sec-state-machine-deep">
     <summary>状态详细行为</summary>
     <div class="section-body">
-      <h3>QUEUED 状态</h3>
+      <h3 id="sec-sm-queued">QUEUED 状态</h3>
       <p>任务在 QUEUED 状态等待调度。调度器每 50ms 扫描一次队列，从最高优先级层开始。
       如果任务在队列中等待超过 500ms，会被"提升"到更高优先级层（<a class="source-ref" href="src/scheduler/task_scheduler.cpp#L60-L80"><code>task_scheduler.cpp:60-80</code></a>）。</p>
 
-      <h3>RUNNING 状态</h3>
+      <h3 id="sec-sm-running">RUNNING 状态</h3>
       <p>任务在 ThreadPool 中执行。执行期间，任务持有线程的独占访问权。
       如果任务执行超过配置的超时时间，ThreadPool 会强制终止线程并触发 FAILED 状态转换。</p>
     </div>
@@ -314,7 +314,7 @@ stateDiagram-v2
       <!-- 每个 API 都有使用示例（全力模式要求） -->
       <h3 id="sec-api-example">4.2 使用示例</h3>
 
-      <h4>submit() — 提交任务</h4>
+      <h4 id="sec-api-submit">submit() — 提交任务</h4>
       <p>创建任务并提交到调度器。任务会自动进入最高优先级队列：</p>
       <pre><code class="language-cpp">auto task = std::make_shared&lt;Task&gt;([]() {
     std::cout << "Hello from task" << std::endl;
@@ -322,7 +322,7 @@ stateDiagram-v2
 auto id = scheduler.submit(task);  // 返回 TaskId
 std::cout << "Task submitted: " << id << std::endl;</code></pre>
 
-      <h4>cancel() — 取消任务</h4>
+      <h4 id="sec-api-cancel">cancel() — 取消任务</h4>
       <p>取消任务会级联取消所有依赖该任务的后续任务：</p>
       <pre><code class="language-cpp">bool cancelled = scheduler.cancel(taskId);
 if (cancelled) {
@@ -330,7 +330,7 @@ if (cancelled) {
     std::cout << "Task and dependents cancelled" << std::endl;
 }</code></pre>
 
-      <h4>setPriority() — 动态调整优先级</h4>
+      <h4 id="sec-api-setpriority">setPriority() — 动态调整优先级</h4>
       <p>运行中任务也可以调整优先级，下次调度周期生效：</p>
       <pre><code class="language-cpp">scheduler.setPriority(taskId, Priority::CRITICAL);
 // 下次调度周期（50ms 内）任务会提升到最高优先级</code></pre>
