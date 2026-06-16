@@ -1,0 +1,495 @@
+<!--
+  doc-writer 全力模式内容黄金样本
+  ===================================
+  本文件展示全力模式下填入 module-design.html 模板的正确内容写法。
+  不包含 CSS/JS/HTML 骨架——那些由模板提供。
+
+  与普通模式 (module-content-example.html) 的差异：
+  - 渐进式披露三层结构（section-summary → details[open] → details）
+  - 更高源码引用密度（每个核心函数都引用）
+  - 更多设计决策 Callout（≥ 8 个）
+  - 每个公开 API 都有使用示例
+  - 穷举错误路径 + 性能分析
+  - 标签系统（doc-tags）
+-->
+
+<!-- ===== 文档元信息 ===== -->
+<div class="doc-meta">
+  <span class="doc-version">v1.0</span>
+  <h1>TaskScheduler 技术设计文档</h1>
+  <dl class="doc-info">
+    <dt>实现文件</dt><dd><code>src/scheduler/task_scheduler.h</code></dd>
+    <dt>测试文件</dt><dd><code>tests/test_task_scheduler.cpp</code></dd>
+    <dt>关联文档</dt><dd><a href="TaskManager_Design.html">TaskManager</a> · <a href="ThreadPool_Design.html">ThreadPool</a></dd>
+    <dt>更新日期</dt><dd>2026-06-16</dd>
+  </dl>
+  <!-- 标签系统（DeepWiki/ZRead 对齐） -->
+  <div class="doc-tags">
+    <span class="tag">task-scheduler</span>
+    <span class="tag">priority-queue</span>
+    <span class="tag">async</span>
+    <span class="tag">MLFQ</span>
+    <span class="tag">concurrency</span>
+  </div>
+</div>
+
+<!-- ===== Scope 声明 ===== -->
+<div class="scope-block">
+  <strong>Scope:</strong> 本文覆盖 TaskScheduler 的调度策略、优先级队列和任务生命周期管理。
+  不覆盖 TaskManager 的创建/销毁流程和 ThreadPool 的线程管理细节。
+</div>
+
+<!-- ===== 关联源文件 ===== -->
+<div class="relevant-sources">
+  <h4>关联源文件</h4>
+  <ul>
+    <li><a class="source-ref" href="src/scheduler/task_scheduler.h#L1-L180"><code>src/scheduler/task_scheduler.h:1-180</code></a> — 主类定义</li>
+    <li><a class="source-ref" href="src/scheduler/task_scheduler.cpp#L1-L320"><code>src/scheduler/task_scheduler.cpp:1-320</code></a> — 实现</li>
+    <li><a class="source-ref" href="src/scheduler/priority_queue.h#L1-L95"><code>src/scheduler/priority_queue.h:1-95</code></a> — 优先级队列</li>
+    <li><a class="source-ref" href="src/scheduler/dependency_graph.h#L1-L120"><code>src/scheduler/dependency_graph.h:1-120</code></a> — 依赖图</li>
+    <li><a class="source-ref" href="src/scheduler/task_state.h#L1-L60"><code>src/scheduler/task_state.h:1-60</code></a> — 状态定义</li>
+    <li><a class="source-ref" href="tests/test_task_scheduler.cpp#L1-L450"><code>tests/test_task_scheduler.cpp:1-450</code></a> — 测试</li>
+  </ul>
+</div>
+
+<!-- ===== 第1章: 概述 — 渐进式披露 ===== -->
+<section class="section" id="sec-overview">
+  <div class="section-header">
+    <h2 id="sec-overview-h2">1. 概述</h2>
+  </div>
+
+  <!-- Layer 1: Summary — 始终可见 -->
+  <div class="section-summary">
+    <p>TaskScheduler 是基于多级反馈队列（MLFQ）的抢占式任务调度器，支持优先级调度、任务依赖和取消传播，解决生产环境中低优先级任务饥饿问题。</p>
+  </div>
+
+  <!-- Layer 2: Details — 默认展开 -->
+  <details open id="sec-overview-details">
+    <summary>详细说明</summary>
+    <div class="section-body">
+
+      <h3 id="sec-overview-bg">1.1 背景</h3>
+      <p>系统需要协调多个异步任务的执行顺序，确保高优先级任务优先调度，同时避免低优先级任务饥饿。
+      在生产环境中观察到，简单的优先级队列会导致低优先级清理任务长期得不到执行，最终引发内存泄漏
+      （<a class="source-ref" href="tests/test_task_scheduler.cpp#L200-L250"><code>test_task_scheduler.cpp:200-250</code></a> 中有复现测试）。</p>
+
+      <h3 id="sec-overview-solution">1.2 解决方案</h3>
+      <p>采用多级反馈队列（MLFQ）算法，将任务分为 4 个优先级层，每层独立管理。
+      调度器从最高优先级层开始扫描，空层跳过。层内使用时间片轮转，防止饥饿。</p>
+
+      <figure class="diagram">
+        <svg viewBox="0 0 560 200" role="img" aria-label="TaskScheduler 架构概览">
+          <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted,#66737c)"/></marker></defs>
+          <rect x="20" y="20" width="140" height="40" rx="6" fill="var(--bg,#fafbfc)" stroke="var(--border,#d8dee4)"/>
+          <text x="90" y="45" text-anchor="middle" font-size="12" fill="var(--text,#1a2332)">TaskManager</text>
+          <rect x="210" y="20" width="140" height="40" rx="6" fill="var(--accent-soft,#e9fbfa)" stroke="var(--accent,#1c8790)" stroke-width="2"/>
+          <text x="280" y="45" text-anchor="middle" font-size="12" font-weight="bold" fill="var(--accent,#1c8790)">TaskScheduler</text>
+          <rect x="400" y="20" width="140" height="40" rx="6" fill="var(--bg,#fafbfc)" stroke="var(--border,#d8dee4)"/>
+          <text x="470" y="45" text-anchor="middle" font-size="12" fill="var(--text,#1a2332)">ThreadPool</text>
+          <line x1="160" y1="40" x2="210" y2="40" stroke="var(--text-muted,#66737c)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <line x1="350" y1="40" x2="400" y2="40" stroke="var(--text-muted,#66737c)" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <rect x="210" y="90" width="140" height="30" rx="4" fill="var(--accent-purple-light,#f5f3ff)" stroke="var(--accent-purple,#7c3aed)"/>
+          <text x="280" y="110" text-anchor="middle" font-size="11" fill="var(--accent-purple,#7c3aed)">PriorityQueue</text>
+          <rect x="210" y="140" width="140" height="30" rx="4" fill="var(--accent-green-light,#edf7f0)" stroke="var(--accent-green,#16a34a)"/>
+          <text x="280" y="160" text-anchor="middle" font-size="11" fill="var(--accent-green,#16a34a)">DependencyGraph</text>
+          <line x1="280" y1="60" x2="280" y2="90" stroke="var(--text-muted,#66737c)" stroke-dasharray="4"/>
+          <line x1="280" y1="120" x2="280" y2="140" stroke="var(--text-muted,#66737c)" stroke-dasharray="4"/>
+        </svg>
+        <figcaption>图 1.1 — TaskScheduler 在系统中的位置及内部组件</figcaption>
+      </figure>
+
+      <!-- 设计决策 Callout #1 -->
+      <div class="callout note">
+        <strong>设计决策</strong>
+        选择 MLFQ 而非简单的优先级队列，因为生产环境中观察到低优先级清理任务
+        长期得不到执行，导致内存泄漏。MLFQ 的时间片机制保证每层在 500ms 内至少被调度一次
+        （<a class="source-ref" href="src/scheduler/task_scheduler.cpp#L45-L60"><code>task_scheduler.cpp:45-60</code></a>）。
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/scheduler/task_scheduler.h#L25-L42"><code>task_scheduler.h:25-42</code></a>
+        <a class="source-ref" href="src/scheduler/priority_queue.h#L10-L30"><code>priority_queue.h:10-30</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Layer 3: Deep Dive — 默认折叠 -->
+  <details id="sec-overview-deep">
+    <summary>深入分析</summary>
+    <div class="section-body">
+      <h3 id="sec-overview-algo">MLFQ 算法细节</h3>
+      <p>MLFQ 的核心思想是：新任务进入最高优先级队列，如果任务在时间片内未完成，则降级到下一级队列。
+      每隔 500ms，调度器执行"提升"操作，将所有任务重新放入最高优先级队列，防止饥饿。</p>
+      <table>
+        <thead>
+          <tr><th>参数</th><th>值</th><th>来源</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>队列层数</td><td>4</td><td><a class="source-ref" href="src/scheduler/task_scheduler.h#L30"><code>task_scheduler.h:30</code></a></td><td>CRITICAL/HIGH/NORMAL/LOW</td></tr>
+          <tr><td>时间片</td><td>50ms</td><td><a class="source-ref" href="src/scheduler/task_scheduler.h#L31"><code>task_scheduler.h:31</code></a></td><td>层内轮转周期</td></tr>
+          <tr><td>提升周期</td><td>500ms</td><td><a class="source-ref" href="src/scheduler/task_scheduler.h#L32"><code>task_scheduler.h:32</code></a></td><td>防饥饿机制</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第2章: 架构 — 渐进式披露 ===== -->
+<section class="section" id="sec-architecture">
+  <div class="section-header">
+    <h2 id="sec-architecture-h2">2. 架构</h2>
+  </div>
+
+  <div class="section-summary">
+    <p>分层架构：TaskManager（入口）→ TaskScheduler（调度核心）→ PriorityQueue（4 层队列）→ DependencyGraph（依赖解析）→ ThreadPool（执行）。</p>
+  </div>
+
+  <details open id="sec-architecture-details">
+    <summary>架构详解</summary>
+    <div class="section-body">
+
+      <table>
+        <thead>
+          <tr><th>层级</th><th>职责</th><th>核心模块</th><th>关键接口</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>入口层</td><td>任务创建/销毁</td><td>TaskManager</td><td><code>submit()</code>, <code>cancel()</code></td></tr>
+          <tr><td>调度层</td><td>优先级调度 + 依赖解析</td><td>TaskScheduler</td><td><code>schedule()</code>, <code>promote()</code></td></tr>
+          <tr><td>存储层</td><td>4 层优先级队列</td><td>PriorityQueue</td><td><code>enqueue()</code>, <code>dequeue()</code></td></tr>
+          <tr><td>依赖层</td><td>DAG 依赖图</td><td>DependencyGraph</td><td><code>addDep()</code>, <code>ready()</code></td></tr>
+          <tr><td>执行层</td><td>线程池执行</td><td>ThreadPool</td><td><code>execute()</code></td></tr>
+        </tbody>
+      </table>
+
+      <!-- 跨模块调用链（3 层以上） -->
+      <h3 id="sec-arch-calls">2.1 跨模块调用链</h3>
+      <p>任务提交的完整调用链：</p>
+      <pre><code class="language-cpp">TaskManager::submit(task)          // 入口
+  → TaskScheduler::schedule(task)    // 调度
+    → DependencyGraph::addDep(task)  // 注册依赖
+    → PriorityQueue::enqueue(task)   // 入队
+      → task.state = QUEUED          // 状态变更
+  → ThreadPool::execute(task)        // 执行（异步）</code></pre>
+
+      <!-- 设计决策 Callout #2 -->
+      <div class="callout note">
+        <strong>设计决策</strong>
+        DependencyGraph 和 PriorityQueue 分离，因为依赖解析是 O(V+E) 的 DAG 遍历，
+        而队列操作是 O(log N)。合并会导致每次入队都触发依赖检查，性能差 10 倍
+        （<a class="source-ref" href="tests/test_task_scheduler.cpp#L300-L320"><code>test_task_scheduler.cpp:300-320</code></a> 有基准测试）。
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/scheduler/task_scheduler.h#L50-L80"><code>task_scheduler.h:50-80</code></a>
+        <a class="source-ref" href="src/scheduler/dependency_graph.h#L20-L45"><code>dependency_graph.h:20-45</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="sec-architecture-deep">
+    <summary>深入分析</summary>
+    <div class="section-body">
+      <h3 id="sec-arch-perf">性能约束</h3>
+      <table>
+        <thead>
+          <tr><th>指标</th><th>约束</th><th>来源</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>调度延迟</td><td>&lt; 1ms (P99)</td><td><a class="source-ref" href="src/scheduler/task_scheduler.cpp#L100-L110"><code>task_scheduler.cpp:100-110</code></a></td></tr>
+          <tr><td>并发任务数</td><td>&gt; 10000</td><td><a class="source-ref" href="tests/test_task_scheduler.cpp#L400-L420"><code>test_task_scheduler.cpp:400-420</code></a></td></tr>
+          <tr><td>内存占用</td><td>&lt; 1MB (10K tasks)</td><td>压力测试</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第3章: 状态机 — 渐进式披露 ===== -->
+<section class="section" id="sec-state-machine">
+  <div class="section-header">
+    <h2 id="sec-state-machine-h2">3. 任务状态机</h2>
+  </div>
+
+  <div class="section-summary">
+    <p>任务生命周期包含 6 个状态：CREATED → QUEUED → RUNNING → COMPLETED/FAILED/CANCELLED，支持取消传播。</p>
+  </div>
+
+  <details open id="sec-state-machine-details">
+    <summary>状态转换</summary>
+    <div class="section-body">
+
+      <table>
+        <thead>
+          <tr><th>当前状态</th><th>事件</th><th>目标状态</th><th>动作</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>CREATED</td><td>submit()</td><td>QUEUED</td><td>入优先级队列</td></tr>
+          <tr><td>QUEUED</td><td>schedule()</td><td>RUNNING</td><td>分配线程</td></tr>
+          <tr><td>RUNNING</td><td>完成</td><td>COMPLETED</td><td>触发依赖任务</td></tr>
+          <tr><td>RUNNING</td><td>异常</td><td>FAILED</td><td>通知 TaskManager</td></tr>
+          <tr><td>QUEUED/RUNNING</td><td>cancel()</td><td>CANCELLED</td><td>传播取消到依赖</td></tr>
+          <tr><td>QUEUED</td><td>超时</td><td>CANCELLED</td><td>自动清理</td></tr>
+        </tbody>
+      </table>
+
+      <figure class="diagram">
+        <div class="mermaid">
+stateDiagram-v2
+    [*] --> CREATED
+    CREATED --> QUEUED : submit()
+    QUEUED --> RUNNING : schedule()
+    RUNNING --> COMPLETED : 完成
+    RUNNING --> FAILED : 异常
+    QUEUED --> CANCELLED : cancel() / 超时
+    RUNNING --> CANCELLED : cancel()
+    COMPLETED --> [*]
+    FAILED --> [*]
+    CANCELLED --> [*]
+        </div>
+        <figcaption>图 3.1 — TaskScheduler 任务状态转换图</figcaption>
+      </figure>
+
+      <!-- 设计决策 Callout #3 -->
+      <div class="callout note">
+        <strong>设计决策</strong>
+        取消传播采用 BFS 遍历依赖图，而非递归 DFS。因为深度依赖链可能导致栈溢出
+        （<a class="source-ref" href="src/scheduler/task_scheduler.cpp#L200-L220"><code>task_scheduler.cpp:200-220</code></a>）。
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/scheduler/task_state.h#L1-L60"><code>task_state.h:1-60</code></a>
+        <a class="source-ref" href="src/scheduler/task_scheduler.cpp#L180-L250"><code>task_scheduler.cpp:180-250</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="sec-state-machine-deep">
+    <summary>状态详细行为</summary>
+    <div class="section-body">
+      <h3>QUEUED 状态</h3>
+      <p>任务在 QUEUED 状态等待调度。调度器每 50ms 扫描一次队列，从最高优先级层开始。
+      如果任务在队列中等待超过 500ms，会被"提升"到更高优先级层（<a class="source-ref" href="src/scheduler/task_scheduler.cpp#L60-L80"><code>task_scheduler.cpp:60-80</code></a>）。</p>
+
+      <h3>RUNNING 状态</h3>
+      <p>任务在 ThreadPool 中执行。执行期间，任务持有线程的独占访问权。
+      如果任务执行超过配置的超时时间，ThreadPool 会强制终止线程并触发 FAILED 状态转换。</p>
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第4章: API 参考 — 渐进式披露 ===== -->
+<section class="section" id="sec-api">
+  <div class="section-header">
+    <h2 id="sec-api-h2">4. API 参考</h2>
+  </div>
+
+  <div class="section-summary">
+    <p>TaskScheduler 提供 5 个公开 API：submit、cancel、getStatus、setPriority、getDependencyGraph。</p>
+  </div>
+
+  <details open id="sec-api-details">
+    <summary>API 与使用</summary>
+    <div class="section-body">
+
+      <h3 id="sec-api-table">4.1 公开 API</h3>
+      <table>
+        <thead>
+          <tr><th>方法</th><th>参数</th><th>返回值</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>submit(task)</code></td><td><code>Task</code></td><td><code>TaskId</code></td><td>提交任务到调度队列</td></tr>
+          <tr><td><code>cancel(taskId)</code></td><td><code>TaskId</code></td><td><code>bool</code></td><td>取消任务并传播到依赖</td></tr>
+          <tr><td><code>getStatus(taskId)</code></td><td><code>TaskId</code></td><td><code>TaskState</code></td><td>查询任务当前状态</td></tr>
+          <tr><td><code>setPriority(taskId, p)</code></td><td><code>TaskId, Priority</code></td><td><code>void</code></td><td>动态调整优先级</td></tr>
+          <tr><td><code>getDependencyGraph()</code></td><td>无</td><td><code>Graph&amp;</code></td><td>获取依赖图快照</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 每个 API 都有使用示例（全力模式要求） -->
+      <h3 id="sec-api-example">4.2 使用示例</h3>
+
+      <h4>submit() — 提交任务</h4>
+      <p>创建任务并提交到调度器。任务会自动进入最高优先级队列：</p>
+      <pre><code class="language-cpp">auto task = std::make_shared&lt;Task&gt;([]() {
+    std::cout << "Hello from task" << std::endl;
+});
+auto id = scheduler.submit(task);  // 返回 TaskId
+std::cout << "Task submitted: " << id << std::endl;</code></pre>
+
+      <h4>cancel() — 取消任务</h4>
+      <p>取消任务会级联取消所有依赖该任务的后续任务：</p>
+      <pre><code class="language-cpp">bool cancelled = scheduler.cancel(taskId);
+if (cancelled) {
+    // 任务已取消，依赖它的任务也会被取消
+    std::cout << "Task and dependents cancelled" << std::endl;
+}</code></pre>
+
+      <h4>setPriority() — 动态调整优先级</h4>
+      <p>运行中任务也可以调整优先级，下次调度周期生效：</p>
+      <pre><code class="language-cpp">scheduler.setPriority(taskId, Priority::CRITICAL);
+// 下次调度周期（50ms 内）任务会提升到最高优先级</code></pre>
+
+      <!-- 设计决策 Callout #4 -->
+      <div class="callout note">
+        <strong>设计决策</strong>
+        submit() 返回 TaskId 而非 Task 对象，因为 Task 可能被移动到其他线程执行，
+        持有引用会导致生命周期问题。TaskId 是安全的句柄
+        （<a class="source-ref" href="src/scheduler/task_scheduler.h#L55-L58"><code>task_scheduler.h:55-58</code></a>）。
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/scheduler/task_scheduler.h#L50-L80"><code>task_scheduler.h:50-80</code></a>
+        <a class="source-ref" href="src/scheduler/task_scheduler.cpp#L90-L180"><code>task_scheduler.cpp:90-180</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="sec-api-deep">
+    <summary>实现细节与边界情况</summary>
+    <div class="section-body">
+
+      <!-- 错误路径穷举（全力模式特有） -->
+      <h3 id="sec-api-errors">错误路径</h3>
+      <table>
+        <thead>
+          <tr><th>错误类型</th><th>触发条件</th><th>处理方式</th><th>推荐做法</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>TaskNull</td><td><code>submit(nullptr)</code></td><td>抛出 <code>InvalidArgumentException</code></td><td>提交前检查 null</td></tr>
+          <tr><td>TaskNotFound</td><td><code>cancel(invalidId)</code></td><td>返回 <code>false</code></td><td>检查返回值</td></tr>
+          <tr><td>AlreadyCancelled</td><td>重复取消</td><td>返回 <code>false</code>，无副作用</td><td>幂等设计，安全重试</td></tr>
+          <tr><td>CyclicDependency</td><td>提交导致循环依赖</td><td>抛出 <code>CyclicDependencyException</code></td><td>提交前验证 DAG</td></tr>
+          <tr><td>QueueFull</td><td>队列满（10000 任务）</td><td>阻塞等待，超时后抛异常</td><td>配置合理的队列大小</td></tr>
+        </tbody>
+      </table>
+
+      <!-- 性能特征（全力模式：标注复杂度） -->
+      <h3 id="sec-api-perf">性能特征</h3>
+      <table>
+        <thead>
+          <tr><th>操作</th><th>时间复杂度</th><th>空间复杂度</th><th>瓶颈点</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>submit()</td><td>O(log N)</td><td>O(1)</td><td>优先级队列插入</td></tr>
+          <tr><td>cancel()</td><td>O(V + E)</td><td>O(V)</td><td>BFS 依赖图遍历</td></tr>
+          <tr><td>getStatus()</td><td>O(1)</td><td>O(1)</td><td>无</td></tr>
+          <tr><td>setPriority()</td><td>O(log N)</td><td>O(1)</td><td>队列重排序</td></tr>
+        </tbody>
+      </table>
+
+    </div>
+  </details>
+</section>
+
+<!-- ===== 第5章: FAQ — 渐进式披露 ===== -->
+<section class="section" id="sec-faq">
+  <div class="section-header">
+    <h2 id="sec-faq-h2">5. 常见问题（FAQ）</h2>
+  </div>
+
+  <div class="section-summary">
+    <p>基于源码逻辑推断的 5 个常见问题，覆盖任务饥饿、取消传播、并发安全等场景。</p>
+  </div>
+
+  <details open id="sec-faq-details">
+    <summary>常见问题</summary>
+    <div class="section-body">
+
+      <details id="faq-1">
+        <summary><strong>Q1:</strong> 低优先级任务会永远得不到执行吗？</summary>
+        <div class="section-body">
+          <p>不会。MLFQ 的"提升"机制每 500ms 将所有任务重新放入最高优先级队列
+          （<a class="source-ref" href="src/scheduler/task_scheduler.cpp#L60-L80"><code>task_scheduler.cpp:60-80</code></a>）。
+          因此低优先级任务最多等待 500ms 就会被调度。</p>
+        </div>
+      </details>
+
+      <details id="faq-2">
+        <summary><strong>Q2:</strong> 取消一个任务会影响其他任务吗？</summary>
+        <div class="section-body">
+          <p>会。cancel() 使用 BFS 遍历依赖图，级联取消所有依赖该任务的后续任务
+          （<a class="source-ref" href="src/scheduler/task_scheduler.cpp#L200-L220"><code>task_scheduler.cpp:200-220</code></a>）。
+          如果只想取消单个任务，需要先调用 <code>getDependencyGraph()</code> 解除依赖关系。</p>
+        </div>
+      </details>
+
+      <details id="faq-3">
+        <summary><strong>Q3:</strong> 多线程同时 submit() 安全吗？</summary>
+        <div class="section-body">
+          <p>安全。PriorityQueue 使用 <code>std::mutex</code> 保护所有操作
+          （<a class="source-ref" href="src/scheduler/priority_queue.h#L50-L55"><code>priority_queue.h:50-55</code></a>）。
+          但高频并发提交可能导致锁竞争，建议批量提交。</p>
+        </div>
+      </details>
+
+      <details id="faq-4">
+        <summary><strong>Q4:</strong> 任务执行超时会怎样？</summary>
+        <div class="section-body">
+          <p>ThreadPool 会强制终止线程（通过 <code>pthread_cancel</code>），并将任务状态设为 FAILED
+          （<a class="source-ref" href="src/scheduler/task_scheduler.cpp#L250-L260"><code>task_scheduler.cpp:250-260</code></a>）。
+          超时时间可在配置中设置，默认 30s。</p>
+        </div>
+      </details>
+
+      <details id="faq-5">
+        <summary><strong>Q5:</strong> 如何调试任务调度顺序？</summary>
+        <div class="section-body">
+          <p>启用 <code>SCHEDULER_DEBUG=1</code> 环境变量，调度器会将每次调度决策写入日志
+          （<a class="source-ref" href="src/scheduler/task_scheduler.cpp#L280-L300"><code>task_scheduler.cpp:280-300</code></a>）。
+          日志格式：<code>[SCHED] task_id=X priority=Y queue_level=Z</code>。</p>
+        </div>
+      </details>
+
+    </div>
+  </details>
+</section>
+
+<!-- ===== 术语表 ===== -->
+<section class="section" id="sec-glossary">
+  <div class="section-header">
+    <h2 id="sec-glossary-h2">术语表</h2>
+  </div>
+
+  <div class="section-body">
+    <table>
+      <thead>
+        <tr><th>术语</th><th>说明</th><th>出处</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>MLFQ</code></td>
+          <td>多级反馈队列（Multi-Level Feedback Queue），调度算法</td>
+          <td><a class="source-ref" href="src/scheduler/task_scheduler.h#L25"><code>task_scheduler.h:25</code></a></td>
+        </tr>
+        <tr>
+          <td><code>TaskPriority</code></td>
+          <td>任务优先级枚举：CRITICAL/HIGH/NORMAL/LOW</td>
+          <td><a class="source-ref" href="src/scheduler/task_scheduler.h#L30-L35"><code>task_scheduler.h:30-35</code></a></td>
+        </tr>
+        <tr>
+          <td><code>TaskState</code></td>
+          <td>任务状态枚举：CREATED/QUEUED/RUNNING/COMPLETED/FAILED/CANCELLED</td>
+          <td><a class="source-ref" href="src/scheduler/task_state.h#L10-L20"><code>task_state.h:10-20</code></a></td>
+        </tr>
+        <tr>
+          <td><code>DependencyGraph</code></td>
+          <td>DAG 依赖图，管理任务间依赖关系</td>
+          <td><a class="source-ref" href="src/scheduler/dependency_graph.h#L1-L120"><code>dependency_graph.h:1-120</code></a></td>
+        </tr>
+        <tr>
+          <td><code>时间片</code></td>
+          <td>层内轮转周期（50ms），决定任务降级时机</td>
+          <td><a class="source-ref" href="src/scheduler/task_scheduler.h#L31"><code>task_scheduler.h:31</code></a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
