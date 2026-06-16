@@ -437,12 +437,16 @@ function checkSourceRefs(html, report) {
   }
 
   // #5: Validate source-ref href contains file:line pattern
+  // Only require line numbers for code files, not .md/.html/.css/.json
+  const NO_LINE_REQUIRED = /\.(md|html|htm|css|json|yaml|yml|toml|xml|svg|txt|csv|sql|sh|bat|ps1)(\b|$)/i;
   if (hasSourceRef) {
     const refRe = /<a[^>]*class="source-ref"[^>]*href="([^"]*)"[^>]*>/g;
     let refM, emptyRefs = 0, noLineRefs = 0;
     while ((refM = refRe.exec(html)) !== null) {
       const href = refM[1];
       if (!href || href.trim() === '') { emptyRefs++; continue; }
+      // Skip line number check for non-code files
+      if (NO_LINE_REQUIRED.test(href)) continue;
       if (!/#L\d+/.test(href) && !/:L?\d+/.test(href)) noLineRefs++;
     }
     if (emptyRefs > 0) report.warn(cat, `${emptyRefs} source-ref(s) with empty href`);
