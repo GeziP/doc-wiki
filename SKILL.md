@@ -190,6 +190,101 @@ risks: ["未处理 null 边界"]
 | 错误处理 | 有就写 | **穷举所有错误路径 + 推荐处理方式** |
 | 性能相关 | 有就写 | **主动标注算法复杂度和瓶颈点** |
 
+### 渐进式披露规则（Progressive Disclosure）
+
+全力模式下，每个章节必须采用**三层渐进式披露**结构：
+
+| 层级 | 可见性 | 内容 | 目的 |
+|------|--------|------|------|
+| Layer 1: Summary | 始终可见 | 1-2 句话概述 | 读者快速判断是否需要深入 |
+| Layer 2: Details | 默认展开 | 主要叙述 + 图表 + 代码 | 核心信息，满足大多数读者 |
+| Layer 3: Deep Dive | 默认折叠 | 深入分析 + 边界情况 + 性能 | 高级读者按需展开 |
+
+**HTML 实现**：
+
+```html
+<section class="section" id="sec-xxx">
+  <div class="section-summary">
+    <p>一句话概述...</p>
+  </div>
+  <details open id="sec-xxx-details">
+    <summary>详细说明</summary>
+    <div class="section-body">
+      <!-- 主要内容 -->
+    </div>
+  </details>
+  <details id="sec-xxx-deep">
+    <summary>深入分析</summary>
+    <div class="section-body">
+      <!-- 深入内容 -->
+    </div>
+  </details>
+</section>
+```
+
+**章节模板参考**：`templates/sections/` 目录下的 7 个模板文件，按章节类型选用：
+
+| 章节类型 | 模板文件 | 适用场景 |
+|---------|---------|---------|
+| 概述 | `overview.html` | 文档开头的背景/解决方案 |
+| 架构 | `architecture.html` | 系统架构图 + 分层说明 |
+| 模块详情 | `module-detail.html` | 单个模块的 API + 示例 |
+| 状态机 | `state-machine.html` | 有状态的类/组件 |
+| 流程图 | `flowchart.html` | 复杂业务流程 |
+| FAQ | `faq.html` | 常见问题（≥ 5 个） |
+| 术语表 | `glossary.html` | 文档末尾术语定义 |
+
+### 竞品对齐规则（DeepWiki/ZRead Alignment）
+
+全力模式产出的文档应达到 DeepWiki/ZRead 级别质量。以下规则来自竞品分析：
+
+**1. 章节粒度 — 每个主题独立成章**
+
+不要把多个独立主题合并到一个大章节。每个核心模块、每个独立功能、每个重要概念都应该是独立的 H2 章节。
+
+```
+✅ 正确（DeepWiki 风格）：
+## 3. Agent System
+## 4. Tool System
+## 5. Hook System
+
+❌ 错误（合并风格）：
+## 3. Core Systems
+### 3.1 Agent System
+### 3.2 Tool System
+### 3.3 Hook System
+```
+
+**2. 源码引用可导航 — 从文档直接跳转到源码**
+
+所有源码引用必须是可点击的链接，格式：
+```html
+<a class="source-ref" href="src/foo.js#L45-L60"><code>src/foo.js:45-60</code></a>
+```
+
+浏览器中点击即可跳转到源码位置（配合 GitHub/GitLab 的行号定位）。
+
+**3. 章节编号允许跳号 — 按需生成**
+
+章节编号不必连续。按实际内容编号，跳号表示"该主题不适用于本项目"：
+```
+1. Overview
+2. Quick Start
+5. Core Architecture    ← 跳号，说明 3/4 不适用
+8. Plugin System
+```
+
+**4. 文档头部标签 — 元数据**
+
+在文档顶部添加标签/关键词：
+```html
+<div class="doc-tags">
+  <span class="tag">architecture</span>
+  <span class="tag">API</span>
+  <span class="tag">plugin-system</span>
+</div>
+```
+
 ### 阶段 4：自审
 
 **执行者**：独立审核 subagent（铁律 §8：不参与之前的分析和生成）
@@ -260,6 +355,28 @@ revision_list:
 - subagent 调用：9 次
 - 修订项：12 个（全部完成）
 ```
+
+### 交互系统闭环调试（Interaction System Testing）
+
+全力模式交付前，**必须**运行交互功能测试：
+
+```bash
+node "$SKILL_ROOT/scripts/validate-doc.js" --test-interactive --type <module|system|guide> <file.html>
+```
+
+测试项目：
+
+| # | 功能 | 测试方法 | 通过标准 |
+|---|------|---------|---------|
+| I1 | 渐进式披露 | 检查 `<details>` 元素数量 | 每个 H2 章节都有 3 层结构 |
+| I2 | 折叠/展开 | 检查 `<details>` + `<summary>` 结构 | 结构正确，无嵌套错误 |
+| I3 | 代码高亮 | 检查 `<code class="language-xxx">` | 所有代码块有语言标签 |
+| I4 | 暗色模式 | 检查 `[data-theme="dark"]` CSS 变量 | 所有颜色有暗色模式定义 |
+| I5 | 响应式布局 | 检查 `@media` 查询 | 有移动端适配 |
+| I6 | 搜索友好 | 检查 `id` 唯一性 + TOC 链接 | 所有章节可被 Ctrl+F 定位 |
+| I7 | 图表交互 | 检查 SVG `role="img"` + `aria-label` | 无障碍属性完整 |
+
+**所有 I1-I7 必须通过才能交付。**
 
 ---
 
