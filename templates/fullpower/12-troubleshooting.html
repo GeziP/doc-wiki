@@ -1,0 +1,126 @@
+<!--
+  Fullpower Template: Troubleshooting
+  WHY: Troubleshooting is the first thing users reach for when something goes wrong.
+  Provide symptom -> cause -> solution structure, not vague "check logs" advice.
+-->
+<section class="section" id="sec-trouble-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-trouble-{{ID}}-title">{{N}}. Troubleshooting</h2>
+  </div>
+  <div class="section-summary">
+    <p>Common issues and solutions for [project]. Covers [N] known failure modes
+      with specific symptoms, root causes, and step-by-step fixes.</p>
+  </div>
+  <details open id="sec-trouble-{{ID}}-details">
+    <summary>Common Issues</summary>
+    <div class="section-body">
+      <h3 id="sec-tr-{{ID}}-quick">{{N}}.1 Quick Diagnosis</h3>
+      <p>Start here to narrow down the issue:</p>
+      <pre><code class="language-bash">
+# Check if service is running
+[health check command]
+
+# Check logs
+[tail logs command]
+
+# Check configuration
+[config verify command]
+
+# Check dependencies
+[dependency check command]
+      </code></pre>
+
+      <h3 id="sec-tr-{{ID}}-issues">{{N}}.2 Known Issues</h3>
+
+      <h4 id="sec-tr-{{ID}}-issue1">Issue 1: [Symptom description]</h4>
+      <p><strong>Symptom:</strong> [What the user sees, exact error message if applicable]</p>
+      <p><strong>Cause:</strong> [Root cause with source code reference]</p>
+      <p><strong>Solution:</strong></p>
+      <ol>
+        <li>[Step 1 with exact command/code]</li>
+        <li>[Step 2]</li>
+        <li>[Step 3: verify fix]</li>
+      </ol>
+      <p><strong>Prevention:</strong> [How to avoid this in the future]</p>
+      <p><strong>Source:</strong> <a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></p>
+
+      <h4 id="sec-tr-{{ID}}-issue2">Issue 2: [Symptom description]</h4>
+      <p><strong>Symptom:</strong> [What the user sees]</p>
+      <p><strong>Cause:</strong> [Root cause]</p>
+      <p><strong>Solution:</strong></p>
+      <ol>
+        <li>[Step 1]</li>
+        <li>[Step 2]</li>
+      </ol>
+      <p><strong>Source:</strong> <a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></p>
+
+      <h4 id="sec-tr-{{ID}}-issue3">Issue 3: [Symptom description]</h4>
+      <p><strong>Symptom:</strong> [What the user sees]</p>
+      <p><strong>Cause:</strong> [Root cause]</p>
+      <p><strong>Solution:</strong></p>
+      <ol>
+        <li>[Step 1]</li>
+        <li>[Step 2]</li>
+      </ol>
+      <p><strong>Source:</strong> <a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></p>
+
+      <div class="callout warning">
+        <strong>Important</strong>
+        <p>If none of the above solutions work, check [specific log file/location]
+          for additional error details. The error code in the log will point to
+          the exact failure point in the source code.</p>
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/error-codes.js"><code>src/error-codes.js</code></a>
+      </div>
+    </div>
+  </details>
+  <details id="sec-trouble-{{ID}}-deep">
+    <summary>Advanced Debugging</summary>
+    <div class="section-body">
+      <h3 id="sec-tr-{{ID}}-debug">{{N}}.3 Debug Mode</h3>
+      <p>Enable debug mode for verbose logging:</p>
+      <pre><code class="language-bash">
+# Enable debug logging
+export LOG_LEVEL=debug
+# or
+[command] --debug
+      </code></pre>
+      <p>Debug output includes: [list of what debug mode reveals]</p>
+
+      <h3 id="sec-tr-{{ID}}-diagnostic">{{N}}.4 Diagnostic Commands</h3>
+      <table>
+        <thead><tr><th>Command</th><th>Purpose</th><th>Output</th></tr></thead>
+        <tbody>
+          <tr><td><code>[cmd 1]</code></td><td>[Check X]</td><td>[Expected output]</td></tr>
+          <tr><td><code>[cmd 2]</code></td><td>[Check Y]</td><td>[Expected output]</td></tr>
+          <tr><td><code>[cmd 3]</code></td><td>[Check Z]</td><td>[Expected output]</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-tr-{{ID}}-report">{{N}}.5 Reporting Issues</h3>
+      <p>When reporting issues, include:</p>
+      <ul>
+        <li>Version: <code>[command to get version]</code></li>
+        <li>Configuration: [sanitized config dump]</li>
+        <li>Logs: [relevant log lines with timestamps]</li>
+        <li>Steps to reproduce: [exact steps]</li>
+        <li>Expected vs actual behavior</li>
+      </ul>
+
+      <h3 id="sec-tr-{{ID}}-errorcodes">{{N}}.6 Error Code Reference</h3>
+      <table>
+        <thead><tr><th>Code</th><th>Meaning</th><th>Common Cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>E001</td><td>[Validation failed]</td><td>[Invalid input]</td><td>[Check input format]</td></tr>
+          <tr><td>E002</td><td>[Not found]</td><td>[Wrong ID/path]</td><td>[Verify resource exists]</td></tr>
+          <tr><td>E003</td><td>[Conflict]</td><td>[Concurrent modification]</td><td>[Retry after delay]</td></tr>
+          <tr><td>E004</td><td>[Timeout]</td><td>[Slow dependency]</td><td>[Check network/deps]</td></tr>
+          <tr><td>E005</td><td>[Dependency unavailable]</td><td>[Service down]</td><td>[Check service health]</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>

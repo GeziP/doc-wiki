@@ -1,0 +1,78 @@
+<!--
+  Fullpower Template: Testing
+  WHY: Testing is quality assurance. Show strategy + coverage + how to run + write.
+-->
+<section class="section" id="sec-testing-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-testing-{{ID}}-title">{{N}}. Testing</h2>
+  </div>
+  <div class="section-summary">
+    <p>Strategy: [unit primary, integration for critical paths]. Coverage: [N]%, Cases: [K].</p>
+  </div>
+  <details open id="sec-testing-{{ID}}-details">
+    <summary>Test Strategy</summary>
+    <div class="section-body">
+      <h3 id="sec-test-{{ID}}-strategy">{{N}}.1 Strategy</h3>
+      <table>
+        <thead><tr><th>Type</th><th>Scope</th><th>Count</th><th>Coverage</th><th>Frequency</th></tr></thead>
+        <tbody>
+          <tr><td>Unit</td><td>[Function/class]</td><td>[N]</td><td>[N]%</td><td>[Every commit]</td></tr>
+          <tr><td>Integration</td><td>[Module interaction]</td><td>[N]</td><td>[N]%</td><td>[Every PR]</td></tr>
+          <tr><td>E2E</td><td>[End-to-end]</td><td>[N]</td><td>[N]%</td><td>[Daily]</td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-test-{{ID}}-coverage">{{N}}.2 Coverage</h3>
+      <table>
+        <thead><tr><th>Module</th><th>Line</th><th>Branch</th><th>Test File</th><th>Uncovered</th></tr></thead>
+        <tbody>
+          <tr><td>[Module A]</td><td>[N]%</td><td>[N]%</td><td><a class="source-ref" href="tests/"><code>tests/</code></a></td><td>[Error branches]</td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-test-{{ID}}-run">{{N}}.3 Running Tests</h3>
+      <pre><code class="language-bash">
+npm test                    # All tests
+npm test -- --grep "Mod"    # Specific module
+npm run test:coverage       # With coverage
+npm run test:e2e            # E2E tests
+      </code></pre>
+      <h3 id="sec-test-{{ID}}-write">{{N}}.4 Writing Tests</h3>
+      <pre><code class="language-javascript">
+describe('ModuleName', () => {
+  it('should handle normal input', () => {
+    const result = module.method(input);
+    expect(result).toEqual(expected);
+  });
+  it('should throw on invalid input', () => {
+    expect(() => module.method(null)).toThrow(ValidationError);
+  });
+});
+      </code></pre>
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="tests/"><code>tests/</code></a>
+      </div>
+    </div>
+  </details>
+  <details id="sec-testing-{{ID}}-deep">
+    <summary>Infrastructure</summary>
+    <div class="section-body">
+      <h3 id="sec-test-{{ID}}-fixtures">{{N}}.5 Test Data</h3>
+      <p>Fixtures at <a class="source-ref" href="tests/fixtures/"><code>tests/fixtures/</code></a></p>
+      <h3 id="sec-test-{{ID}}-mock">{{N}}.6 Mock Strategy</h3>
+      <table>
+        <thead><tr><th>Mock</th><th>Use Case</th><th>File</th></tr></thead>
+        <tbody>
+          <tr><td>[DB]</td><td>[Isolate data layer]</td><td><a class="source-ref" href="tests/mocks/"><code>tests/mocks/</code></a></td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-test-{{ID}}-ci">{{N}}.7 CI Integration</h3>
+      <table>
+        <thead><tr><th>Stage</th><th>Type</th><th>Trigger</th><th>On Failure</th></tr></thead>
+        <tbody>
+          <tr><td>pre-merge</td><td>Unit+Integration</td><td>PR</td><td>Block merge</td></tr>
+          <tr><td>post-merge</td><td>All</td><td>Main merge</td><td>Alert</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>

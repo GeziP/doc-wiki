@@ -1,0 +1,267 @@
+﻿<!--
+  Fullpower Template: 配置系统（Configuration）
+  =================================================
+  WHY: 配置是系统行为的"旋钮"。DeepWiki 的配置章节不只是列参数表，
+  而是每个参数都有：含义 + 类型 + 默认值 + 取值范围 + 不当值后果 + 相关参数 + 源码。
+  这是"改完配置不会出事"级别的参考。
+
+  结构：
+    Layer 1: 配置系统概述
+    Layer 2: 按功能分组的配置参数 + 加载优先级
+    Layer 3: 配置验证 + 环境变量覆盖 + 动态配置 + 常见陷阱
+
+  适用场景：系统架构文档、Guide 的配置章节
+-->
+
+<section class="section" id="sec-config-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-config-{{ID}}-title">{{N}}. 配置系统</h2>
+  </div>
+
+  <div class="section-summary">
+    <p>[项目名] 通过 [配置文件/环境变量/命令行参数] 进行配置，支持 [N] 个配置项。
+      配置加载优先级：[优先级链]。零配置即可启动，所有参数都有合理默认值。</p>
+  </div>
+
+  <details open id="sec-config-{{ID}}-details">
+    <summary>配置参数</summary>
+    <div class="section-body">
+
+      <h3 id="sec-cfg-{{ID}}-overview">{{N}}.1 配置加载</h3>
+      <p>配置从以下来源按优先级加载（高优先级覆盖低优先级）：</p>
+      <table>
+        <thead>
+          <tr><th>优先级</th><th>来源</th><th>格式</th><th>示例</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1（最高）</td>
+            <td>命令行参数</td>
+            <td><code>--key=value</code></td>
+            <td><code>--port=8080</code></td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>环境变量</td>
+            <td><code>APP_KEY=value</code></td>
+            <td><code>APP_PORT=8080</code></td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>配置文件</td>
+            <td>YAML/JSON/TOML</td>
+            <td><code>config.yaml</code></td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>4（最低）</td>
+            <td>代码默认值</td>
+            <td>源码常量</td>
+            <td><code>DEFAULT_PORT = 3000</code></td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-cfg-{{ID}}-params">{{N}}.2 核心配置参数</h3>
+
+      <h4 id="sec-cfg-{{ID}}-server">服务器配置</h4>
+      <table>
+        <thead>
+          <tr><th>参数</th><th>类型</th><th>默认值</th><th>取值范围</th><th>说明</th><th>不当值后果</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>port</code></td>
+            <td><code>number</code></td>
+            <td><code>3000</code></td>
+            <td>1-65535</td>
+            <td>监听端口</td>
+            <td>[如"&lt;1024 需要 root 权限；已被占用时启动失败"]</td>
+          </tr>
+          <tr>
+            <td><code>host</code></td>
+            <td><code>string</code></td>
+            <td><code>"0.0.0.0"</code></td>
+            <td>IP 地址</td>
+            <td>监听地址</td>
+            <td>[如"127.0.0.1 只允许本机访问"]</td>
+          </tr>
+          <tr>
+            <td><code>workers</code></td>
+            <td><code>number</code></td>
+            <td><code>CPU 核数</code></td>
+            <td>1-64</td>
+            <td>工作进程数</td>
+            <td>[如"超过 CPU 核数会因上下文切换降低性能"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4 id="sec-cfg-{{ID}}-data">数据配置</h4>
+      <table>
+        <thead>
+          <tr><th>参数</th><th>类型</th><th>默认值</th><th>取值范围</th><th>说明</th><th>不当值后果</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>database.url</code></td>
+            <td><code>string</code></td>
+            <td><code>"sqlite://data.db"</code></td>
+            <td>连接字符串</td>
+            <td>数据库连接</td>
+            <td>[如"格式错误启动时报连接失败"]</td>
+          </tr>
+          <tr>
+            <td><code>cache.ttl</code></td>
+            <td><code>number</code></td>
+            <td><code>300</code></td>
+            <td>0-86400</td>
+            <td>缓存过期时间(秒)</td>
+            <td>[如"0 = 禁用缓存；过大会导致数据陈旧"]</td>
+          </tr>
+          <tr>
+            <td><code>cache.maxSize</code></td>
+            <td><code>number</code></td>
+            <td><code>1000</code></td>
+            <td>1-100000</td>
+            <td>缓存最大条目数</td>
+            <td>[如"过大会占用过多内存；过小会频繁淘汰"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4 id="sec-cfg-{{ID}}-log">日志配置</h4>
+      <table>
+        <thead>
+          <tr><th>参数</th><th>类型</th><th>默认值</th><th>取值范围</th><th>说明</th><th>不当值后果</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>log.level</code></td>
+            <td><code>string</code></td>
+            <td><code>"info"</code></td>
+            <td>debug/info/warn/error</td>
+            <td>日志级别</td>
+            <td>[如"debug 在生产环境会产生大量日志，影响性能"]</td>
+          </tr>
+          <tr>
+            <td><code>log.format</code></td>
+            <td><code>string</code></td>
+            <td><code>"json"</code></td>
+            <td>json/text</td>
+            <td>日志格式</td>
+            <td>[如"text 格式不适合日志聚合系统解析"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-cfg-{{ID}}-example">{{N}}.3 配置示例</h3>
+      <p>以下是一个完整的生产环境配置示例：</p>
+      <pre><code class="language-yaml">
+# config.production.yaml
+# 生产环境配置 — 所有参数都有注释说明
+
+server:
+  port: 8080              # 监听端口
+  host: "0.0.0.0"         # 监听所有网卡
+  workers: 4              # 等于 CPU 核数
+  timeout: 30000          # 请求超时 30s
+
+database:
+  url: "postgres://user:pass@db-host:5432/mydb"
+  pool:
+    min: 5                # 最小连接数
+    max: 20               # 最大连接数
+    idle: 10000           # 空闲连接超时 10s
+
+cache:
+  ttl: 300                # 缓存 5 分钟
+  maxSize: 5000           # 最多 5000 条
+  backend: "redis"        # 使用 Redis 作为缓存后端
+
+log:
+  level: "info"           # 生产环境用 info
+  format: "json"          # JSON 格式便于日志系统采集
+  output: "stdout"        # 输出到 stdout，由容器运行时收集
+      </code></pre>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="[config-file]#L[1-50]"><code>[config-file]:[1-50]</code></a>
+        <a class="source-ref" href="[defaults-file]#L[1-30]"><code>[defaults-file]:[1-30]</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="sec-config-{{ID}}-deep">
+    <summary>高级配置</summary>
+    <div class="section-body">
+
+      <h3 id="sec-cfg-{{ID}}-validation">{{N}}.4 配置验证</h3>
+      <p>启动时会验证所有配置项。验证失败会导致启动中止并输出具体错误：</p>
+      <table>
+        <thead>
+          <tr><th>验证规则</th><th>涉及参数</th><th>错误信息</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>[如"port 必须是正整数"]</td>
+            <td><code>port</code></td>
+            <td>[如"Invalid port: must be 1-65535"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>[如"workers 不能超过 64"]</td>
+            <td><code>workers</code></td>
+            <td>[如"Workers limit exceeded: max 64"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-cfg-{{ID}}-dynamic">{{N}}.5 动态配置（热更新）</h3>
+      <p>以下配置支持运行时热更新，无需重启：</p>
+      <table>
+        <thead>
+          <tr><th>参数</th><th>更新方式</th><th>生效时间</th><th>注意事项</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>log.level</code></td>
+            <td>[如"SIGHUP 信号 / API 调用"]</td>
+            <td>立即</td>
+            <td>[如"不影响已创建的 logger 实例"]</td>
+          </tr>
+          <tr>
+            <td><code>cache.ttl</code></td>
+            <td>[如"API 调用"]</td>
+            <td>下次缓存操作</td>
+            <td>[如"已缓存的条目保持原 TTL"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-cfg-{{ID}}-pitfalls">{{N}}.6 常见配置陷阱</h3>
+      <div class="callout warning">
+        <strong>陷阱 1：环境变量覆盖</strong>
+        <p>环境变量 <code>APP_PORT</code> 会覆盖配置文件中的 <code>port</code>。
+          如果同时设置了两者，以环境变量为准。调试时容易忘记检查环境变量。</p>
+      </div>
+      <div class="callout warning">
+        <strong>陷阱 2：配置文件路径</strong>
+        <p>配置文件的默认路径是相对于工作目录，不是相对于可执行文件。
+          从不同目录启动会读取不同的配置文件。</p>
+      </div>
+      <div class="callout warning">
+        <strong>陷阱 3：类型转换</strong>
+        <p>环境变量都是字符串。如 <code>APP_WORKERS="4"</code> 会被正确转为数字，
+          但 <code>APP_WORKERS="four"</code> 会静默回退到默认值，不报错。</p>
+      </div>
+
+    </div>
+  </details>
+</section>

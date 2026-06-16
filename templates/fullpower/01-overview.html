@@ -1,0 +1,197 @@
+<!--
+  Fullpower Template: 项目概述（Project Overview）
+  =================================================
+  WHY: 概述是读者打开文档后的第一个 30 秒判断——"这个项目做什么，值不值得继续读"。
+  DeepWiki 的概述章节通常是整个文档中信息密度最高的部分，用最短篇幅传达最多上下文。
+  本模板展示如何用三层渐进式披露写出一个"读完就能上手"的概述。
+
+  结构：
+    Layer 1 (Summary): 一句话说清项目是什么、解决什么问题
+    Layer 2 (Details): 项目定位、核心能力、技术栈、适用场景、项目规模
+    Layer 3 (Deep Dive): 设计哲学、竞品对比、架构演进历史、设计权衡
+
+  适用场景：系统架构文档、模块设计文档、Guide 的开头章节
+  参考：DeepWiki 1.0-overview、ZRead 项目概述页
+-->
+
+<section class="section" id="sec-overview">
+  <div class="section-header">
+    <h2 id="sec-overview-title">1. 概述</h2>
+  </div>
+
+  <!-- Layer 1: Summary — 一句话定位，读者 3 秒判断是否继续 -->
+  <div class="section-summary">
+    <p><strong>[项目名]</strong> 是一个 [一句话定位]，核心解决 [什么问题]。
+      采用 [核心技术方案]，支持 [关键能力 1]、[关键能力 2]、[关键能力 3]，
+      适用于 [目标用户/场景]。</p>
+  </div>
+
+  <!-- Layer 2: Details — 项目全貌 -->
+  <details open id="sec-overview-details">
+    <summary>项目详情</summary>
+    <div class="section-body">
+
+      <h3 id="sec-overview-pos">1.1 项目定位</h3>
+      <p>[项目名] 诞生于 [背景/痛点]。在 [领域] 中，[现有方案的不足描述]。
+        本项目通过 [核心创新点]，实现了 [具体改进]。</p>
+      <p>与传统 [竞品] 相比，核心差异在于 [差异点]，使得在 [场景] 下
+        能够 [具体优势：延迟/步骤/成本等量化对比]。</p>
+
+      <h3 id="sec-overview-cap">1.2 核心能力</h3>
+      <p>以下列出项目的全部核心能力。每项能力标注了对应实现模块和成熟度状态。</p>
+      <table>
+        <thead>
+          <tr><th>能力</th><th>详细说明</th><th>实现模块</th><th>成熟度</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>[能力 1]</strong></td>
+            <td>[做什么 + 怎么做 + 达到什么效果，不允许只写一句话]</td>
+            <td><code>[Module]</code> <a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+            <td><span class="tag">Stable</span></td>
+          </tr>
+          <tr>
+            <td><strong>[能力 2]</strong></td>
+            <td>[详细说明]</td>
+            <td><code>[Module]</code></td>
+            <td><span class="tag">Beta</span></td>
+          </tr>
+          <tr>
+            <td><strong>[能力 3]</strong></td>
+            <td>[详细说明]</td>
+            <td><code>[Module]</code></td>
+            <td><span class="tag">Alpha</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-overview-stack">1.3 技术栈</h3>
+      <p>技术选型基于项目实际的构建配置文件，每个选型都附带选择理由。</p>
+      <table>
+        <thead>
+          <tr><th>组件</th><th>选型</th><th>版本</th><th>用途</th><th>选型理由</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>语言</td><td>[Lang]</td><td>[ver]</td><td>核心开发</td>
+            <td>[WHY：具体理由，如"编译期类型检查避免运行时崩溃，模板元编程支持零开销抽象"]</td>
+          </tr>
+          <tr>
+            <td>构建</td><td>[Build]</td><td>[ver]</td><td>编译打包</td>
+            <td>[WHY]</td>
+          </tr>
+          <tr>
+            <td>测试</td><td>[Test]</td><td>[ver]</td><td>单元/集成测试</td>
+            <td>[WHY]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-overview-scene">1.4 适用场景</h3>
+      <div class="two-col">
+        <div class="col">
+          <h4>✅ 推荐使用</h4>
+          <ul>
+            <li><strong>[场景 1]</strong>：[具体描述 + 为什么适合]</li>
+            <li><strong>[场景 2]</strong>：[具体描述]</li>
+            <li><strong>[场景 3]</strong>：[具体描述]</li>
+          </ul>
+        </div>
+        <div class="col">
+          <h4>⚠️ 不推荐</h4>
+          <ul>
+            <li><strong>[场景 A]</strong>：[具体描述 + 为什么不适合 + 替代方案]</li>
+            <li><strong>[场景 B]</strong>：[具体描述]</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 id="sec-overview-stats">1.5 项目规模</h3>
+      <table>
+        <thead>
+          <tr><th>指标</th><th>数值</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>源码文件数</td><td>[N]</td><td>不含测试和配置</td></tr>
+          <tr><td>代码行数</td><td>[N]</td><td>含注释，不含空行</td></tr>
+          <tr><td>核心模块数</td><td>[N]</td><td>独立业务/功能模块</td></tr>
+          <tr><td>公开 API 数</td><td>[N]</td><td>对外暴露的类/函数/接口</td></tr>
+          <tr><td>测试覆盖</td><td>[N]%</td><td>行覆盖率</td></tr>
+          <tr><td>依赖数</td><td>[N]</td><td>直接依赖</td></tr>
+        </tbody>
+      </table>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="[README]#L[1-30]"><code>[README]:[1-30]</code></a>
+        <a class="source-ref" href="[build-config]#L[1-50]"><code>[build-config]:[1-50]</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Layer 3: Deep Dive — 设计哲学 + 竞品 + 演进 -->
+  <details id="sec-overview-deep">
+    <summary>设计哲学与演进</summary>
+    <div class="section-body">
+
+      <h3 id="sec-overview-philosophy">1.6 设计哲学</h3>
+      <p>每条原则都有具体的工程权衡——不是空洞的口号，而是影响每一行代码的决策框架：</p>
+      <table>
+        <thead>
+          <tr><th>原则</th><th>具体含义</th><th>工程体现</th><th>付出的代价</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>[原则 1]</strong></td>
+            <td>[具体含义]</td>
+            <td>[项目中的体现，如"所有配置有默认值"]</td>
+            <td>[代价，如"灵活性降低"]</td>
+          </tr>
+          <tr>
+            <td><strong>[原则 2]</strong></td>
+            <td>[含义]</td>
+            <td>[体现]</td>
+            <td>[代价]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        <p>[项目] 选择 [方案 A] 而非 [方案 B]，核心原因是 [具体原因]。
+          这意味着 [具体取舍]。若未来 [条件变化]，可考虑 [替代方案]。</p>
+      </div>
+
+      <h3 id="sec-overview-compare">1.7 同类方案对比</h3>
+      <p>对比基于 [具体评估维度]，每项都有量化或具体行为描述：</p>
+      <table>
+        <thead>
+          <tr><th>维度</th><th>[本项目]</th><th>[竞品 A]</th><th>[竞品 B]</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>[维度 1]</td><td>[具体数据]</td><td>[具体数据]</td><td>[具体数据]</td></tr>
+          <tr><td>[维度 2]</td><td>[具体]</td><td>[具体]</td><td>[具体]</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-overview-evolution">1.8 架构演进</h3>
+      <p>关键架构变更记录，每次都有明确驱动因素：</p>
+      <table>
+        <thead>
+          <tr><th>版本</th><th>变更</th><th>驱动因素</th><th>影响范围</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>[v1.0]</td><td>[变更]</td><td>[WHY]</td><td>[影响]</td></tr>
+          <tr><td>[v2.0]</td><td>[变更]</td><td>[WHY]</td><td>[影响]</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        <p>[某个关键架构选择的来龙去脉，包括替代方案和取舍]</p>
+      </div>
+
+    </div>
+  </details>
+</section>

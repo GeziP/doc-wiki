@@ -1,0 +1,94 @@
+<!--
+  Fullpower Template: FAQ
+  WHY: FAQ answers the questions users actually ask, not the ones we wish they would ask.
+  Each answer must be specific and actionable, with source code references.
+-->
+<section class="section" id="sec-faq-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-faq-{{ID}}-title">{{N}}. FAQ</h2>
+  </div>
+  <div class="section-summary">
+    <p>Frequently asked questions about [project/module]. [K] questions covering
+      configuration, usage, performance, and troubleshooting.</p>
+  </div>
+  <details open id="sec-faq-{{ID}}-details">
+    <summary>Questions and Answers</summary>
+    <div class="section-body">
+
+      <h3 id="sec-faq-{{ID}}-usage">{{N}}.1 Usage</h3>
+
+      <h4 id="sec-faq-{{ID}}-q1">Q: [Question about basic usage]?</h4>
+      <p><strong>A:</strong> [Specific answer with code example]</p>
+      <pre><code class="language-{{LANG}}">
+// [Code example showing the answer]
+      </code></pre>
+      <p><em>Source: <a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></em></p>
+
+      <h4 id="sec-faq-{{ID}}-q2">Q: [Question about advanced usage]?</h4>
+      <p><strong>A:</strong> [Specific answer]</p>
+      <pre><code class="language-{{LANG}}">
+// [Code example]
+      </code></pre>
+
+      <h3 id="sec-faq-{{ID}}-config">{{N}}.2 Configuration</h3>
+
+      <h4 id="sec-faq-{{ID}}-q3">Q: [Question about configuration]?</h4>
+      <p><strong>A:</strong> [Specific answer with config example]</p>
+      <pre><code class="language-yaml">
+# [Config example]
+      </code></pre>
+      <p><em>Source: <a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></em></p>
+
+      <h3 id="sec-faq-{{ID}}-perf">{{N}}.3 Performance</h3>
+
+      <h4 id="sec-faq-{{ID}}-q4">Q: [Question about performance]?</h4>
+      <p><strong>A:</strong> [Specific answer with data]</p>
+      <p><em>Source: <a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></em></p>
+
+      <h3 id="sec-faq-{{ID}}-trouble">{{N}}.4 Troubleshooting</h3>
+
+      <h4 id="sec-faq-{{ID}}-q5">Q: [Question about common problem]?</h4>
+      <p><strong>A:</strong> [Specific answer with diagnostic steps]</p>
+      <pre><code class="language-bash">
+# [Diagnostic command]
+      </code></pre>
+      <p><em>Source: <a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></em></p>
+
+      <h4 id="sec-faq-{{ID}}-q6">Q: [Another troubleshooting question]?</h4>
+      <p><strong>A:</strong> [Specific answer]</p>
+
+      <h3 id="sec-faq-{{ID}}-misc">{{N}}.5 Miscellaneous</h3>
+
+      <h4 id="sec-faq-{{ID}}-q7">Q: [Question about design decisions]?</h4>
+      <p><strong>A:</strong> [Answer explaining the WHY behind the decision]</p>
+      <div class="callout note">
+        <strong>Design Decision</strong>
+        <p>[Additional context about why this design was chosen]</p>
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="[relevant-files]"><code>[relevant-files]</code></a>
+      </div>
+
+    </div>
+  </details>
+  <details id="sec-faq-{{ID}}-deep">
+    <summary>Extended Q&A</summary>
+    <div class="section-body">
+      <h3 id="sec-faq-{{ID}}-extended">{{N}}.6 Extended Questions</h3>
+
+      <h4 id="sec-faq-{{ID}}-q8">Q: [Edge case question]?</h4>
+      <p><strong>A:</strong> [Detailed answer covering the edge case]</p>
+
+      <h4 id="sec-faq-{{ID}}-q9">Q: [Integration question]?</h4>
+      <p><strong>A:</strong> [Detailed answer with integration example]</p>
+      <pre><code class="language-{{LANG}}">
+// [Integration example]
+      </code></pre>
+
+      <h4 id="sec-faq-{{ID}}-q10">Q: [Future/roadmap question]?</h4>
+      <p><strong>A:</strong> [Answer about planned features or limitations]</p>
+    </div>
+  </details>
+</section>

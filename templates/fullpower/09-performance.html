@@ -1,0 +1,79 @@
+<!--
+  Fullpower Template: Performance Analysis
+  WHY: Performance is a key quality attribute.
+-->
+<section class="section" id="sec-perf-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-perf-{{ID}}-title">{{N}}. Performance</h2>
+  </div>
+  <div class="section-summary">
+    <p>Performance: [P50 Xms, P99 Yms, Z req/s]. Bottleneck at [location].</p>
+  </div>
+  <details open id="sec-perf-{{ID}}-details">
+    <summary>Performance Analysis</summary>
+    <div class="section-body">
+      <h3 id="sec-perf-{{ID}}-overview">{{N}}.1 Overview</h3>
+      <table>
+        <thead><tr><th>Metric</th><th>Value</th><th>Conditions</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>P50 Latency</td><td>[X]ms</td><td>[100 concurrent]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>P99 Latency</td><td>[X]ms</td><td>[Same]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>Throughput</td><td>[Z] req/s</td><td>[Same]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>Memory</td><td>[M]MB</td><td>[Steady state]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-perf-{{ID}}-complexity">{{N}}.2 Algorithm Complexity</h3>
+      <table>
+        <thead><tr><th>Operation</th><th>Time</th><th>Space</th><th>Bottleneck</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>[Op 1]</td><td>O([N])</td><td>O([M])</td><td>[Sort O(N log N)]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>[Op 2]</td><td>O([N])</td><td>O([M])</td><td>[Network I/O]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-perf-{{ID}}-resources">{{N}}.3 Resource Usage</h3>
+      <table>
+        <thead><tr><th>Resource</th><th>Pattern</th><th>Limit</th><th>On Exceed</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>Memory</td><td>[Linear with requests]</td><td>[512MB]</td><td>[OOM Kill]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>FDs</td><td>[1 per conn]</td><td>[1024]</td><td>[Refused]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>Threads</td><td>[Fixed pool]</td><td>[4]</td><td>[Queuing]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+        </tbody>
+      </table>
+      <div class="callout note">
+        <strong>Performance Note</strong>
+        <p>[Specific observation about performance characteristics]</p>
+      </div>
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="benchmarks/"><code>benchmarks/</code></a>
+      </div>
+    </div>
+  </details>
+  <details id="sec-perf-{{ID}}-deep">
+    <summary>Optimization and Pitfalls</summary>
+    <div class="section-body">
+      <h3 id="sec-perf-{{ID}}-history">{{N}}.4 Optimization History</h3>
+      <table>
+        <thead><tr><th>Version</th><th>Optimization</th><th>Effect</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td>[v1.0]</td><td>[LRU cache]</td><td>[80% hit, 60% latency reduction]</td><td>[+50MB memory]</td></tr>
+          <tr><td>[v2.0]</td><td>[Async I/O]</td><td>[3x throughput]</td><td>[Higher complexity]</td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-perf-{{ID}}-pitfalls">{{N}}.5 Performance Pitfalls</h3>
+      <div class="callout warning">
+        <strong>Pitfall 1: N+1 Query</strong>
+        <p>[Describe specific N+1 scenario with source and fix]</p>
+      </div>
+      <div class="callout warning">
+        <strong>Pitfall 2: Sync Blocking</strong>
+        <p>[Describe specific sync blocking scenario]</p>
+      </div>
+      <h3 id="sec-perf-{{ID}}-benchmark">{{N}}.6 Benchmarks</h3>
+      <pre><code class="language-bash">
+# Run benchmarks
+npm run benchmark
+      </code></pre>
+    </div>
+  </details>
+</section>

@@ -1,0 +1,94 @@
+<!--
+  Fullpower Template: Glossary
+  WHY: Glossary ensures consistent terminology. Every term must have a definition
+  and a source (where the term is used in the codebase).
+-->
+<section class="section" id="sec-glossary-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-glossary-{{ID}}-title">{{N}}. Glossary</h2>
+  </div>
+  <div class="section-summary">
+    <p>Key terms used throughout this documentation. [K] terms defined with
+      source references to the codebase.</p>
+  </div>
+  <details open id="sec-glossary-{{ID}}-details">
+    <summary>Term Definitions</summary>
+    <div class="section-body">
+      <table>
+        <thead>
+          <tr><th>Term</th><th>Definition</th><th>Context</th><th>Source</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>[Term 1]</strong></td>
+            <td>[Precise definition, not vague. Explain what it means in THIS project's context.]</td>
+            <td>[Where this term is used, e.g., "Configuration system", "API responses"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><strong>[Term 2]</strong></td>
+            <td>[Definition]</td>
+            <td>[Context]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><strong>[Term 3]</strong></td>
+            <td>[Definition]</td>
+            <td>[Context]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><strong>[Term 4]</strong></td>
+            <td>[Definition]</td>
+            <td>[Context]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><strong>[Term 5]</strong></td>
+            <td>[Definition]</td>
+            <td>[Context]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout note">
+        <strong>Terminology Note</strong>
+        <p>[If there are terms that are commonly confused or have different meanings
+          in different contexts, explain the distinction here.]</p>
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="[README]"><code>[README]</code></a>
+        <a class="source-ref" href="[source-files]"><code>[source-files]</code></a>
+      </div>
+    </div>
+  </details>
+  <details id="sec-glossary-{{ID}}-deep">
+    <summary>Term Relationships</summary>
+    <div class="section-body">
+      <h3 id="sec-gloss-{{ID}}-relations">{{N}}.1 Term Relationships</h3>
+      <p>How terms relate to each other:</p>
+      <figure class="diagram">
+        <div class="mermaid">
+graph LR
+    T1[Term 1] -- "uses" --> T2[Term 2]
+    T1 -- "creates" --> T3[Term 3]
+    T2 -- "contains" --> T4[Term 4]
+    T3 -- "depends on" --> T4
+        </div>
+        <figcaption>图 {{N}}.1 — Term relationship diagram</figcaption>
+      </figure>
+
+      <h3 id="sec-gloss-{{ID}}-aliases">{{N}}.2 Aliases and Synonyms</h3>
+      <table>
+        <thead><tr><th>Preferred Term</th><th>Aliases</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>[Term 1]</td><td>[Alias A, Alias B]</td><td>[Why this is the preferred term]</td></tr>
+          <tr><td>[Term 2]</td><td>[Alias C]</td><td>[Reason]</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>

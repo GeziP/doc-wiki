@@ -1,0 +1,230 @@
+﻿<!--
+  Fullpower Template: 数据流（Data Flow）
+  =================================================
+  WHY: 数据流是理解系统行为的关键视角。DeepWiki 的数据流章节用"端到端路径追踪"方式，
+  从输入到输出完整展示数据如何在系统中流动，每个节点的变换都标注了源码位置。
+
+  结构：
+    Layer 1: 数据流一句话概述
+    Layer 2: 端到端流程图 + 逐步说明 + 数据变换表
+    Layer 3: 异步流程 + 缓存策略 + 数据校验点 + 故障注入点
+
+  适用场景：系统架构文档、Guide 的核心流程章节
+-->
+
+<section class="section" id="sec-dataflow">
+  <div class="section-header">
+    <h2 id="sec-dataflow-title">{{N}}. 数据流</h2>
+  </div>
+
+  <div class="section-summary">
+    <p>数据从 [入口] 进入系统，经过 [N] 个处理阶段：[阶段1] -> [阶段2] -> [阶段3]，
+      最终输出到 [出口]。关键变换发生在 [阶段X]，数据格式从 [格式A] 转为 [格式B]。</p>
+  </div>
+
+  <details open id="sec-dataflow-details">
+    <summary>数据流详解</summary>
+    <div class="section-body">
+
+      <h3 id="sec-df-overview">{{N}}.1 端到端流程</h3>
+      <p>以下流程图展示了数据从输入到输出的完整路径。每个节点标注了处理模块和数据格式。</p>
+
+      <figure class="diagram">
+        <div class="mermaid">
+flowchart LR
+    Input["输入<br/>格式: JSON"] -- "HTTP POST" --> Parser["解析器<br/>src/parser.js"]
+    Parser -- "ParsedMsg" --> Validator["校验器<br/>src/validator.js"]
+    Validator -- "ValidMsg" --> Processor["处理器<br/>src/processor.js"]
+    Processor -- "Result" --> Serializer["序列化<br/>src/serializer.js"]
+    Serializer -- "JSON" --> Output["输出"]
+
+    Validator -. "InvalidMsg" .-> ErrorHandler["错误处理<br/>src/error.js"]
+    ErrorHandler -- "ErrorResponse" --> Output
+        </div>
+        <figcaption>图 {{N}}.1 — 端到端数据流</figcaption>
+      </figure>
+
+      <h3 id="sec-df-steps">{{N}}.2 处理阶段详解</h3>
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>模块</th><th>输入格式</th><th>输出格式</th><th>关键操作</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. 解析</td>
+            <td><code>Parser</code></td>
+            <td>原始 JSON 字符串</td>
+            <td><code>ParsedMsg</code> 对象</td>
+            <td>[如"JSON.parse + 字段提取 + 类型转换"]</td>
+            <td><a class="source-ref" href="src/parser.js#L20-L80"><code>src/parser.js:20-80</code></a></td>
+          </tr>
+          <tr>
+            <td>2. 校验</td>
+            <td><code>Validator</code></td>
+            <td><code>ParsedMsg</code></td>
+            <td><code>ValidMsg</code> 或 <code>InvalidMsg</code></td>
+            <td>[如"必填字段检查 + 范围校验 + 格式校验"]</td>
+            <td><a class="source-ref" href="src/validator.js#L10-L60"><code>src/validator.js:10-60</code></a></td>
+          </tr>
+          <tr>
+            <td>3. 处理</td>
+            <td><code>Processor</code></td>
+            <td><code>ValidMsg</code></td>
+            <td><code>Result</code></td>
+            <td>[如"业务规则执行 + 状态更新 + 事件触发"]</td>
+            <td><a class="source-ref" href="src/processor.js#L30-L150"><code>src/processor.js:30-150</code></a></td>
+          </tr>
+          <tr>
+            <td>4. 序列化</td>
+            <td><code>Serializer</code></td>
+            <td><code>Result</code></td>
+            <td>JSON 字符串</td>
+            <td>[如"字段映射 + 日期格式化 + 敏感字段脱敏"]</td>
+            <td><a class="source-ref" href="src/serializer.js#L5-L40"><code>src/serializer.js:5-40</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-df-transform">{{N}}.3 数据变换详情</h3>
+      <p>以下是每个阶段的数据结构变化，展示字段的增删改：</p>
+
+      <h4>阶段 1 输出：ParsedMsg</h4>
+      <pre><code class="language-json">
+{
+  "id": "msg_123",           // 来自输入 JSON
+  "type": "request",         // 来自输入 JSON
+  "payload": { ... },        // 来自输入 JSON，未经校验
+  "timestamp": 1234567890,   // 解析时添加，来自 Date.now()
+  "_raw": "..."              // 原始字符串，用于日志
+}
+      </code></pre>
+
+      <h4>阶段 2 输出：ValidMsg</h4>
+      <pre><code class="language-json">
+{
+  "id": "msg_123",
+  "type": "request",
+  "payload": { ... },        // 已校验，类型已转换
+  "timestamp": 1234567890,
+  "_validation": {           // 校验元数据
+    "passed": ["id", "type", "payload"],
+    "warnings": ["payload.size 接近上限"]
+  }
+  // _raw 已移除（安全考虑）
+}
+      </code></pre>
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        <p>在校验阶段移除 <code>_raw</code> 字段是出于安全考虑：原始字符串可能包含
+          未转义的用户输入，在后续处理中存在注入风险。</p>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="sec-dataflow-deep">
+    <summary>深入分析</summary>
+    <div class="section-body">
+
+      <h3 id="sec-df-async">{{N}}.4 异步处理路径</h3>
+      <p>并非所有数据都走同步路径。以下场景会触发异步处理：</p>
+      <table>
+        <thead>
+          <tr><th>触发条件</th><th>异步路径</th><th>入队位置</th><th>消费位置</th><th>超时处理</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>[如"payload.size > 1MB"]</td>
+            <td>[如"写入消息队列，后台处理"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+            <td>[如"30s 超时，返回 202 Accepted"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-df-cache">{{N}}.5 缓存策略</h3>
+      <table>
+        <thead>
+          <tr><th>缓存层</th><th>缓存内容</th><th>Key 策略</th><th>TTL</th><th>失效策略</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>L1 内存缓存</td>
+            <td>[内容]</td>
+            <td>[如"hash(input)"]</td>
+            <td>[如"5 分钟"]</td>
+            <td>[如"LRU，最大 1000 条"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>L2 外部缓存</td>
+            <td>[内容]</td>
+            <td>[Key 策略]</td>
+            <td>[TTL]</td>
+            <td>[失效策略]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-df-validation">{{N}}.6 数据校验点</h3>
+      <p>系统在以下位置对数据进行校验，每层校验的职责不同：</p>
+      <table>
+        <thead>
+          <tr><th>校验点</th><th>校验内容</th><th>失败行为</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>入口校验</td>
+            <td>[如"JSON 格式、必填字段"]</td>
+            <td>[如"返回 400 Bad Request"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>业务校验</td>
+            <td>[如"业务规则、权限"]</td>
+            <td>[如"返回 403 Forbidden"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>输出校验</td>
+            <td>[如"响应格式、敏感字段"]</td>
+            <td>[如"记录告警日志，降级输出"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-df-fault">{{N}}.7 故障注入点</h3>
+      <p>以下是可以注入故障的位置，用于测试系统的容错能力：</p>
+      <table>
+        <thead>
+          <tr><th>注入点</th><th>故障类型</th><th>预期系统行为</th><th>恢复方式</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Parser 阶段</td>
+            <td>畸形 JSON</td>
+            <td>[如"返回 400，不崩溃"]</td>
+            <td>自动（错误处理）</td>
+          </tr>
+          <tr>
+            <td>Processor 阶段</td>
+            <td>依赖超时</td>
+            <td>[如"重试 3 次后降级"]</td>
+            <td>[恢复方式]</td>
+          </tr>
+          <tr>
+            <td>Store 阶段</td>
+            <td>磁盘满</td>
+            <td>[如"写入失败，数据保留在内存"]</td>
+            <td>[恢复方式]</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
+  </details>
+</section>

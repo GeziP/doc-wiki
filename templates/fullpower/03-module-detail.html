@@ -1,0 +1,350 @@
+﻿<!--
+  Fullpower Template: 模块详情（Module Detail）
+  =================================================
+  WHY: 模块详情是 API 参考的核心。DeepWiki 的模块章节不只是列 API 表格，
+  而是用"概述 - API - 使用示例 - 实现细节 - 状态机 - 错误路径 - 性能 - 测试"
+  八层结构，让读者从"知道有什么接口"深入到"理解为什么这样实现"。
+
+  本模板是最常用的全力模式模板，覆盖单个模块/类的完整文档。
+
+  结构：
+    Layer 1: 模块职责一句话
+    Layer 2: API 表格 + 使用示例（每个 API） + 设计决策
+    Layer 3: 实现分析 + 状态机 + 错误路径穷举 + 性能 + 边界情况 + 测试
+
+  关键要求：
+    - 每个公开 API 都有使用示例，不允许只列签名
+    - 错误路径必须穷举，不允许"可能抛出异常"这种模糊描述
+    - 有状态的模块必须有状态转换表/图
+    - 核心算法必须有代码片段 + 逐步解释
+-->
+
+<section class="section" id="sec-module-{{MODULE_ID}}">
+  <div class="section-header">
+    <h2 id="sec-module-{{MODULE_ID}}-title">{{N}}. {{MODULE_NAME}}</h2>
+  </div>
+
+  <div class="section-summary">
+    <p><code>{{MODULE_NAME}}</code> 负责 [一句话职责]。它提供了 [N] 个公开 API，
+      核心方法是 <code>{{KEY_METHOD}}</code>，通过 [核心机制] 实现 [核心功能]。</p>
+  </div>
+
+  <details open id="sec-module-{{MODULE_ID}}-details">
+    <summary>API 与使用</summary>
+    <div class="section-body">
+
+      <!-- {{N}}.1 模块定位 -->
+      <h3 id="sec-module-{{MODULE_ID}}-pos">{{N}}.1 模块定位</h3>
+      <p>[MODULE_NAME] 在系统中的位置：它被 [上游模块] 调用，调用 [下游模块]。
+        它的存在解决了 [什么问题]——如果没有这个模块，[会怎样]。</p>
+      <p>源码位置：<a class="source-ref" href="src/{{path}}/"><code>src/{{path}}/</code></a>，
+        共 [N] 个文件，[M] 行代码。</p>
+
+      <!-- {{N}}.2 公开 API -->
+      <h3 id="sec-module-{{MODULE_ID}}-api">{{N}}.2 公开 API</h3>
+      <p>以下列出所有公开 API。每个 API 附带完整的签名、参数说明、返回值、异常和使用示例。</p>
+      <table>
+        <thead>
+          <tr><th>方法</th><th>签名</th><th>说明</th><th>复杂度</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>{{method_1}}</code></td>
+            <td><code>{{method_1}}(param1: Type, param2: Type): ReturnType</code></td>
+            <td>[做什么 + 关键行为 + 线程安全性]</td>
+            <td>O([N])</td>
+          </tr>
+          <tr>
+            <td><code>{{method_2}}</code></td>
+            <td><code>{{method_2}}(param: Type): ReturnType</code></td>
+            <td>[做什么]</td>
+            <td>O([N])</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- {{N}}.3 使用示例（全力模式：每个 API 都有） -->
+      <h3 id="sec-module-{{MODULE_ID}}-examples">{{N}}.3 使用示例</h3>
+
+      <h4 id="sec-module-{{MODULE_ID}}-ex1">示例 1：{{method_1}} 基本用法</h4>
+      <p>[描述使用场景：什么时候需要用这个方法，输入是什么，期望输出是什么]</p>
+      <pre><code class="language-{{LANG}}">
+// 场景：[具体场景描述]
+const result = module.{{method_1}}(input1, input2);
+// result = { ... }  // [说明返回值结构]
+// 源码：src/{{path}}/{{file}}.{{ext}}:{{line}}
+      </code></pre>
+      <p>注意事项：</p>
+      <ul>
+        <li>[param1] 的取值范围是 [范围]，超出会 [行为]</li>
+        <li>[param2] 如果传入 null/undefined，方法会 [行为]</li>
+        <li>返回值的 [字段] 在 [条件] 下可能为 [值]</li>
+      </ul>
+
+      <h4 id="sec-module-{{MODULE_ID}}-ex2">示例 2：{{method_1}} 高级用法</h4>
+      <p>[描述高级场景：错误处理、批量操作、与其他模块配合]</p>
+      <pre><code class="language-{{LANG}}">
+// 场景：[高级场景]
+try {
+  const result = module.{{method_1}}(complexInput, { option: true });
+  // 处理成功
+} catch (e) {
+  if (e instanceof SpecificError) {
+    // [具体错误处理方式]
+  }
+}
+      </code></pre>
+
+      <h4 id="sec-module-{{MODULE_ID}}-ex3">示例 3：{{method_2}} 用法</h4>
+      <p>[场景描述]</p>
+      <pre><code class="language-{{LANG}}">
+const data = module.{{method_2}}(query);
+// [说明返回值和使用方式]
+      </code></pre>
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        <p>{{method_1}} 选择 [参数设计/返回值设计] 而非 [替代方案]，因为 [具体原因]。
+          这使得 [优势]，但代价是 [劣势]。</p>
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/{{path}}/{{file1}}.{{ext}}#L{{start}}-L{{end}}"><code>src/{{path}}/{{file1}}.{{ext}}:{{start}}-{{end}}</code></a>
+        <a class="source-ref" href="src/{{path}}/{{file2}}.{{ext}}#L{{start}}-L{{end}}"><code>src/{{path}}/{{file2}}.{{ext}}:{{start}}-{{end}}</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="sec-module-{{MODULE_ID}}-deep">
+    <summary>实现细节与边界情况</summary>
+    <div class="section-body">
+
+      <!-- {{N}}.4 实现分析 -->
+      <h3 id="sec-module-{{MODULE_ID}}-impl">{{N}}.4 实现分析</h3>
+      <p>[MODULE_NAME] 的内部实现采用了 [设计模式/算法/数据结构]。以下是核心逻辑的逐步分析：</p>
+
+      <h4 id="sec-module-{{MODULE_ID}}-impl-core">核心算法</h4>
+      <p>[算法名称]，时间复杂度 O([N])，空间复杂度 O([M])。</p>
+      <pre><code class="language-{{LANG}}">
+// 核心实现（简化版，突出关键逻辑）
+// 源码：src/{{path}}/{{file}}.{{ext}}:{{start}}-{{end}}
+function coreAlgorithm(input) {
+  // 步骤 1：[做什么]
+  const processed = preprocess(input);
+
+  // 步骤 2：[做什么] — 这里是性能关键点
+  // 时间复杂度 O(N log N) 来自 [排序/二分/...]
+  const result = process(processed);
+
+  // 步骤 3：[做什么]
+  return finalize(result);
+}
+      </code></pre>
+
+      <p>关键实现细节：</p>
+      <ul>
+        <li><strong>步骤 1</strong>：[详细解释，包括边界处理]</li>
+        <li><strong>步骤 2</strong>：[详细解释，包括为什么选择这个算法]</li>
+        <li><strong>步骤 3</strong>：[详细解释]</li>
+      </ul>
+
+      <!-- {{N}}.5 状态机（有状态的模块必须有） -->
+      <h3 id="sec-module-{{MODULE_ID}}-state">{{N}}.5 状态机</h3>
+      <p>[MODULE_NAME] 内部维护了一个 [N] 状态的状态机。状态转换由 [事件/方法调用] 触发。</p>
+
+      <figure class="diagram">
+        <div class="mermaid">
+stateDiagram-v2
+    [*] --&gt; Idle
+    Idle --&gt; Processing: start()
+    Processing --&gt; Completed: finish()
+    Processing --&gt; Failed: error()
+    Failed --&gt; Idle: reset()
+    Completed --&gt; Idle: reset()
+        </div>
+        <figcaption>图 {{N}}.1 — [MODULE_NAME] 状态转换图</figcaption>
+      </figure>
+
+      <table>
+        <thead>
+          <tr><th>当前状态</th><th>触发事件</th><th>目标状态</th><th>副作用</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Idle</code></td>
+            <td><code>start()</code></td>
+            <td><code>Processing</code></td>
+            <td>[如"创建 Worker 线程，初始化缓冲区"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Processing</code></td>
+            <td><code>finish()</code></td>
+            <td><code>Completed</code></td>
+            <td>[如"释放 Worker，写入结果"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Processing</code></td>
+            <td><code>error()</code></td>
+            <td><code>Failed</code></td>
+            <td>[如"清理资源，记录错误日志"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Failed</code></td>
+            <td><code>reset()</code></td>
+            <td><code>Idle</code></td>
+            <td>[如"清空错误状态，重置计数器"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <strong>状态转换注意</strong>
+        <p>在 <code>Processing</code> 状态下调用 <code>start()</code> 会 [行为：忽略/抛异常/排队]。
+          调用方必须检查当前状态或使用 <code>isReady()</code> 方法。</p>
+      </div>
+
+      <!-- {{N}}.6 错误路径穷举 -->
+      <h3 id="sec-module-{{MODULE_ID}}-errors">{{N}}.6 错误路径</h3>
+      <p>以下穷举了 [MODULE_NAME] 所有可能的错误情况。每种错误都标注了触发条件、
+        内部处理方式和推荐的调用方应对策略。</p>
+      <table>
+        <thead>
+          <tr><th>错误类型</th><th>触发条件</th><th>内部处理</th><th>推荐应对</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>InvalidInputError</code></td>
+            <td>[具体条件：如"param1 为 null"]</td>
+            <td>[如"直接抛出，不修改状态"]</td>
+            <td>[如"调用前做 null 检查"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>TimeoutError</code></td>
+            <td>[如"操作超过 30s"]</td>
+            <td>[如"取消操作，回滚到上一状态"]</td>
+            <td>[如"设置合理的 timeout，捕获后重试"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>StateError</code></td>
+            <td>[如"在 Idle 状态调用 finish()"]</td>
+            <td>[如"抛出 IllegalStateException"]</td>
+            <td>[如"先调用 isReady() 检查"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>ResourceError</code></td>
+            <td>[如"内存不足无法分配缓冲区"]</td>
+            <td>[如"释放已分配资源，抛出"]</td>
+            <td>[如"监控内存，提前降级"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- {{N}}.7 性能特征 -->
+      <h3 id="sec-module-{{MODULE_ID}}-perf">{{N}}.7 性能特征</h3>
+      <p>以下分析基于源码中的算法复杂度和实际的 I/O 模式。</p>
+      <table>
+        <thead>
+          <tr><th>操作</th><th>时间复杂度</th><th>空间复杂度</th><th>瓶颈点</th><th>优化建议</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>{{method_1}}</code></td>
+            <td>O([N])</td>
+            <td>O([M])</td>
+            <td>[如"排序步骤 O(N log N)"]</td>
+            <td>[如"数据量大时考虑外部排序"]</td>
+          </tr>
+          <tr>
+            <td><code>{{method_2}}</code></td>
+            <td>O([N])</td>
+            <td>O([M])</td>
+            <td>[如"网络 I/O 阻塞"]</td>
+            <td>[如"改用异步 I/O"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout note">
+        <strong>性能注意</strong>
+        <p>[具体的性能观察，如"method_1 在输入大小超过 10000 时性能急剧下降，
+          因为内部使用了 O(N^2) 的嵌套循环。源码见 src/xxx.js:200-250"]</p>
+      </div>
+
+      <!-- {{N}}.8 边界情况 -->
+      <h3 id="sec-module-{{MODULE_ID}}-edge">{{N}}.8 边界情况</h3>
+      <table>
+        <thead>
+          <tr><th>场景</th><th>行为</th><th>源码依据</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>空输入</td>
+            <td>[如"返回空结果，不抛异常"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>超大输入（> 1MB）</td>
+            <td>[如"分块处理，内存峰值 = 块大小"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>并发调用</td>
+            <td>[如"每个调用独立，无共享状态"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>Unicode/特殊字符</td>
+            <td>[如"正确处理 UTF-8，emoji 不会被截断"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- {{N}}.9 测试覆盖 -->
+      <h3 id="sec-module-{{MODULE_ID}}-test">{{N}}.9 测试覆盖</h3>
+      <p>测试文件：<a class="source-ref" href="tests/{{test_file}}"><code>tests/{{test_file}}</code></a></p>
+      <table>
+        <thead>
+          <tr><th>测试用例</th><th>覆盖的 API</th><th>测试场景</th><th>边界条件</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>test_{{method_1}}_basic</code></td>
+            <td><code>{{method_1}}</code></td>
+            <td>[正常输入]</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><code>test_{{method_1}}_empty</code></td>
+            <td><code>{{method_1}}</code></td>
+            <td>空输入</td>
+            <td>验证不抛异常</td>
+          </tr>
+          <tr>
+            <td><code>test_{{method_1}}_error</code></td>
+            <td><code>{{method_1}}</code></td>
+            <td>非法输入</td>
+            <td>验证抛出正确异常</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <strong>测试缺口</strong>
+        <p>[如果发现某些路径没有测试覆盖，明确标注。如"method_2 的并发场景缺少测试，
+          建议补充 test_{{method_2}}_concurrent"]</p>
+      </div>
+
+    </div>
+  </details>
+</section>

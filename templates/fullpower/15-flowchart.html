@@ -1,0 +1,127 @@
+<!--
+  Fullpower Template: Flowchart / Process Flow
+  WHY: Complex processes need visual representation. Each step must have
+  a description, decision points must have clear criteria, and error paths must be shown.
+-->
+<section class="section" id="sec-flow-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-flow-{{ID}}-title">{{N}}. {{PROCESS_NAME}}</h2>
+  </div>
+  <div class="section-summary">
+    <p>[Process name] is a [N]-step process that [what it achieves].
+      Key decision point: [where the critical decision is made].</p>
+  </div>
+  <details open id="sec-flow-{{ID}}-details">
+    <summary>Process Flow</summary>
+    <div class="section-body">
+      <h3 id="sec-flow-{{ID}}-diagram">{{N}}.1 Flow Diagram</h3>
+      <figure class="diagram">
+        <div class="mermaid">
+flowchart TD
+    Start([Start]) --> Step1[Step 1: Description]
+    Step1 --> Decision{Decision?}
+    Decision -- "Yes" --> Step2[Step 2: Description]
+    Decision -- "No" --> Step3[Step 3: Description]
+    Step2 --> Step4[Step 4: Description]
+    Step3 --> Step4
+    Step4 --> End([End])
+
+    Step2 -. "Error" .-> ErrorHandle[Error Handler]
+    ErrorHandle --> Step4
+        </div>
+        <figcaption>图 {{N}}.1 — {{PROCESS_NAME}} flow diagram</figcaption>
+      </figure>
+
+      <h3 id="sec-flow-{{ID}}-steps">{{N}}.2 Step Details</h3>
+      <table>
+        <thead><tr><th>Step</th><th>Description</th><th>Input</th><th>Output</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1. [Step name]</td>
+            <td>[What happens in this step, be specific]</td>
+            <td>[Input data/format]</td>
+            <td>[Output data/format]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>2. [Decision]</td>
+            <td>[Decision criteria, what is checked]</td>
+            <td>[Input]</td>
+            <td>[Yes/No paths]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>3. [Step name]</td>
+            <td>[Description]</td>
+            <td>[Input]</td>
+            <td>[Output]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-flow-{{ID}}-decision">{{N}}.3 Decision Criteria</h3>
+      <table>
+        <thead><tr><th>Decision Point</th><th>Condition</th><th>Yes Path</th><th>No Path</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>[Decision name]</td>
+            <td>[Specific condition, e.g., "input.length > 1000"]</td>
+            <td>[What happens if yes]</td>
+            <td>[What happens if no]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-flow-{{ID}}-error">{{N}}.4 Error Paths</h3>
+      <table>
+        <thead><tr><th>Error Point</th><th>Error Type</th><th>Handling</th><th>Recovery</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>[Step X]</td>
+            <td>[Error type]</td>
+            <td>[How it is handled]</td>
+            <td>[How to recover]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a>
+      </div>
+    </div>
+  </details>
+  <details id="sec-flow-{{ID}}-deep">
+    <summary>Edge Cases and Performance</summary>
+    <div class="section-body">
+      <h3 id="sec-flow-{{ID}}-edge">{{N}}.5 Edge Cases</h3>
+      <table>
+        <thead><tr><th>Scenario</th><th>Behavior</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>[Edge case 1]</td><td>[What happens]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>[Edge case 2]</td><td>[What happens]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-flow-{{ID}}-perf">{{N}}.6 Performance Characteristics</h3>
+      <table>
+        <thead><tr><th>Step</th><th>Time Complexity</th><th>Bottleneck</th><th>Optimization</th></tr></thead>
+        <tbody>
+          <tr><td>[Step 1]</td><td>O([N])</td><td>[Bottleneck]</td><td>[How to optimize]</td></tr>
+          <tr><td>[Step 2]</td><td>O([N])</td><td>[Bottleneck]</td><td>[How to optimize]</td></tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-flow-{{ID}}-variants">{{N}}.7 Process Variants</h3>
+      <table>
+        <thead><tr><th>Variant</th><th>Trigger</th><th>Difference</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>[Variant A]</td><td>[When this variant is used]</td><td>[How it differs from default]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>

@@ -1,0 +1,90 @@
+<!--
+  Fullpower Template: Error Handling
+  WHY: Exhaust every error with trigger + handling + propagation + response + source.
+-->
+<section class="section" id="sec-errors-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-errors-{{ID}}-title">{{N}}. Error Handling</h2>
+  </div>
+  <div class="section-summary">
+    <p>Error handling strategy: layered capture, layer-by-layer reporting.
+      [N] error types, [M] error codes. Core principle: never let caller guess the cause.</p>
+  </div>
+  <details open id="sec-errors-{{ID}}-details">
+    <summary>Error Classification</summary>
+    <div class="section-body">
+      <h3 id="sec-err-{{ID}}-strategy">{{N}}.1 Error Handling Strategy</h3>
+      <table>
+        <thead><tr><th>Layer</th><th>Catches</th><th>Handling</th><th>Propagation</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>Entry</td><td>All uncaught</td><td>[Log, return 500]</td><td>None</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>Business</td><td>Rule violations</td><td>[Throw BusinessError]</td><td>Wrapped up</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>Infrastructure</td><td>I/O, timeout</td><td>[Retry 3x, then throw]</td><td>Raw up</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-err-{{ID}}-types">{{N}}.2 Error Types</h3>
+      <table>
+        <thead><tr><th>Type</th><th>Code</th><th>Meaning</th><th>Retryable</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>ValidationError</td><td>E001</td><td>[Invalid params]</td><td>No</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>NotFoundError</td><td>E002</td><td>[Resource not found]</td><td>No</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>ConflictError</td><td>E003</td><td>[State conflict]</td><td>Yes</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>TimeoutError</td><td>E004</td><td>[Operation timeout]</td><td>Yes</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>DependencyError</td><td>E005</td><td>[Dependency unavailable]</td><td>Yes</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>InternalError</td><td>E999</td><td>[Unexpected error]</td><td>No</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-err-{{ID}}-propagation">{{N}}.3 Error Propagation Path</h3>
+      <p>Tracing TimeoutError from origin to final handling:</p>
+      <pre><code class="language-text">
+Store.read(key) -- timeout --> TimeoutError
+  -- caught by CacheLayer --> retry 3x (backoff: 100ms, 200ms, 400ms)
+    -- all failed --> wrap as DependencyError(Store unavailable)
+      -- caught by BusinessLayer --> log warn
+        -- return degraded result (stale data from L1 cache)
+          -- if L1 empty --> return ErrorCode.E005 to caller
+      </code></pre>
+      <div class="callout note">
+        <strong>Design Decision</strong>
+        <p>Chose degradation over hard failure because brief read unavailability should not block entire requests.</p>
+      </div>
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/errors.js#L1-L50"><code>src/errors.js:1-50</code></a>
+      </div>
+    </div>
+  </details>
+  <details id="sec-errors-{{ID}}-deep">
+    <summary>Fault Injection and Recovery</summary>
+    <div class="section-body">
+      <h3 id="sec-err-{{ID}}-fault">{{N}}.4 Fault Scenarios</h3>
+      <table>
+        <thead><tr><th>Scenario</th><th>Impact</th><th>Behavior</th><th>Recovery</th><th>Time</th></tr></thead>
+        <tbody>
+          <tr><td>DB down</td><td>All writes</td><td>[Writes return E005, reads degrade]</td><td>[Pool reconnect]</td><td>[5s]</td></tr>
+          <tr><td>Cache down</td><td>All reads</td><td>[Direct DB, perf drops]</td><td>[Auto-rebuild]</td><td>[External]</td></tr>
+          <tr><td>Disk full</td><td>Logging</td><td>[Log level drops]</td><td>[Clean disk]</td><td>[Manual]</td></tr>
+          <tr><td>OOM</td><td>System</td><td>[GC then reject requests]</td><td>[Add memory]</td><td>[Manual]</td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-err-{{ID}}-recovery">{{N}}.5 Recovery Strategies</h3>
+      <table>
+        <thead><tr><th>Strategy</th><th>Use Case</th><th>Implementation</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>Exponential backoff</td><td>[Network timeout]</td><td>[retry(fn, config)]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>Circuit breaker</td><td>[Downstream unavailable]</td><td>[Trip after 5 failures]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+          <tr><td>Degradation</td><td>[Core unavailable]</td><td>[Return cached/defaults]</td><td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-err-{{ID}}-monitor">{{N}}.6 Monitoring</h3>
+      <table>
+        <thead><tr><th>Metric</th><th>Threshold</th><th>Meaning</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td>Error rate</td><td>[5% for 1min]</td><td>[Errors increasing]</td><td>[Check logs]</td></tr>
+          <tr><td>P99 latency</td><td>[1s for 5min]</td><td>[Perf degradation]</td><td>[Check slow queries]</td></tr>
+          <tr><td>Retry count</td><td>[Avg 2/req]</td><td>[Unstable dep]</td><td>[Check health]</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>

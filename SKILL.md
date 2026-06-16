@@ -139,14 +139,20 @@ AskQuestion([{
 
 ### 全力模式产出物
 
-全力模式一次性生成完整文档体系，**不需要用户选择类型**：
+全力模式一次性生成完整文档体系，**不需要用户选择类型**。每个文档都使用 `templates/fullpower/` 下的深度模板，包含三层渐进式披露结构：
 
-| 产出物 | 内容 | 输出路径 |
-|--------|------|---------|
-| 系统架构文档 | 分层架构图、模块职责、数据流、线程模型 | `doc/<Project>_Architecture_Design.html` |
-| 核心模块文档（每个模块） | API、实现细节、状态机、错误路径、性能 | `doc/tech-docs/<Module>_Design.html` |
-| 端到端 Guide | 沿数据流叙事，配置→运行→排障 | `doc/<Project>_Guide.html` |
-| 索引页 | 所有文档的导航入口 | `doc/index.html` |
+| 产出物 | 内容 | 使用的模板 | 输出路径 |
+|--------|------|-----------|---------|
+| 系统架构文档 | 分层架构图、模块职责、数据流、线程模型、依赖分析、性能约束、配置系统、错误处理 | 01+02+04+07+08+09+10+11+14 | `doc/<Project>_Architecture_Design.html` |
+| 核心模块文档（每个模块） | API 参考、使用示例、实现分析、状态机、错误路径穷举、性能特征、测试覆盖 | 03+05+06+08+09+11+14 | `doc/tech-docs/<Module>_Design.html` |
+| 端到端 Guide | 沿数据流叙事、配置指南、故障排查、FAQ、流程图 | 01+04+07+12+13+14+15 | `doc/<Project>_Guide.html` |
+| 索引页 | 所有文档的导航入口 | — | `doc/index.html` |
+
+**文档深度要求**：
+- 系统架构文档：≥ 15 个 H2 章节，每个章节使用对应模板的三层结构
+- 模块文档：≥ 10 个 H2 章节，每个公开 API 都有使用示例和错误路径
+- Guide：≥ 12 个 H2 章节，含完整配置指南和故障排查手册
+- 每个文档的 Layer 3（Deep Dive）必须有实质内容，不允许留空或只写"参见源码"
 
 ### 阶段 0：项目探测
 
@@ -238,16 +244,30 @@ risks: ["未处理 null 边界"]
 
 **执行者**：主 agent
 
-用全部收集的信息生成文档。相比普通模式的质量提升：
+用全部收集的信息生成文档。**必须使用 `templates/fullpower/` 目录下的深度模板**，每个 H2 章节对应一个模板文件。
+
+相比普通模式的质量提升：
 
 | 维度 | 普通模式 | 全力模式 |
 |------|---------|---------|
-| 源码引用密度 | 最低要求 | **翻倍**，核心函数必引用 |
-| 设计决策 Callout | ≥ 4 个 | **≥ 8 个**，每个架构选择都解释 WHY |
-| 跨模块调用链 | 描述到直接调用 | **追踪 3 层以上**，含参数传递 |
-| 代码示例 | 按章节要求 | **每个公开 API 都有使用示例** |
-| 错误处理 | 有就写 | **穷举所有错误路径 + 推荐处理方式** |
-| 性能相关 | 有就写 | **主动标注算法复杂度和瓶颈点** |
+| 模板 | `templates/sections/` 7 个基础骨架 | `templates/fullpower/` 15 个深度模板，含完整示例内容 |
+| 源码引用密度 | 最低要求 | **翻倍**，核心函数必引用，每个引用带 `file:line` |
+| 设计决策 Callout | ≥ 4 个 | **≥ 8 个**，每个架构选择都解释 WHY，含替代方案和代价 |
+| 跨模块调用链 | 描述到直接调用 | **追踪 3 层以上**，含具体方法名、参数、返回值 |
+| 代码示例 | 按章节要求 | **每个公开 API 都有使用示例**，含正常/异常/高级场景 |
+| 错误处理 | 有就写 | **穷举所有错误路径**，含触发条件+内部处理+推荐应对+源码 |
+| 性能相关 | 有就写 | **主动标注算法复杂度**，含瓶颈点+优化建议+基准测试数据 |
+| 状态机 | 有就写 | **完整转换表**，含前置条件+副作用+并发安全+超时处理+持久化 |
+| 配置 | 列参数 | **每个参数含不当值后果**，含加载优先级+验证规则+常见陷阱 |
+| 测试 | 有就写 | **覆盖率矩阵**，含未覆盖路径+Mock策略+CI集成 |
+| 故障排查 | 基础 FAQ | **症状→原因→解决方案→预防**，含错误码参考+诊断命令 |
+
+**模板使用流程**：
+1. 根据文档类型选择对应的模板组合（见上方"全力模式模板使用规则"）
+2. 读取每个模板文件，理解其三层结构和示例内容
+3. 用实际源码分析结果替换模板中的占位内容
+4. 确保每个模板的 Layer 3（Deep Dive）都被填写
+5. 确保示例内容比模板更丰富——模板是最低标准，不是上限
 
 ### 渐进式披露规则（Progressive Disclosure）
 
@@ -281,7 +301,9 @@ risks: ["未处理 null 边界"]
 </section>
 ```
 
-**章节模板参考**：`templates/sections/` 目录下的 7 个模板文件，按章节类型选用：
+**章节模板参考**：
+
+**普通模式**：`templates/sections/` 目录下的 7 个基础模板：
 
 | 章节类型 | 模板文件 | 适用场景 |
 |---------|---------|---------|
@@ -292,6 +314,34 @@ risks: ["未处理 null 边界"]
 | 流程图 | `flowchart.html` | 复杂业务流程 |
 | FAQ | `faq.html` | 常见问题（≥ 5 个） |
 | 术语表 | `glossary.html` | 文档末尾术语定义 |
+
+**全力模式**：`templates/fullpower/` 目录下的 15 个深度模板，每个模板包含三层渐进式披露的完整示例内容：
+
+| 编号 | 模板 | 内容深度 | 适用文档 |
+|------|------|---------|---------|
+| 01 | `01-overview.html` | 项目定位 + 核心能力矩阵 + 技术栈 + 适用场景 + 设计哲学 + 竞品对比 + 架构演进 | 系统/模块/Guide |
+| 02 | `02-architecture.html` | 分层架构图 + 分层职责矩阵 + 模块五维矩阵 + 跨模块调用链(3层+) + 依赖分析 + 线程模型 + 性能约束 + 数据一致性 | 系统 |
+| 03 | `03-module-detail.html` | 模块定位 + 公开API表 + 使用示例(每个API) + 实现分析 + 状态机 + 错误路径穷举 + 性能特征 + 边界情况 + 测试覆盖 | 模块 |
+| 04 | `04-data-flow.html` | 端到端流程图 + 处理阶段详解 + 数据变换详情 + 异步路径 + 缓存策略 + 校验点 + 故障注入点 | 系统/Guide |
+| 05 | `05-state-machine.html` | 状态图 + 完整转换表(含前置条件+副作用) + 每个状态详细说明 + 并发安全 + 超时处理 + 状态持久化 + 故障恢复 | 模块 |
+| 06 | `06-api-reference.html` | 按功能分组 + 每个API完整文档(签名+参数表+返回值+异常+示例+相关API) + 设计原则 + 版本兼容性 | 模块 |
+| 07 | `07-configuration.html` | 配置加载优先级 + 按功能分组参数表(含不当值后果) + 完整配置示例 + 配置验证 + 动态配置 + 常见陷阱 | 系统/Guide |
+| 08 | `08-error-handling.html` | 错误处理策略 + 错误类型定义表 + 错误传播路径追踪 + 故障场景矩阵 + 恢复策略 + 监控告警 | 系统/模块 |
+| 09 | `09-performance.html` | 性能概览 + 算法复杂度 + 资源使用 + 优化历史 + 性能陷阱 + 基准测试 | 系统/模块 |
+| 10 | `10-dependency.html` | 依赖关系图 + 依赖矩阵 + 外部依赖表 + 管理策略 + 风险评估 + 循环依赖检查 | 系统 |
+| 11 | `11-testing.html` | 测试策略 + 覆盖率详情 + 运行方式 + 编写指南 + 测试数据 + Mock策略 + CI集成 | 系统/模块 |
+| 12 | `12-troubleshooting.html` | 快速诊断命令 + 已知问题(症状->原因->解决方案->预防) + Debug模式 + 诊断命令 + 错误码参考 | Guide |
+| 13 | `13-faq.html` | 按功能分组(使用/配置/性能/排障) + 每个Q&A含代码示例 + 源码引用 + 扩展Q&A | Guide |
+| 14 | `14-glossary.html` | 术语定义表(含上下文+源码引用) + 术语关系图 + 别名/同义词 | 所有 |
+| 15 | `15-flowchart.html` | 流程图 + 步骤详解 + 决策条件表 + 错误路径 + 边界情况 + 性能特征 + 流程变体 | 系统/Guide |
+
+**全力模式模板使用规则**：
+1. **每个 H2 章节必须使用对应模板**，不允许跳过模板直接写内容
+2. **模板中的示例内容是最低标准**，不是参考——输出必须比模板更丰富
+3. **每个模板的 Layer 3 必须填写**，不允许只写 Layer 1+2 就交付
+4. **系统架构文档必须使用**：01 + 02 + 04 + 07 + 08 + 09 + 10 + 11 + 14
+5. **模块文档必须使用**：03 + 05 + 06 + 08 + 09 + 11 + 14
+6. **Guide 文档必须使用**：01 + 04 + 07 + 12 + 13 + 14 + 15 |
 
 ### 竞品对齐规则（DeepWiki/ZRead Alignment）
 
@@ -769,6 +819,8 @@ SKILL_ROOT="<本文件所在目录的绝对路径>"
 
 资源清单（相对于 SKILL_ROOT）：
 
+**HTML 骨架模板**：
+
 | 资源 | 路径 |
 |------|------|
 | 模块 MD 模板（中文） | `templates/module-design.md` |
@@ -779,6 +831,43 @@ SKILL_ROOT="<本文件所在目录的绝对路径>"
 | 模块索引模板 | `templates/module-index.html` |
 | 系统索引模板 | `templates/system-index.html` |
 | 模块摘要模板 | `templates/module-summary.md` |
+
+**章节模板（普通模式）**：
+
+| 资源 | 路径 |
+|------|------|
+| 概述 | `templates/sections/overview.html` |
+| 架构 | `templates/sections/architecture.html` |
+| 模块详情 | `templates/sections/module-detail.html` |
+| 状态机 | `templates/sections/state-machine.html` |
+| 流程图 | `templates/sections/flowchart.html` |
+| FAQ | `templates/sections/faq.html` |
+| 术语表 | `templates/sections/glossary.html` |
+
+**全力模式深度模板**（15 个，含完整示例内容）：
+
+| 资源 | 路径 |
+|------|------|
+| 项目概述 | `templates/fullpower/01-overview.html` |
+| 系统架构 | `templates/fullpower/02-architecture.html` |
+| 模块详情 | `templates/fullpower/03-module-detail.html` |
+| 数据流 | `templates/fullpower/04-data-flow.html` |
+| 状态机 | `templates/fullpower/05-state-machine.html` |
+| API 参考 | `templates/fullpower/06-api-reference.html` |
+| 配置系统 | `templates/fullpower/07-configuration.html` |
+| 错误处理 | `templates/fullpower/08-error-handling.html` |
+| 性能分析 | `templates/fullpower/09-performance.html` |
+| 依赖关系 | `templates/fullpower/10-dependency.html` |
+| 测试覆盖 | `templates/fullpower/11-testing.html` |
+| 故障排查 | `templates/fullpower/12-troubleshooting.html` |
+| FAQ | `templates/fullpower/13-faq.html` |
+| 术语表 | `templates/fullpower/14-glossary.html` |
+| 流程图 | `templates/fullpower/15-flowchart.html` |
+
+**脚本**：
+
+| 资源 | 路径 |
+|------|------|
 | MD 转 HTML | `scripts/md-to-html.js` |
 | 校验脚本 | `scripts/validate-doc.js` |
 | 共享 CSS | `scripts/doc-shell.css` |
@@ -793,7 +882,7 @@ SKILL_ROOT="<本文件所在目录的绝对路径>"
 
 > 样本不是模板的补充，而是**"写对了长什么样"的黄金参考**。agent 生成内容前应先读样本，对照关键模式（Scope 声明、源码引用格式、Callout 质量等），避免"看起来对但细节错"的问题。
 
-`examples/` 目录下的 HTML 文件是各文档类型的**纯内容写法参考**。它们只包含填入模板 `{{SECTIONS}}` 占位符的 HTML 片段，不含 CSS/JS/骨架——那些由模板提供。
+**普通模式**：`examples/` 目录下的 HTML 文件是各文档类型的**纯内容写法参考**。它们只包含填入模板 `{{SECTIONS}}` 占位符的 HTML 片段，不含 CSS/JS/骨架——那些由模板提供。
 
 生成文档前建议读取对应样本，对照关键模式：
 
@@ -802,6 +891,12 @@ SKILL_ROOT="<本文件所在目录的绝对路径>"
 | module | Scope 声明、源码引用格式、SVG 图表（var() + fallback）、Tabs API 展示、折叠层级选择、设计决策 Callout |
 | system | Layer Stack 组件、Mermaid 架构图、模块职责五维表（路径/API/依赖/被依赖/故障）、跨模块约束 Callout |
 | guide | Badge 标注、步骤指示器、flow 组件、代码嵌入叙事段落、完整示例章节（不可省略）、FAQ 基于真实故障 |
+
+**全力模式**：`templates/fullpower/` 目录下的 15 个深度模板本身就是**内容样本**。每个模板包含完整的三层渐进式披露结构和示例内容，展示 DeepWiki/ZRead 级别的文档深度。全力模式下，agent 必须：
+1. 先读取对应模板，理解其三层结构和示例内容的丰富程度
+2. 用实际源码分析结果填充模板，确保每个占位符都被替换
+3. 确保输出内容**比模板示例更丰富**——模板是最低标准，不是上限
+4. 确保 Layer 3（Deep Dive）的每个子章节都有实质内容，不允许留空
 
 ### MD 转 HTML 命令
 

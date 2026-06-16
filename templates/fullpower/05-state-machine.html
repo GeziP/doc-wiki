@@ -1,0 +1,268 @@
+﻿<!--
+  Fullpower Template: 状态机（State Machine）
+  =================================================
+  WHY: 有状态的模块是 bug 最容易出现的地方。DeepWiki 的状态机章节不仅画状态图，
+  还给出完整的转换表、每个转换的副作用、非法转换的行为、以及并发场景下的状态竞争分析。
+
+  结构：
+    Layer 1: 状态机一句话概述
+    Layer 2: 状态图 + 转换表 + 每个状态的详细说明
+    Layer 3: 并发安全 + 超时处理 + 状态持久化 + 故障恢复
+
+  适用场景：任何有状态的类/组件/模块
+-->
+
+<section class="section" id="sec-statemachine-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-statemachine-{{ID}}-title">{{N}}. {{COMPONENT_NAME}} 状态机</h2>
+  </div>
+
+  <div class="section-summary">
+    <p><code>{{COMPONENT_NAME}}</code> 维护一个 [N] 状态的状态机：[状态列表]。
+      状态转换由 [事件/方法] 触发，关键约束是 [最重要的约束]。</p>
+  </div>
+
+  <details open id="sec-statemachine-{{ID}}-details">
+    <summary>状态图与转换</summary>
+    <div class="section-body">
+
+      <h3 id="sec-sm-{{ID}}-diagram">{{N}}.1 状态转换图</h3>
+      <figure class="diagram">
+        <div class="mermaid">
+stateDiagram-v2
+    [*] --&gt; Created
+    Created --&gt; Initializing: init()
+    Initializing --&gt; Ready: onInitComplete
+    Initializing --&gt; Failed: onInitError
+    Ready --&gt; Processing: process()
+    Processing --&gt; Ready: onComplete
+    Processing --&gt; Failed: onError
+    Processing --&gt; Paused: pause()
+    Paused --&gt; Processing: resume()
+    Failed --&gt; Ready: retry()
+    Failed --&gt; Destroyed: destroy()
+    Ready --&gt; Destroyed: destroy()
+    Destroyed --&gt; [*]
+        </div>
+        <figcaption>图 {{N}}.1 — {{COMPONENT_NAME}} 状态转换图</figcaption>
+      </figure>
+
+      <h3 id="sec-sm-{{ID}}-table">{{N}}.2 完整转换表</h3>
+      <p>以下列出所有合法的状态转换，包括触发条件、执行的操作和源码位置。</p>
+      <table>
+        <thead>
+          <tr><th>当前状态</th><th>触发事件</th><th>目标状态</th><th>前置条件</th><th>副作用</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Created</code></td>
+            <td><code>init()</code></td>
+            <td><code>Initializing</code></td>
+            <td>[无]</td>
+            <td>[如"创建内部线程池，加载配置"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Initializing</code></td>
+            <td><code>onInitComplete</code></td>
+            <td><code>Ready</code></td>
+            <td>[如"所有资源加载成功"]</td>
+            <td>[如"触发 onReady 回调"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Initializing</code></td>
+            <td><code>onInitError</code></td>
+            <td><code>Failed</code></td>
+            <td>[如"任一资源加载失败"]</td>
+            <td>[如"清理已分配资源，记录错误"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Ready</code></td>
+            <td><code>process()</code></td>
+            <td><code>Processing</code></td>
+            <td>[如"输入有效"]</td>
+            <td>[如"分配 Worker，开始计时"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Processing</code></td>
+            <td><code>onComplete</code></td>
+            <td><code>Ready</code></td>
+            <td>[无]</td>
+            <td>[如"释放 Worker，存储结果，触发回调"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Processing</code></td>
+            <td><code>onError</code></td>
+            <td><code>Failed</code></td>
+            <td>[无]</td>
+            <td>[如"释放 Worker，记录错误，重试计数+1"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Processing</code></td>
+            <td><code>pause()</code></td>
+            <td><code>Paused</code></td>
+            <td>[如"支持暂停的操作"]</td>
+            <td>[如"暂停 Worker，保存中间状态"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Paused</code></td>
+            <td><code>resume()</code></td>
+            <td><code>Processing</code></td>
+            <td>[无]</td>
+            <td>[如"恢复 Worker，继续处理"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td><code>Failed</code></td>
+            <td><code>retry()</code></td>
+            <td><code>Ready</code></td>
+            <td>[如"重试次数 < maxRetries"]</td>
+            <td>[如"重置错误状态，保留重试计数"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-sm-{{ID}}-states">{{N}}.3 状态详细说明</h3>
+
+      <h4 id="sec-sm-{{ID}}-created">Created</h4>
+      <p>初始状态。对象已创建但未初始化。此状态下只能调用 <code>init()</code>，
+        调用其他方法会 [行为]。</p>
+      <p>内部变量：[如"config = null, workers = []"]</p>
+
+      <h4 id="sec-sm-{{ID}}-ready">Ready</h4>
+      <p>就绪状态。所有资源已初始化，可以接受 <code>process()</code> 调用。
+        这是系统的稳态，大部分时间应该处于此状态。</p>
+      <p>内部变量：[如"config = loaded, workers = pool.size()"]</p>
+
+      <h4 id="sec-sm-{{ID}}-processing">Processing</h4>
+      <p>处理中状态。此状态下系统正在执行业务逻辑，资源被占用。
+        并发调用 <code>process()</code> 会 [行为：排队/拒绝/覆盖]。</p>
+      <p>内部变量：[如"currentTask = task, startTime = Date.now()"]</p>
+
+      <h4 id="sec-sm-{{ID}}-failed">Failed</h4>
+      <p>失败状态。可以通过 <code>retry()</code> 恢复到 Ready（如果重试次数未超限），
+        或通过 <code>destroy()</code> 进入终态。</p>
+      <p>内部变量：[如"error = lastError, retryCount = N"]</p>
+
+      <div class="callout warning">
+        <strong>非法转换</strong>
+        <p>以下转换是非法的，调用会 [抛出 StateError / 被忽略 / 排队等待]：</p>
+        <ul>
+          <li><code>Created</code> -&gt; <code>Processing</code>：必须先 init()</li>
+          <li><code>Failed</code> -&gt; <code>Processing</code>：必须先 retry()</li>
+          <li><code>Destroyed</code> -&gt; 任何状态：终态不可逆</li>
+        </ul>
+        <p>源码：<a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></p>
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/{{path}}/{{file}}.{{ext}}#L{{start}}-L{{end}}"><code>src/{{path}}/{{file}}.{{ext}}:{{start}}-{{end}}</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="sec-statemachine-{{ID}}-deep">
+    <summary>并发与故障</summary>
+    <div class="section-body">
+
+      <h3 id="sec-sm-{{ID}}-concurrency">{{N}}.4 并发安全分析</h3>
+      <p>状态机的线程安全性取决于状态转换的原子性保证：</p>
+      <table>
+        <thead>
+          <tr><th>场景</th><th>行为</th><th>同步机制</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>同时调用 process() x2</td>
+            <td>[如"第二个调用抛出 StateError"]</td>
+            <td>[如"compareAndSwap on state"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>process() 期间调用 destroy()</td>
+            <td>[如"destroy 等待当前处理完成"]</td>
+            <td>[如"CountDownLatch"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>pause() 和 onComplete 竞争</td>
+            <td>[如"以先到达的为准"]</td>
+            <td>[如"synchronized block"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-sm-{{ID}}-timeout">{{N}}.5 超时处理</h3>
+      <p>状态机对以下超时场景有处理逻辑：</p>
+      <table>
+        <thead>
+          <tr><th>超时场景</th><th>超时时间</th><th>超时后行为</th><th>源码</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Initializing 超时</td>
+            <td>[如"10s"]</td>
+            <td>[如"转入 Failed，错误码 INIT_TIMEOUT"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+          <tr>
+            <td>Processing 超时</td>
+            <td>[如"60s"]</td>
+            <td>[如"强制取消，转入 Failed"]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-sm-{{ID}}-persist">{{N}}.6 状态持久化</h3>
+      <p>[状态机是否支持持久化？如果支持，以下是序列化/反序列化的方式]</p>
+      <pre><code class="language-{{LANG}}">
+// 序列化
+const snapshot = stateMachine.serialize();
+// snapshot = { state: "Processing", currentTask: {...}, retryCount: 0 }
+
+// 反序列化
+const restored = StateMachine.deserialize(snapshot);
+// 恢复到 Processing 状态，但 Worker 需要重新创建
+      </code></pre>
+
+      <div class="callout warning">
+        <strong>持久化限制</strong>
+        <p>[如"Paused 状态无法持久化，因为 Worker 的内存状态不可序列化。
+          反序列化后会转入 Ready 状态，丢失中间进度。"]</p>
+      </div>
+
+      <h3 id="sec-sm-{{ID}}-recovery">{{N}}.7 故障恢复</h3>
+      <table>
+        <thead>
+          <tr><th>故障类型</th><th>恢复策略</th><th>数据丢失</th><th>恢复时间</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>进程重启</td>
+            <td>[如"从持久化快照恢复"]</td>
+            <td>[如"Processing 中的任务丢失"]</td>
+            <td>[如"< 1s"]</td>
+          </tr>
+          <tr>
+            <td>依赖不可用</td>
+            <td>[如"进入 Failed，定时重试"]</td>
+            <td>[无]</td>
+            <td>[如"依赖恢复后自动恢复"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
+  </details>
+</section>

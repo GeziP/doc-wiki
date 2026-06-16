@@ -1,0 +1,236 @@
+﻿<!--
+  Fullpower Template: API 参考（API Reference）
+  =================================================
+  WHY: API 参考是开发者最常查阅的文档。DeepWiki 的 API 章节不只是列签名，
+  而是每个 API 都有：签名 + 参数表 + 返回值 + 异常 + 使用示例 + 相关 API + 源码链接。
+  这是"查完就能用"级别的参考手册。
+
+  结构：
+    Layer 1: 模块 API 概述
+    Layer 2: 按功能分组的 API 列表（每个 API 完整文档）
+    Layer 3: API 设计原则 + 版本兼容性 + 迁移指南
+
+  适用场景：模块设计文档、系统架构文档的 API 章节
+-->
+
+<section class="section" id="sec-apiref-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-apiref-{{ID}}-title">{{N}}. {{MODULE_NAME}} API 参考</h2>
+  </div>
+
+  <div class="section-summary">
+    <p><code>{{MODULE_NAME}}</code> 暴露 [N] 个公开 API，分为 [M] 个功能组：
+      [组1]、[组2]、[组3]。核心 API 是 <code>{{KEY_API}}</code>，
+      支持 [关键能力]。</p>
+  </div>
+
+  <details open id="sec-apiref-{{ID}}-details">
+    <summary>API 详情</summary>
+    <div class="section-body">
+
+      <!-- 按功能分组 -->
+      <h3 id="sec-apiref-{{ID}}-group1">{{N}}.1 {{GROUP_1_NAME}}</h3>
+      <p>[功能组概述：这组 API 解决什么问题，典型使用场景]</p>
+
+      <!-- 单个 API 的完整文档 -->
+      <h4 id="sec-apiref-{{ID}}-{{api1}}"><code>{{api_1}}</code></h4>
+      <p>[一句话说明：做什么]</p>
+
+      <p><strong>签名：</strong></p>
+      <pre><code class="language-{{LANG}}">
+{{ReturnType}} {{api_1}}({{param1}}: {{Type1}}, {{param2}}: {{Type2}}, options?: {{OptionsType}})
+      </code></pre>
+
+      <p><strong>参数：</strong></p>
+      <table>
+        <thead>
+          <tr><th>参数</th><th>类型</th><th>必填</th><th>默认值</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>{{param1}}</code></td>
+            <td><code>{{Type1}}</code></td>
+            <td>是</td>
+            <td>—</td>
+            <td>[详细说明：取值范围、格式要求、常见错误值]</td>
+          </tr>
+          <tr>
+            <td><code>{{param2}}</code></td>
+            <td><code>{{Type2}}</code></td>
+            <td>是</td>
+            <td>—</td>
+            <td>[详细说明]</td>
+          </tr>
+          <tr>
+            <td><code>options.timeout</code></td>
+            <td><code>number</code></td>
+            <td>否</td>
+            <td><code>30000</code></td>
+            <td>[如"超时时间(ms)，超过后抛出 TimeoutError"]</td>
+          </tr>
+          <tr>
+            <td><code>options.retries</code></td>
+            <td><code>number</code></td>
+            <td>否</td>
+            <td><code>3</code></td>
+            <td>[如"重试次数，0 = 不重试"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>返回值：</strong></p>
+      <table>
+        <thead>
+          <tr><th>类型</th><th>说明</th><th>结构</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>{{ReturnType}}</code></td>
+            <td>[说明]</td>
+            <td><code>{ field1: Type, field2: Type, ... }</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>异常：</strong></p>
+      <table>
+        <thead>
+          <tr><th>异常类型</th><th>触发条件</th><th>推荐处理</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>InvalidArgumentError</code></td>
+            <td>[如"param1 为 null 或空字符串"]</td>
+            <td>[如"检查输入后重试"]</td>
+          </tr>
+          <tr>
+            <td><code>TimeoutError</code></td>
+            <td>[如"操作超过 options.timeout"]</td>
+            <td>[如"增加 timeout 或检查网络"]</td>
+          </tr>
+          <tr>
+            <td><code>StateError</code></td>
+            <td>[如"模块未初始化"]</td>
+            <td>[如"先调用 init()"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>示例：</strong></p>
+      <pre><code class="language-{{LANG}}">
+// 基本用法
+const result = await module.{{api_1}}("input", 42);
+console.log(result.field1); // [说明]
+
+// 带选项
+const result2 = await module.{{api_1}}("input", 42, {
+  timeout: 5000,
+  retries: 1
+});
+
+// 错误处理
+try {
+  const result = await module.{{api_1}}(null, 42);
+} catch (e) {
+  if (e instanceof InvalidArgumentError) {
+    console.error("参数错误:", e.message);
+  }
+}
+      </code></pre>
+
+      <p><strong>相关 API：</strong> <code>{{related_api_1}}</code>、<code>{{related_api_2}}</code></p>
+      <p><strong>源码：</strong> <a class="source-ref" href="src/{{path}}/{{file}}.{{ext}}#L{{start}}-L{{end}}"><code>src/{{path}}/{{file}}.{{ext}}:{{start}}-{{end}}</code></a></p>
+
+      <hr/>
+
+      <!-- 第二个 API -->
+      <h4 id="sec-apiref-{{ID}}-{{api2}}"><code>{{api_2}}</code></h4>
+      <p>[一句话说明]</p>
+
+      <p><strong>签名：</strong></p>
+      <pre><code class="language-{{LANG}}">
+{{ReturnType}} {{api_2}}({{param}}: {{Type}})
+      </code></pre>
+
+      <p><strong>参数：</strong></p>
+      <table>
+        <thead>
+          <tr><th>参数</th><th>类型</th><th>必填</th><th>默认值</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>{{param}}</code></td>
+            <td><code>{{Type}}</code></td>
+            <td>是</td>
+            <td>—</td>
+            <td>[说明]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>返回值：</strong> <code>{{ReturnType}}</code> — [说明]</p>
+      <p><strong>示例：</strong></p>
+      <pre><code class="language-{{LANG}}">
+const data = module.{{api_2}}("query");
+// [说明返回值和使用方式]
+      </code></pre>
+
+      <p><strong>源码：</strong> <a class="source-ref" href="src/{{path}}/{{file}}.{{ext}}#L{{start}}-L{{end}}"><code>src/{{path}}/{{file}}.{{ext}}:{{start}}-{{end}}</code></a></p>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/{{path}}/{{file}}.{{ext}}#L{{start}}-L{{end}}"><code>src/{{path}}/{{file}}.{{ext}}:{{start}}-{{end}}</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="sec-apiref-{{ID}}-deep">
+    <summary>设计原则与兼容性</summary>
+    <div class="section-body">
+
+      <h3 id="sec-apiref-{{ID}}-principles">{{N}}.2 API 设计原则</h3>
+      <p>[MODULE_NAME] 的 API 设计遵循以下原则：</p>
+      <table>
+        <thead>
+          <tr><th>原则</th><th>体现</th><th>示例</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>[如"一致性"]</td>
+            <td>[如"所有查询 API 返回相同结构"]</td>
+            <td>[如"query() 和 list() 都返回 { data, total, page }"]</td>
+          </tr>
+          <tr>
+            <td>[如"防御性"]</td>
+            <td>[如"所有公开 API 都校验参数"]</td>
+            <td>[如"null 参数立即抛 InvalidArgumentError"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-apiref-{{ID}}-compat">{{N}}.3 版本兼容性</h3>
+      <p>以下 API 在最近的版本变更中有 breaking change：</p>
+      <table>
+        <thead>
+          <tr><th>API</th><th>变更</th><th>版本</th><th>迁移方式</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>{{api_1}}</code></td>
+            <td>[如"返回值从 Object 改为 Promise"]</td>
+            <td>[如"v2.0"]</td>
+            <td>[如"添加 await"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        <p>[解释某个 API 设计选择的原因，如"选择 Promise 而非 callback 是因为
+          async/await 更易组合，错误处理更自然"]</p>
+      </div>
+
+    </div>
+  </details>
+</section>

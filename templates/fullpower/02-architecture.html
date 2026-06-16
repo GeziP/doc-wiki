@@ -1,0 +1,286 @@
+﻿<!--
+  Fullpower Template: 系统架构（System Architecture）
+  ====================================================
+  WHY: 架构图是系统文档的核心价值。DeepWiki 的架构章节用 Mermaid 图 + 分层表格 +
+  跨模块调用链三板斧，让读者在 2 分钟内理解系统全貌。本模板展示如何写出同等深度。
+
+  结构：
+    Layer 1: 架构一句话概述
+    Layer 2: 架构图 + 分层说明 + 模块职责矩阵 + 跨模块调用链
+    Layer 3: 依赖分析 + 性能约束 + 线程模型 + 数据一致性
+
+  关键要求：
+    - 架构图必须是 Mermaid 或内联 SVG，节点 = 实际存在的模块
+    - 每层职责必须有具体描述，不允许"负责业务逻辑"这种废话
+    - 跨模块调用链必须追踪 3 层以上，含具体方法名和参数
+-->
+
+<section class="section" id="sec-architecture">
+  <div class="section-header">
+    <h2 id="sec-architecture-title">2. 系统架构</h2>
+  </div>
+
+  <div class="section-summary">
+    <p>[项目名] 采用 [N] 层架构：[层1] - [层2] - [层3]。
+      核心数据流从 [入口] 经过 [处理链路] 最终到达 [输出]。
+      模块间通过 [通信机制] 解耦，[关键约束] 保证数据一致性。</p>
+  </div>
+
+  <details open id="sec-architecture-details">
+    <summary>架构详解</summary>
+    <div class="section-body">
+
+      <h3 id="sec-arch-overview">2.1 架构总览</h3>
+      <p>下图展示了系统的分层架构和模块间的数据流方向。每个节点对应仓库中的一个实际模块，
+        箭头表示数据/控制流方向，虚线表示可选依赖。</p>
+
+      <figure class="diagram">
+        <div class="mermaid">
+graph TD
+    subgraph Presentation["表现层"]
+        UI[UI 组件]
+        CLI[CLI 入口]
+    end
+    subgraph Business["业务层"]
+        Core[核心引擎]
+        Scheduler[调度器]
+    end
+    subgraph Infrastructure["基础设施层"]
+        Store[数据存储]
+        Cache[缓存]
+        Logger[日志]
+    end
+
+    UI -- "请求" --> Core
+    CLI -- "命令" --> Core
+    Core -- "任务" --> Scheduler
+    Core -- "持久化" --> Store
+    Scheduler -- "查询" --> Cache
+    Core -- "日志" --> Logger
+    Store -- "缓存" --> Cache
+        </div>
+        <figcaption>图 2.1 — 分层架构总览</figcaption>
+      </figure>
+
+      <h3 id="sec-arch-layers">2.2 分层职责</h3>
+      <p>每一层都有明确的职责边界和依赖方向规则：上层可以依赖下层，反之不行。
+        违反依赖方向的代码必须通过接口抽象解耦。</p>
+      <table>
+        <thead>
+          <tr><th>层级</th><th>职责</th><th>核心模块</th><th>关键接口</th><th>依赖方向</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>表现层</strong></td>
+            <td>[具体职责：用户输入处理、视图渲染、事件分发]</td>
+            <td><code>UI</code>, <code>CLI</code></td>
+            <td><code>render()</code>, <code>onEvent()</code></td>
+            <td>-&gt; 业务层</td>
+          </tr>
+          <tr>
+            <td><strong>业务层</strong></td>
+            <td>[具体职责：业务规则执行、状态管理、流程编排]</td>
+            <td><code>Core</code>, <code>Scheduler</code></td>
+            <td><code>process()</code>, <code>schedule()</code></td>
+            <td>-&gt; 基础设施层</td>
+          </tr>
+          <tr>
+            <td><strong>基础设施层</strong></td>
+            <td>[具体职责：持久化、缓存、日志、网络通信]</td>
+            <td><code>Store</code>, <code>Cache</code>, <code>Logger</code></td>
+            <td><code>read()</code>, <code>write()</code>, <code>log()</code></td>
+            <td>无上层依赖</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-arch-modules">2.3 模块职责矩阵</h3>
+      <p>每个核心模块的五维描述：路径、API、依赖、被依赖、故障模式。
+        这是从"知道有什么模块"到"理解模块间关系"的关键。</p>
+      <table>
+        <thead>
+          <tr><th>模块</th><th>源码路径</th><th>核心 API</th><th>依赖</th><th>被依赖</th><th>故障模式</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>[Module A]</strong></td>
+            <td><a class="source-ref" href="src/a/"><code>src/a/</code></a></td>
+            <td><code>init()</code>, <code>process()</code></td>
+            <td>Module B, Module C</td>
+            <td>Module D, Module E</td>
+            <td>[如"连接超时返回空结果，不抛异常"]</td>
+          </tr>
+          <tr>
+            <td><strong>[Module B]</strong></td>
+            <td><a class="source-ref" href="src/b/"><code>src/b/</code></a></td>
+            <td><code>query()</code></td>
+            <td>Module C</td>
+            <td>Module A</td>
+            <td>[如"缓存穿透导致数据库压力增大"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-arch-callchain">2.4 跨模块调用链</h3>
+      <p>以下追踪了 [核心业务流程] 的完整调用链，从用户请求到最终响应。
+        每一步都标注了具体方法、所在文件和行号。</p>
+
+      <h4 id="sec-arch-chain-1">调用链 1：[流程名称]</h4>
+      <p>[流程的业务含义和触发条件]</p>
+      <pre><code class="language-text">
+用户请求 --&gt; CLI.parse(args)                    // src/cli.js:45
+  --&gt; Core.process(request)                      // src/core.js:120
+    --&gt; Validator.validate(input)                // src/validator.js:30
+    --&gt; Scheduler.schedule(task)                 // src/scheduler.js:88
+      --&gt; WorkerPool.acquire()                   // src/worker-pool.js:45
+      --&gt; Worker.execute(task)                   // src/worker.js:112
+        --&gt; Store.write(result)                  // src/store.js:200
+    --&gt; Cache.invalidate(key)                    // src/cache.js:67
+  --&gt; Response.format(result)                    // src/response.js:15
+      </code></pre>
+
+      <p>关键观察：</p>
+      <ul>
+        <li><strong>错误传播路径</strong>：Worker.execute 抛出的异常被 Scheduler 捕获，
+          重试最多 3 次后向 Core 返回 <code>TaskFailedError</code></li>
+        <li><strong>性能瓶颈</strong>：Store.write 是同步 I/O，高并发下会阻塞 WorkerPool</li>
+        <li><strong>缓存策略</strong>：Cache.invalidate 在每次写入后触发，采用 write-through 模式</li>
+      </ul>
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        <p>调度器选择 [调度策略] 而非 [替代策略]，因为 [具体原因]。
+          这导致了 [具体影响]。</p>
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="src/core.js#L120-L150"><code>src/core.js:120-150</code></a>
+        <a class="source-ref" href="src/scheduler.js#L88-L120"><code>src/scheduler.js:88-120</code></a>
+      </div>
+
+    </div>
+  </details>
+
+  <details id="sec-architecture-deep">
+    <summary>深入分析</summary>
+    <div class="section-body">
+
+      <h3 id="sec-arch-deps">2.5 依赖关系分析</h3>
+      <p>模块间的依赖关系形成了 [DAG/树/有环] 结构。以下分析关键依赖路径和潜在风险。</p>
+
+      <figure class="diagram">
+        <div class="mermaid">
+graph LR
+    A[Module A] -- "强依赖" --> B[Module B]
+    A -- "弱依赖" --> C[Module C]
+    B -- "强依赖" --> C
+    B -- "强依赖" --> D[Module D]
+    C -- "弱依赖" --> D
+    D -- "强依赖" --> E[Module E]
+        </div>
+        <figcaption>图 2.2 — 模块依赖关系图</figcaption>
+      </figure>
+
+      <table>
+        <thead>
+          <tr><th>依赖路径</th><th>类型</th><th>风险</th><th>缓解措施</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A -&gt; B -&gt; D</td>
+            <td>强依赖</td>
+            <td>[如"B 不可用时 A 也瘫痪"]</td>
+            <td>[如"添加 fallback 机制"]</td>
+          </tr>
+          <tr>
+            <td>A -&gt; C</td>
+            <td>弱依赖</td>
+            <td>[如"C 超时只影响部分功能"]</td>
+            <td>[如"设置 3s 超时"]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-arch-thread">2.6 线程模型</h3>
+      <p>[项目名] 的并发模型如下。线程安全是架构设计的核心约束之一。</p>
+      <table>
+        <thead>
+          <tr><th>组件</th><th>线程模型</th><th>同步机制</th><th>竞争风险</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>[Component A]</td>
+            <td>[单线程/多线程/线程池/异步]</td>
+            <td>[互斥锁/读写锁/CAS/无锁]</td>
+            <td>[具体风险和缓解]</td>
+          </tr>
+          <tr>
+            <td>[Component B]</td>
+            <td>[模型]</td>
+            <td>[同步]</td>
+            <td>[风险]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning">
+        <strong>线程安全注意</strong>
+        <p>[Component C] 的 [方法名] 不是线程安全的。多线程环境中必须外部加锁
+          或使用 [推荐方案]。</p>
+      </div>
+
+      <h3 id="sec-arch-perf">2.7 性能约束</h3>
+      <p>以下约束来自 [源码注释/配置文件/性能测试]：</p>
+      <table>
+        <thead>
+          <tr><th>指标</th><th>约束</th><th>来源</th><th>违反后果</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>请求延迟 P99</td>
+            <td>&lt; [N]ms</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+            <td>[超时断开 / 触发降级]</td>
+          </tr>
+          <tr>
+            <td>并发连接数</td>
+            <td>&lt;= [N]</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+            <td>[新连接拒绝 / 排队]</td>
+          </tr>
+          <tr>
+            <td>内存占用</td>
+            <td>&lt; [N]MB</td>
+            <td><a class="source-ref" href="[file]#L[N]"><code>[file]:[N]</code></a></td>
+            <td>[OOM Kill / GC 停顿]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sec-arch-data">2.8 数据一致性</h3>
+      <p>系统中存在 [N] 个数据存储点，一致性保证策略如下：</p>
+      <table>
+        <thead>
+          <tr><th>数据</th><th>存储位置</th><th>一致性级别</th><th>同步机制</th><th>故障恢复</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>[数据类型 A]</td>
+            <td>[存储]</td>
+            <td>[强一致/最终一致]</td>
+            <td>[机制]</td>
+            <td>[恢复方式]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        <p>选择 [一致性方案] 是因为 [具体权衡]。在 [故障场景] 下，
+          系统会 [具体行为]，这是可接受的因为 [理由]。</p>
+      </div>
+
+    </div>
+  </details>
+</section>

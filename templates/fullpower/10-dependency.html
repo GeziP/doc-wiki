@@ -1,0 +1,73 @@
+<!--
+  Fullpower Template: Dependency Graph
+  WHY: Dependencies determine maintainability and testability.
+-->
+<section class="section" id="sec-deps-{{ID}}">
+  <div class="section-header">
+    <h2 id="sec-deps-{{ID}}-title">{{N}}. Dependencies</h2>
+  </div>
+  <div class="section-summary">
+    <p>[N] direct deps, [M] transitive. Core: [key dep]. Graph depth: [D] layers.</p>
+  </div>
+  <details open id="sec-deps-{{ID}}-details">
+    <summary>Dependency Details</summary>
+    <div class="section-body">
+      <h3 id="sec-dep-{{ID}}-graph">{{N}}.1 Dependency Graph</h3>
+      <figure class="diagram">
+        <div class="mermaid">
+graph TD
+    APP[Application] -- "core" --> CORE[Core]
+    APP -- "optional" --> PA[Plugin A]
+    APP -- "optional" --> PB[Plugin B]
+    CORE -- "base" --> UTIL[Utils]
+        </div>
+        <figcaption>图 {{N}}.1 — Module dependency graph</figcaption>
+      </figure>
+      <h3 id="sec-dep-{{ID}}-matrix">{{N}}.2 Dependency Matrix</h3>
+      <table>
+        <thead><tr><th>Module</th><th>Depends On</th><th>Depended By</th><th>Type</th><th>Version</th></tr></thead>
+        <tbody>
+          <tr><td>APP</td><td>CORE</td><td>—</td><td>Strong</td><td>[^2.0.0]</td></tr>
+          <tr><td>CORE</td><td>UTIL</td><td>APP, PA, PB</td><td>Strong</td><td>[^1.5.0]</td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-dep-{{ID}}-external">{{N}}.3 External Dependencies</h3>
+      <table>
+        <thead><tr><th>Dep</th><th>Version</th><th>Purpose</th><th>License</th><th>Security</th></tr></thead>
+        <tbody>
+          <tr><td>[name]</td><td>[ver]</td><td>[purpose]</td><td>[MIT]</td><td>[No vulns]</td></tr>
+        </tbody>
+      </table>
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        <a class="source-ref" href="package.json"><code>package.json</code></a>
+      </div>
+    </div>
+  </details>
+  <details id="sec-deps-{{ID}}-deep">
+    <summary>Strategy and Risk</summary>
+    <div class="section-body">
+      <h3 id="sec-dep-{{ID}}-strategy">{{N}}.4 Management Strategy</h3>
+      <table>
+        <thead><tr><th>Strategy</th><th>Rule</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>Version lock</td><td>[lockfile + CI]</td><td>[Consistency]</td></tr>
+          <tr><td>Regular update</td><td>[Monthly security check]</td><td>[Fix vulns]</td></tr>
+          <tr><td>Minimal deps</td><td>[Avoid unnecessary]</td><td>[Reduce risk]</td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-dep-{{ID}}-risk">{{N}}.5 Risk Assessment</h3>
+      <table>
+        <thead><tr><th>Dep</th><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>[name]</td><td>[Inactive maint]</td><td>[Vulns unfixed]</td><td>[Evaluate alternatives]</td></tr>
+        </tbody>
+      </table>
+      <h3 id="sec-dep-{{ID}}-circular">{{N}}.6 Circular Dependencies</h3>
+      <div class="callout warning">
+        <strong>Circular Dependency</strong>
+        <p>[Describe any circular deps and resolution]</p>
+      </div>
+    </div>
+  </details>
+</section>
