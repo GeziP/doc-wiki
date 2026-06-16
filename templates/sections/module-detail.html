@@ -1,0 +1,102 @@
+<!--
+  Section Template: Module Detail（模块详情）
+  ===================================
+  渐进式披露三层结构 + API 表格 + 代码示例
+  Layer 1: 模块职责一句话
+  Layer 2: API 表格 + 使用示例 + 设计决策
+  Layer 3: 实现细节 + 性能分析 + 边界情况
+
+  使用方式：复制本模板，替换 {{占位符}} 内容
+  参考：DeepWiki 3.1-agent-system-and-subagents 章节结构
+  全力模式：每个公开 API 都有使用示例 + 错误路径穷举
+-->
+
+<section class="section" id="sec-{{SECTION_ID}}">
+  <div class="section-header">
+    <h2 id="sec-{{SECTION_ID}}">{{SECTION_NUMBER}}. {{MODULE_NAME}}</h2>
+  </div>
+
+  <!-- Layer 1: Summary -->
+  <div class="section-summary">
+    <p>{{MODULE_ONE_LINE_PURPOSE}}</p>
+  </div>
+
+  <!-- Layer 2: Details — API + 示例 -->
+  <details open id="sec-{{SECTION_ID}}-details">
+    <summary>API 与使用</summary>
+    <div class="section-body">
+
+      <!-- API 表格 -->
+      <h3 id="sec-{{SECTION_ID}}-api">{{SECTION_NUMBER}}.1 公开 API</h3>
+      <table>
+        <thead>
+          <tr><th>方法</th><th>参数</th><th>返回值</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          {{API_ROWS}}
+        </tbody>
+      </table>
+
+      <!-- 代码示例（全力模式：每个公开 API 都有） -->
+      <h3 id="sec-{{SECTION_ID}}-example">{{SECTION_NUMBER}}.2 使用示例</h3>
+      <p>{{EXAMPLE_NARRATIVE}}</p>
+      <pre><code class="language-{{LANG}}">{{CODE_EXAMPLE}}</code></pre>
+
+      <!-- 设计决策 -->
+      <div class="callout note">
+        <strong>设计决策</strong>
+        {{DESIGN_DECISION_WHY}}
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        {{SOURCE_REFS}}
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Layer 3: Deep Dive — 实现细节 + 边界情况 -->
+  <details id="sec-{{SECTION_ID}}-deep">
+    <summary>实现细节与边界情况</summary>
+    <div class="section-body">
+
+      <h3 id="sec-{{SECTION_ID}}-impl">实现分析</h3>
+      <p>{{IMPLEMENTATION_ANALYSIS}}</p>
+
+      <!-- 错误路径穷举（全力模式特有） -->
+      <h3 id="sec-{{SECTION_ID}}-errors">错误路径</h3>
+      <table>
+        <thead>
+          <tr><th>错误类型</th><th>触发条件</th><th>处理方式</th><th>推荐做法</th></tr>
+        </thead>
+        <tbody>
+          {{ERROR_PATH_ROWS}}
+        </tbody>
+      </table>
+
+      <h3 id="sec-{{SECTION_ID}}-edge">边界情况</h3>
+      <table>
+        <thead>
+          <tr><th>场景</th><th>行为</th><th>处理方式</th></tr>
+        </thead>
+        <tbody>
+          {{EDGE_CASE_ROWS}}
+        </tbody>
+      </table>
+
+      <!-- 性能特征（全力模式：标注算法复杂度） -->
+      <h3 id="sec-{{SECTION_ID}}-perf">性能特征</h3>
+      <p>{{PERFORMANCE_ANALYSIS}}</p>
+      <table>
+        <thead>
+          <tr><th>操作</th><th>时间复杂度</th><th>空间复杂度</th><th>瓶颈点</th></tr>
+        </thead>
+        <tbody>
+          {{PERFORMANCE_ROWS}}
+        </tbody>
+      </table>
+
+    </div>
+  </details>
+</section>

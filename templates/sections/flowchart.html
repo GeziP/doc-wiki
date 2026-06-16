@@ -1,0 +1,71 @@
+<!--
+  Section Template: Flowchart（流程图）
+  ===================================
+  Layer 1: 流程概述
+  Layer 2: Mermaid 流程图 + 逐步说明
+  Layer 3: 异常路径 + 性能瓶颈分析
+
+  使用方式：复制本模板，替换 {{占位符}} 内容
+  适用：复杂业务流程（如请求处理、数据管道、部署流程）
+-->
+
+<section class="section" id="sec-{{SECTION_ID}}">
+  <div class="section-header">
+    <h2 id="sec-{{SECTION_ID}}">{{SECTION_NUMBER}}. {{FLOW_NAME}}</h2>
+  </div>
+
+  <!-- Layer 1: Summary -->
+  <div class="section-summary">
+    <p>{{FLOW_ONE_LINER}}</p>
+  </div>
+
+  <!-- Layer 2: Details — 流程图 + 逐步说明 -->
+  <details open id="sec-{{SECTION_ID}}-details">
+    <summary>流程详解</summary>
+    <div class="section-body">
+
+      <figure class="diagram">
+        <div class="mermaid">
+flowchart TD
+    {{FLOW_NODES}}
+        </div>
+        <figcaption>图 {{FIG_NUMBER}} — {{FLOW_NAME}} 流程图</figcaption>
+      </figure>
+
+      <!-- 逐步说明（每步有代码引用） -->
+      {{STEP_BY_STEP}}
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        {{FLOW_DECISION_WHY}}
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        {{SOURCE_REFS}}
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Layer 3: Deep Dive — 异常路径 + 性能 -->
+  <details id="sec-{{SECTION_ID}}-deep">
+    <summary>异常路径与性能分析</summary>
+    <div class="section-body">
+
+      <h3 id="sec-{{SECTION_ID}}-errors">异常路径</h3>
+      <table>
+        <thead>
+          <tr><th>步骤</th><th>异常类型</th><th>处理方式</th><th>回滚策略</th></tr>
+        </thead>
+        <tbody>
+          {{ERROR_PATH_ROWS}}
+        </tbody>
+      </table>
+
+      <h3 id="sec-{{SECTION_ID}}-perf">性能瓶颈</h3>
+      <p>{{PERFORMANCE_BOTTLENECKS}}</p>
+
+    </div>
+  </details>
+</section>

@@ -1,0 +1,66 @@
+<!--
+  Section Template: State Machine（状态机）
+  ===================================
+  Layer 1: 状态机概述
+  Layer 2: 状态转换表 + 状态图
+  Layer 3: 每个状态的详细行为 + 异常处理
+
+  使用方式：复制本模板，替换 {{占位符}} 内容
+  适用：有状态的类/组件（如 TaskScheduler、ConnectionManager）
+-->
+
+<section class="section" id="sec-{{SECTION_ID}}">
+  <div class="section-header">
+    <h2 id="sec-{{SECTION_ID}}">{{SECTION_NUMBER}}. {{STATE_MACHINE_NAME}} 状态机</h2>
+  </div>
+
+  <!-- Layer 1: Summary -->
+  <div class="section-summary">
+    <p>{{STATE_MACHINE_ONE_LINER}}</p>
+  </div>
+
+  <!-- Layer 2: Details — 状态转换表 + 状态图 -->
+  <details open id="sec-{{SECTION_ID}}-details">
+    <summary>状态转换</summary>
+    <div class="section-body">
+
+      <!-- 状态转换表（必须完整，不允许遗漏状态） -->
+      <table>
+        <thead>
+          <tr><th>当前状态</th><th>事件</th><th>目标状态</th><th>动作</th></tr>
+        </thead>
+        <tbody>
+          {{TRANSITION_ROWS}}
+        </tbody>
+      </table>
+
+      <!-- 状态图 -->
+      <figure class="diagram">
+        <div class="mermaid">
+stateDiagram-v2
+    {{STATE_DIAGRAM}}
+        </div>
+        <figcaption>图 {{FIG_NUMBER}} — {{STATE_MACHINE_NAME}} 状态转换图</figcaption>
+      </figure>
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        {{STATE_MACHINE_DECISION_WHY}}
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        {{SOURCE_REFS}}
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Layer 3: Deep Dive — 每个状态的详细行为 -->
+  <details id="sec-{{SECTION_ID}}-deep">
+    <summary>状态详细行为</summary>
+    <div class="section-body">
+      {{PER_STATE_BEHAVIOR}}
+    </div>
+  </details>
+</section>

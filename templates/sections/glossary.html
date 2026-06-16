@@ -1,0 +1,43 @@
+<!--
+  Section Template: Glossary（术语表）
+  ===================================
+  术语 | 说明 | 出处（file:line）
+  每个术语必须有真实来源（类名、枚举值、配置键、业务概念）
+
+  使用方式：复制本模板，替换 {{占位符}} 内容
+  位置：文档末尾，附录之前
+-->
+
+<section class="section" id="sec-glossary">
+  <div class="section-header">
+    <h2 id="sec-glossary">术语表</h2>
+  </div>
+
+  <div class="section-body">
+
+    <table>
+      <thead>
+        <tr><th>术语</th><th>说明</th><th>出处</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>{{TERM_1}}</code></td>
+          <td>{{DEFINITION_1}}</td>
+          <td><a class="source-ref" href="{{SOURCE_LINK_1}}"><code>{{SOURCE_TEXT_1}}</code></a></td>
+        </tr>
+        <tr>
+          <td><code>{{TERM_2}}</code></td>
+          <td>{{DEFINITION_2}}</td>
+          <td><a class="source-ref" href="{{SOURCE_LINK_2}}"><code>{{SOURCE_TEXT_2}}</code></a></td>
+        </tr>
+        <tr>
+          <td><code>{{TERM_3}}</code></td>
+          <td>{{DEFINITION_3}}</td>
+          <td><a class="source-ref" href="{{SOURCE_LINK_3}}"><code>{{SOURCE_TEXT_3}}</code></a></td>
+        </tr>
+        {{MORE_GLOSSARY_ROWS}}
+      </tbody>
+    </table>
+
+  </div>
+</section>

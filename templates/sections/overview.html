@@ -1,0 +1,59 @@
+<!--
+  Section Template: Overview（概述）
+  ===================================
+  渐进式披露三层结构：
+  Layer 1 (section-summary): 始终可见，1-2 句话概述
+  Layer 2 (details open): 默认展开，主要叙述内容
+  Layer 3 (details): 默认折叠，深入分析/扩展阅读
+
+  使用方式：复制本模板，替换 {{占位符}} 内容
+  参考：DeepWiki 1-claude-code-overview 章节结构
+-->
+
+<section class="section" id="sec-{{SECTION_ID}}">
+  <div class="section-header">
+    <h2 id="sec-{{SECTION_ID}}">{{SECTION_NUMBER}}. {{SECTION_TITLE}}</h2>
+  </div>
+
+  <!-- Layer 1: Summary — 始终可见，读者快速判断是否需要深入 -->
+  <div class="section-summary">
+    <p>{{ONE_SENTENCE_SUMMARY}}</p>
+  </div>
+
+  <!-- Layer 2: Details — 默认展开，核心内容 -->
+  <details open id="sec-{{SECTION_ID}}-details">
+    <summary>详细说明</summary>
+    <div class="section-body">
+
+      <h3 id="sec-{{SECTION_ID}}-bg">{{SECTION_NUMBER}}.1 背景</h3>
+      <p>{{BACKGROUND_PARAGRAPH_1}}</p>
+      <p>{{BACKGROUND_PARAGRAPH_2}}</p>
+
+      <h3 id="sec-{{SECTION_ID}}-solution">{{SECTION_NUMBER}}.2 解决方案</h3>
+      <p>{{SOLUTION_PARAGRAPH_1}}</p>
+      <p>{{SOLUTION_PARAGRAPH_2}}</p>
+
+      <!-- 设计决策 Callout — 解释 WHY，不是 WHAT -->
+      <div class="callout note">
+        <strong>设计决策</strong>
+        {{WHY_NOT_WHAT_EXPLANATION}}
+      </div>
+
+      <!-- 章节尾部 Sources -->
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        {{SOURCE_REFS}}
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Layer 3: Deep Dive — 默认折叠，高级读者按需展开 -->
+  <details id="sec-{{SECTION_ID}}-deep">
+    <summary>深入分析</summary>
+    <div class="section-body">
+      <p>{{DEEP_ANALYSIS_PARAGRAPH}}</p>
+      {{OPTIONAL_TABLE_OR_CODE}}
+    </div>
+  </details>
+</section>

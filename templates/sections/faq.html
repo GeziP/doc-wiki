@@ -1,0 +1,76 @@
+<!--
+  Section Template: FAQ（常见问题）
+  ===================================
+  每个 Q&A 都是可折叠的 details 元素
+  全力模式下：≥ 5 个 FAQ，每个基于真实代码逻辑推断
+
+  使用方式：复制本模板，替换 {{占位符}} 内容
+  注意：FAQ 必须基于真实代码逻辑推断，禁止编造
+-->
+
+<section class="section" id="sec-faq">
+  <div class="section-header">
+    <h2 id="sec-faq">{{SECTION_NUMBER}}. 常见问题（FAQ）</h2>
+  </div>
+
+  <div class="section-body">
+
+    <details id="faq-1">
+      <summary><strong>Q1:</strong> {{QUESTION_1}}</summary>
+      <div class="section-body">
+        <p>{{ANSWER_1}}</p>
+        <div class="callout info">
+          <strong>相关代码：</strong>
+          {{SOURCE_REF_1}}
+        </div>
+      </div>
+    </details>
+
+    <details id="faq-2">
+      <summary><strong>Q2:</strong> {{QUESTION_2}}</summary>
+      <div class="section-body">
+        <p>{{ANSWER_2}}</p>
+        <div class="callout info">
+          <strong>相关代码：</strong>
+          {{SOURCE_REF_2}}
+        </div>
+      </div>
+    </details>
+
+    <details id="faq-3">
+      <summary><strong>Q3:</strong> {{QUESTION_3}}</summary>
+      <div class="section-body">
+        <p>{{ANSWER_3}}</p>
+        <div class="callout info">
+          <strong>相关代码：</strong>
+          {{SOURCE_REF_3}}
+        </div>
+      </div>
+    </details>
+
+    <details id="faq-4">
+      <summary><strong>Q4:</strong> {{QUESTION_4}}</summary>
+      <div class="section-body">
+        <p>{{ANSWER_4}}</p>
+        <div class="callout info">
+          <strong>相关代码：</strong>
+          {{SOURCE_REF_4}}
+        </div>
+      </div>
+    </details>
+
+    <details id="faq-5">
+      <summary><strong>Q5:</strong> {{QUESTION_5}}</summary>
+      <div class="section-body">
+        <p>{{ANSWER_5}}</p>
+        <div class="callout info">
+          <strong>相关代码：</strong>
+          {{SOURCE_REF_5}}
+        </div>
+      </div>
+    </details>
+
+    {{MORE_FAQ_ITEMS}}
+
+  </div>
+</section>

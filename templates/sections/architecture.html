@@ -1,0 +1,86 @@
+<!--
+  Section Template: Architecture（架构）
+  ===================================
+  渐进式披露三层结构 + 交互式架构图
+  Layer 1: 架构一句话概述
+  Layer 2: Mermaid/SVG 架构图 + 分层说明 + 跨模块调用链
+  Layer 3: 详细依赖分析 + 性能约束
+
+  使用方式：复制本模板，替换 {{占位符}} 内容
+  参考：DeepWiki 1.1-system-architecture 章节结构
+-->
+
+<section class="section" id="sec-{{SECTION_ID}}">
+  <div class="section-header">
+    <h2 id="sec-{{SECTION_ID}}">{{SECTION_NUMBER}}. {{SECTION_TITLE}}</h2>
+  </div>
+
+  <!-- Layer 1: Summary -->
+  <div class="section-summary">
+    <p>{{ARCHITECTURE_ONE_LINER}}</p>
+  </div>
+
+  <!-- Layer 2: Details — 架构图 + 分层说明 -->
+  <details open id="sec-{{SECTION_ID}}-details">
+    <summary>架构详解</summary>
+    <div class="section-body">
+
+      <!-- 架构图（Mermaid 或内联 SVG，二选一） -->
+      <figure class="diagram">
+        <div class="mermaid">
+graph TD
+    {{MERMAID_NODES_AND_EDGES}}
+        </div>
+        <figcaption>图 {{FIG_NUMBER}} — {{FIG_CAPTION}}</figcaption>
+      </figure>
+
+      <!-- 分层说明表格 -->
+      <table>
+        <thead>
+          <tr><th>层级</th><th>职责</th><th>核心模块</th><th>关键接口</th></tr>
+        </thead>
+        <tbody>
+          {{LAYER_ROWS}}
+        </tbody>
+      </table>
+
+      <!-- 跨模块调用链（全力模式：追踪 3 层以上） -->
+      <h3 id="sec-{{SECTION_ID}}-calls">{{SECTION_NUMBER}}.1 跨模块调用链</h3>
+      <p>{{CALL_CHAIN_NARRATIVE}}</p>
+      <pre><code class="language-{{LANG}}">{{CALL_CHAIN_CODE}}</code></pre>
+
+      <div class="callout note">
+        <strong>设计决策</strong>
+        {{ARCHITECTURE_DECISION_WHY}}
+      </div>
+
+      <div class="sources-block">
+        <span class="sources-label">Sources:</span>
+        {{SOURCE_REFS}}
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Layer 3: Deep Dive — 依赖分析 + 性能 -->
+  <details id="sec-{{SECTION_ID}}-deep">
+    <summary>深入分析</summary>
+    <div class="section-body">
+
+      <h3 id="sec-{{SECTION_ID}}-deps">依赖关系详细分析</h3>
+      <p>{{DEPENDENCY_ANALYSIS}}</p>
+
+      <h3 id="sec-{{SECTION_ID}}-perf">性能约束</h3>
+      <p>{{PERFORMANCE_CONSTRAINTS}}</p>
+      <table>
+        <thead>
+          <tr><th>指标</th><th>约束</th><th>来源</th></tr>
+        </thead>
+        <tbody>
+          {{PERFORMANCE_ROWS}}
+        </tbody>
+      </table>
+
+    </div>
+  </details>
+</section>
