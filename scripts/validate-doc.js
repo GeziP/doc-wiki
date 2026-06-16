@@ -25,6 +25,7 @@ const doFix = args.includes('--fix');
 const convertAll = args.includes('--all');
 const strict = args.includes('--strict');
 const isNewDoc = args.includes('--new-doc');
+const testInteractive = args.includes('--test-interactive');
 const typeIdx = args.indexOf('--type');
 const rootIdx = args.indexOf('--root');
 const docType = typeIdx !== -1 ? args[typeIdx + 1] : null;
@@ -49,6 +50,7 @@ if (!convertAll && files.length === 0) {
   console.log('  --root     Project root directory (default: CWD)');
   console.log('  --strict   Treat warnings as errors');
   console.log('  --new-doc  Require source refs, glossary, scope (for newly generated docs)');
+  console.log('  --test-interactive  Test interaction features (progressive disclosure, dark mode, etc.)');
   process.exit(0);
 }
 
@@ -785,6 +787,111 @@ function checkContentDensity(html, report) {
 }
 
 // ============================================================
+// 17. Progressive Disclosure (fullpower mode)
+// ============================================================
+function checkProgressiveDisclosure(html, report) {
+  const cat = 'Progressive Disclosure';
+  // Extract body content
+  const bodyMatch = html.match(/<body[\s\S]*<\/body>/i);
+  if (!bodyMatch) return;
+  const body = bodyMatch[0];
+
+  // Count H2 sections
+  const h2Count = (body.match(/<h2[\s>]/gi) || []).length;
+  if (h2Count === 0) {
+    report.pass(cat, 'No H2 sections found');
+    return;
+  }
+
+  // Count progressive disclosure elements
+  const summaryCount = (body.match(/class="section-summary"/gi) || []).length;
+  const detailsOpenCount = (body.match(/<details\s[^>]*open/gi) || []).length;
+  const detailsCollapsedCount = (body.match(/<details(?!\s[^>]*open)[\s>]/gi) || []).length;
+
+  let issues = 0;
+
+  if (summaryCount < h2Count) {
+    report.warn(cat, `Only ${summaryCount}/${h2Count} H2 sections have section-summary (Layer 1)`);
+    issues++;
+  }
+  if (detailsOpenCount === 0) {
+    report.warn(cat, 'No default-open <details> found (Layer 2 missing)');
+    issues++;
+  }
+  if (detailsCollapsedCount === 0) {
+    report.warn(cat, 'No collapsed <details> found (Layer 3 missing)');
+    issues++;
+  }
+
+  if (issues === 0) {
+    report.pass(cat, `${h2Count} H2 sections with progressive disclosure (summary: ${summaryCount}, details-open: ${detailsOpenCount}, details-collapsed: ${detailsCollapsedCount})`);
+  }
+}
+
+// ============================================================
+// 18. Interaction Features (fullpower mode)
+// ============================================================
+function checkInteractionFeatures(html, report) {
+  const cat = 'Interaction Features';
+  let issues = 0;
+
+  // I2: details/summary pairing
+  const detailsCount = (html.match(/<details[\s>]/gi) || []).length;
+  const summaryCount = (html.match(/<summary[\s>]/gi) || []).length;
+  if (detailsCount !== summaryCount) {
+    report.fail(cat, `<details> (${detailsCount}) ≠ <summary> (${summaryCount}) — structure broken`);
+    issues++;
+  }
+
+  // I3: Code highlighting — all <code> in <pre> should have language class
+  const codeBlocks = html.match(/<pre><code[^>]*>[\s\S]*?<\/code><\/pre>/gi) || [];
+  let missingLang = 0;
+  codeBlocks.forEach(block => {
+    if (!/class="language-/.test(block)) missingLang++;
+  });
+  if (missingLang > 0) {
+    report.warn(cat, `${missingLang}/${codeBlocks.length} code blocks missing language class`);
+    issues++;
+  }
+
+  // I4: Dark mode
+  if (!html.includes('[data-theme="dark"]') && !html.includes('prefers-color-scheme: dark')) {
+    report.warn(cat, 'No dark mode CSS found ([data-theme="dark"] or prefers-color-scheme)');
+    issues++;
+  }
+
+  // I6: Search-friendly IDs — no duplicates
+  const idMatches = html.match(/\bid="([^"]+)"/g) || [];
+  const ids = idMatches.map(m => m.match(/id="([^"]+)"/)[1]);
+  const seen = new Set();
+  const duplicates = [];
+  ids.forEach(id => {
+    if (seen.has(id)) duplicates.push(id);
+    seen.add(id);
+  });
+  if (duplicates.length > 0) {
+    report.fail(cat, `Duplicate IDs: ${[...new Set(duplicates)].join(', ')}`);
+    issues++;
+  }
+
+  // I7: SVG accessibility
+  const svgBlocks = html.match(/<svg[\s\S]*?<\/svg>/gi) || [];
+  let svgIssues = 0;
+  svgBlocks.forEach((svg, i) => {
+    if (!svg.includes('role="img"')) { svgIssues++; }
+    if (!svg.includes('aria-label')) { svgIssues++; }
+  });
+  if (svgIssues > 0) {
+    report.warn(cat, `${svgIssues} SVG accessibility issues (missing role="img" or aria-label)`);
+    issues++;
+  }
+
+  if (issues === 0) {
+    report.pass(cat, `All interaction features OK (${detailsCount} details, ${codeBlocks.length} code blocks, ${svgBlocks.length} SVGs)`);
+  }
+}
+
+// ============================================================
 // Main
 // ============================================================
 
@@ -819,6 +926,12 @@ function validateFile(filePath, fix) {
   checkEmptySections(html, report);
   checkDuplicateContent(html, report);
   checkContentDensity(html, report);
+
+  // Interaction tests (fullpower mode)
+  if (testInteractive) {
+    checkProgressiveDisclosure(html, report);
+    checkInteractionFeatures(html, report);
+  }
 
   const result = report.print();
 
