@@ -1,229 +1,862 @@
-<!--
-  Doc-Wiki 系统架构文档（全力模式）
-  ===================================
-  生成方式：全力模式 — 多 subagent 并行分析 + 渐进式披露
-  生成日期：2026-06-16
-  源码规模：33 文件，~13,000 行代码，5 个子系统
--->
 <!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="keywords" content="doc-writer, Claude Code skill, technical documentation, HTML generator, DeepWiki-style">
+  <meta name="generator" content="doc-writer system">
   <title>Doc-Wiki 系统架构设计文档</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
   <style>
-    :root {
-      --font-sans: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
-      --font-mono: Consolas, "Courier New", monospace;
-      --bg: #fafbfc; --bg-secondary: #f4f6f8; --text: #1a2332; --text-secondary: #475569;
-      --border: #d8dee4; --accent: #1c8790; --accent-soft: #e7f8f7;
-      --note: #7c3aed; --note-bg: #f5f3ff; --note-border: #ddd6fe;
-      --info: #3b82f6; --info-bg: #eff6ff; --info-border: #bfdbfe;
-      --warning: #ca8a04; --warning-bg: #fefce8; --warning-border: #fde68a;
-      --radius: 6px; --max-width: 960px;
-    }
-    [data-theme="dark"] {
-      --bg: #0d1117; --bg-secondary: #161b22; --text: #e6edf3; --text-secondary: #b1bac4;
-      --border: #30363d; --accent: #2dd4bf; --accent-soft: #0d2d2d;
-    }
-    body { font-family: var(--font-sans); color: var(--text); background: var(--bg); max-width: var(--max-width); margin: 0 auto; padding: 24px; line-height: 1.7; }
-    h1 { font-size: 32px; letter-spacing: -0.5px; }
-    h2 { font-size: 22px; letter-spacing: -0.3px; margin-top: 40px; border-bottom: 2px solid var(--border); padding-bottom: 8px; }
-    h3 { font-size: 17px; margin-top: 24px; }
-    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-    th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
-    th { background: var(--bg-secondary); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; }
-    code { font-family: var(--font-mono); font-size: 14px; background: var(--bg-secondary); padding: 2px 4px; border-radius: 3px; }
-    pre { background: var(--bg-secondary); padding: 16px; border-radius: var(--radius); overflow-x: auto; }
-    pre code { background: none; padding: 0; }
-    .callout { border-left: 4px solid var(--note); background: var(--note-bg); padding: 12px 16px; border-radius: var(--radius); margin: 16px 0; }
-    .callout.info { border-color: var(--info); background: var(--info-bg); }
-    .section-summary { background: var(--accent-soft); padding: 12px 16px; border-radius: var(--radius); margin: 12px 0; }
-    details { margin: 8px 0; }
-    summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
-    .doc-tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
-    .tag { background: var(--bg-secondary); border: 1px solid var(--border); padding: 2px 8px; border-radius: 12px; font-size: 13px; }
-    .scope-block { background: var(--info-bg); border: 1px solid var(--info-border); padding: 12px 16px; border-radius: var(--radius); margin: 16px 0; }
-    .source-ref { color: var(--accent); text-decoration: none; }
-    .source-ref:hover { text-decoration: underline; }
-    .sources-block { font-size: 13px; color: var(--text-secondary); margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
-    .sources-label { font-weight: 600; }
-    figcaption { font-size: 14px; color: var(--text-secondary); margin-top: 8px; }
-    nav#toc { background: var(--bg-secondary); padding: 16px 20px; border-radius: var(--radius); margin: 20px 0; }
-    nav#toc h4 { margin: 0 0 8px; font-size: 15px; }
-    nav#toc ul { margin: 0; padding-left: 20px; }
-    nav#toc li { margin: 4px 0; }
+/* @sync:doc-shell.css:start */
+/* ===== doc-shell.css — Shared CSS for all doc types ===== */
+/* Warm-paper teal skin — off-white ground, teal accent, editorial restraint */
+
+/* ===== CSS Variables ===== */
+:root {
+  --font-sans: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  --font-mono: Consolas, "Courier New", "Fira Code", monospace;
+  --line-height: 1.7;
+  --max-width: 960px;
+  --toc-width: 240px;
+  --header-height: 48px;
+
+  /* Light theme — Warm-paper Teal */
+  --bg: #fafbfc;
+  --bg-secondary: #f4f6f8;
+  --bg-tertiary: #ebeef1;
+  --text: #1a2332;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+  --border: #d8dee4;
+  --border-light: #e8ecf0;
+  --accent: #1c8790;
+  --accent-hover: #15696f;
+  --accent-soft: #e7f8f7;
+  --accent-light: #e7f8f7;
+  --accent-green: #16a34a;
+  --accent-green-light: #ecfdf5;
+  --accent-orange: #b45309;
+  --accent-orange-light: #fefce8;
+  --accent-red: #dc2626;
+  --accent-red-light: #fef2f2;
+  --accent-purple: #7c3aed;
+  --accent-purple-light: #f5f3ff;
+  --code-bg: #f1f4f8;
+  --code-border: #dce2e8;
+  --link: #1a6fa0;
+  --link-hover: #14587e;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,.06);
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-sm: 4px;
+
+  /* Semantic callout colors */
+  --info: #3b82f6;      --info-bg: #eff6ff;     --info-border: #bfdbfe;
+  --success: #16a34a;   --success-bg: #edf7f0;  --success-border: #bbf0c9;
+  --warning: #ca8a04;   --warning-bg: #fefce8;  --warning-border: #fde68a;
+  --danger: #dc2626;    --danger-bg: #fef2f2;   --danger-border: #fecaca;
+  --note: #7c3aed;      --note-bg: #f5f3ff;     --note-border: #ddd6fe;
+
+  /* Card accent colors */
+  --card-green: #16a34a;
+  --card-amber: #ca8a04;
+  --card-red: #dc2626;
+  --card-violet: #7c3aed;
+  --card-cyan: #0891b2;
+  --card-blue: #3b82f6;
+}
+
+[data-theme="dark"] {
+  --bg: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #1c2128;
+  --text: #e6edf3;
+  --text-secondary: #b1bac4;
+  --text-muted: #8b949e;
+  --text-faint: #6e7681;
+  --border: #30363d;
+  --border-light: #21262d;
+  --accent: #58d5c9;
+  --accent-hover: #79e0d7;
+  --accent-soft: #122b2e;
+  --accent-light: #122b2e;
+  --accent-green: #3fb950;
+  --accent-green-light: #0d2818;
+  --accent-orange: #d29922;
+  --accent-orange-light: #2a1f05;
+  --accent-red: #f85149;
+  --accent-red-light: #2d0d0d;
+  --accent-purple: #a371f7;
+  --accent-purple-light: #1a0d2e;
+  --code-bg: #1c2128;
+  --code-border: #30363d;
+  --link: #58a6ff;
+  --link-hover: #79b8ff;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.4);
+
+  --info: #58a6ff;      --info-bg: #0d1d31;     --info-border: #1f4170;
+  --success: #3fb950;   --success-bg: #0d2818;  --success-border: #1a4731;
+  --warning: #d29922;   --warning-bg: #2a1f05;  --warning-border: #4b3a12;
+  --danger: #f85149;    --danger-bg: #2d0d0d;   --danger-border: #5a1a1a;
+  --note: #a371f7;      --note-bg: #1a0d2e;     --note-border: #3b2066;
+
+  --card-green: #3fb950;
+  --card-amber: #d29922;
+  --card-red: #f85149;
+  --card-violet: #a371f7;
+  --card-cyan: #39d2c0;
+  --card-blue: #58a6ff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117; --bg-secondary: #161b22; --bg-tertiary: #1c2128;
+    --text: #e6edf3; --text-secondary: #b1bac4; --text-muted: #8b949e; --text-faint: #6e7681;
+    --border: #30363d; --border-light: #21262d;
+    --accent: #58d5c9; --accent-hover: #79e0d7; --accent-soft: #122b2e; --accent-light: #122b2e;
+    --accent-green: #3fb950; --accent-green-light: #0d2818;
+    --accent-orange: #d29922; --accent-orange-light: #2a1f05;
+    --accent-red: #f85149; --accent-red-light: #2d0d0d;
+    --accent-purple: #a371f7; --accent-purple-light: #1a0d2e;
+    --code-bg: #1c2128; --code-border: #30363d;
+    --link: #58a6ff; --link-hover: #79b8ff;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,.3); --shadow-md: 0 4px 12px rgba(0,0,0,.4);
+    --info: #58a6ff; --info-bg: #0d1d31; --info-border: #1f4170;
+    --success: #3fb950; --success-bg: #0d2818; --success-border: #1a4731;
+    --warning: #d29922; --warning-bg: #2a1f05; --warning-border: #4b3a12;
+    --danger: #f85149; --danger-bg: #2d0d0d; --danger-border: #5a1a1a;
+    --note: #a371f7; --note-bg: #1a0d2e; --note-border: #3b2066;
+    --card-green: #3fb950; --card-amber: #d29922; --card-red: #f85149;
+    --card-violet: #a371f7; --card-cyan: #39d2c0; --card-blue: #58a6ff;
+  }
+}
+
+/* ===== Reset ===== */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: var(--line-height);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--accent-soft); color: var(--accent-hover); }
+
+/* ===== Top bar ===== */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 12px;
+  height: var(--header-height);
+  padding: 0 24px;
+  background: rgba(250,251,252,0.92);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.topbar-brand { font-weight: 700; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; font-size: 0.72rem; white-space: nowrap; }
+.topbar-sep { color: var(--text-faint); }
+.topbar-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }
+.topbar-actions { display: flex; gap: 6px; }
+.topbar-btn,
+.btn-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg); color: var(--text-muted);
+  cursor: pointer; font-size: 16px;
+  transition: border-color .15s, color .15s;
+}
+.topbar-btn:hover,
+.btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+.sidebar-toggle { display: none; }
+
+/* ===== Layout ===== */
+.layout { display: grid; grid-template-columns: var(--toc-width) 1fr; min-height: calc(100vh - var(--header-height)); }
+
+/* ===== Sidebar TOC ===== */
+.sidebar {
+  position: sticky; top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  overflow-y: auto; padding: 20px 0 20px 20px;
+  border-right: 1px solid var(--border);
+  font-size: 13px; scrollbar-width: thin;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.toc-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); padding: 8px 20px 6px; }
+.toc-list { list-style: none; margin: 0; padding: 0; }
+.toc-list li { margin: 0; }
+.toc-list a,
+.toc-link {
+  display: block; padding: 4px 12px 4px 10px;
+  color: var(--text-muted); text-decoration: none;
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
+  transition: color .15s, border-color .15s, background .15s;
+  line-height: 1.4;
+}
+.toc-list a:hover,
+.toc-link:hover { color: var(--text); background: var(--bg-secondary); }
+.toc-list a.active,
+.toc-link.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+.toc-list .toc-h3,
+.toc-link.toc-h3 { padding-left: 24px; font-size: 12px; }
+
+/* ===== Main content ===== */
+.main-content,
+.main { max-width: var(--max-width); margin: 0 auto; padding: 32px 40px 80px; }
+
+/* ===== Document metadata header ===== */
+.doc-meta { margin-bottom: 36px; }
+.doc-version {
+  display: inline-block; padding: 2px 10px; border-radius: 4px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 12px; font-weight: 700; letter-spacing: .03em;
+}
+.doc-meta h1 { margin: 12px 0 16px; font-size: 32px; line-height: 1.15; letter-spacing: -.02em; font-weight: 800; }
+.meta-grid {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 16px;
+  margin: 0; padding: 14px 18px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-secondary); font-size: 14px;
+}
+.meta-grid dt { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+.meta-grid dd { margin: 0; }
+
+/* ===== Headings ===== */
+h1, h2, h3, h4 { margin: 0; color: var(--text); line-height: 1.3; letter-spacing: -0.01em; }
+h2 { margin: 48px 0 16px; padding-bottom: 8px; font-size: 22px; font-weight: 700; border-bottom: 1px solid var(--border); }
+h3 { margin: 32px 0 12px; font-size: 17px; font-weight: 600; }
+h4 { margin: 24px 0 8px; font-size: 15px; font-weight: 700; letter-spacing: 0; }
+summary > h2, summary > h3 { display: inline; margin: 0; border: 0; padding: 0; }
+
+/* ===== Paragraphs, lists, links ===== */
+p { margin: 0 0 12px; }
+ul, ol { margin: 6px 0 12px 20px; }
+li { margin-bottom: 4px; font-size: 0.92rem; }
+a { color: var(--link); text-decoration: none; }
+a:hover { color: var(--link-hover); text-decoration: underline; }
+
+/* ===== Details / collapsible sections ===== */
+details {
+  margin: 24px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+details > summary {
+  padding: 12px 18px;
+  background: var(--bg-secondary);
+  cursor: pointer; font-weight: 700; font-size: 18px;
+  list-style: none; user-select: none;
+}
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before {
+  content: "\25B8"; display: inline-block; width: 20px;
+  color: var(--text-faint); transition: transform .15s;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+details > summary:hover { background: var(--bg-tertiary); }
+details > .section-body { padding: 18px 20px; }
+
+/* ===== Section (guide-style flat sections) ===== */
+.section { padding: 40px 0 20px; border-bottom: 1px solid var(--border-light); }
+.section:last-child { border-bottom: none; }
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; margin-bottom: 16px;
+  background: var(--bg-secondary); border: 1px solid var(--border-light);
+  border-radius: 8px;
+}
+.section-header:hover { border-color: var(--accent); }
+.section-header h2 { font-size: 1.3rem; font-weight: 700; margin: 0; flex: 1; letter-spacing: -0.01em; border: none; padding: 0; }
+.section-badge {
+  font-size: 0.72rem; font-weight: 600; padding: 2px 10px;
+  border-radius: 10px; white-space: nowrap;
+}
+.badge-config { background: var(--accent-light); color: var(--accent); }
+.badge-runtime { background: var(--accent-green-light); color: var(--accent-green); }
+.badge-example { background: var(--accent-orange-light); color: var(--accent-orange); }
+.section-title {
+  font-size: 1.7rem; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.01em;
+  display: flex; align-items: center; gap: 12px;
+}
+.section-title .icon {
+  width: 36px; height: 36px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+}
+.section-desc { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 24px; max-width: 700px; }
+.section-body { padding: 4px 20px 20px; }
+.section-body h3 { color: var(--accent); }
+
+/* Guide-style collapsible sections */
+details.section-block { margin: 0 0 4px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+details.section-block > summary {
+  padding: 16px 20px; cursor: pointer; font-weight: 600; background: var(--bg-secondary);
+  display: flex; align-items: center; gap: 10px; list-style: none;
+}
+details.section-block > summary::-webkit-details-marker { display: none; }
+details.section-block > summary::before { content: '\25B6'; font-size: 0.7rem; color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0; }
+details.section-block[open] > summary::before { transform: rotate(90deg); }
+details.section-block > summary h2 { font-size: 1.3rem; font-weight: 700; margin: 0; display: inline; }
+
+/* ===== Tabs (pure CSS, max 5) ===== */
+.tabs { margin: 16px 0; }
+.tabs > input[type="radio"] { display: none; }
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 12px; }
+.tab-bar label {
+  padding: 8px 18px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s;
+}
+.tab-bar label:hover { color: var(--text); }
+.tab-panel { display: none; }
+.tabs > input:nth-of-type(1):checked ~ .tab-bar label:nth-of-type(1),
+.tabs > input:nth-of-type(2):checked ~ .tab-bar label:nth-of-type(2),
+.tabs > input:nth-of-type(3):checked ~ .tab-bar label:nth-of-type(3),
+.tabs > input:nth-of-type(4):checked ~ .tab-bar label:nth-of-type(4),
+.tabs > input:nth-of-type(5):checked ~ .tab-bar label:nth-of-type(5) {
+  color: var(--accent); border-bottom-color: var(--accent);
+}
+.tabs > input:nth-of-type(1):checked ~ .tab-panel:nth-of-type(1),
+.tabs > input:nth-of-type(2):checked ~ .tab-panel:nth-of-type(2),
+.tabs > input:nth-of-type(3):checked ~ .tab-panel:nth-of-type(3),
+.tabs > input:nth-of-type(4):checked ~ .tab-panel:nth-of-type(4),
+.tabs > input:nth-of-type(5):checked ~ .tab-panel:nth-of-type(5) {
+  display: block;
+}
+
+/* ===== Callouts ===== */
+.callout {
+  margin: 16px 0; padding: 14px 18px;
+  border-radius: 8px; border-left: 4px solid;
+  font-size: 14px; line-height: 1.6;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 2px; }
+.callout strong { display: block; margin-bottom: 4px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .08em; }
+.callout.info    { background: var(--info-bg);    border-color: var(--info);    color: var(--text); }
+.callout.success { background: var(--success-bg); border-color: var(--success); color: var(--text); }
+.callout.warning { background: var(--warning-bg); border-color: var(--warning); color: var(--text); }
+.callout.danger  { background: var(--danger-bg);  border-color: var(--danger);  color: var(--text); }
+.callout.note    { background: var(--note-bg);    border-color: var(--note);    color: var(--text); }
+
+/* ===== Card grid ===== */
+.card-grid { display: grid; gap: 16px; margin: 16px 0; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.card-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+.card-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.card {
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px; transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--accent); }
+.card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+.card p, .card li { font-size: 0.88rem; color: var(--text-secondary); }
+.card ul { margin: 6px 0 0 18px; }
+.card.accent-green { border-left: 3px solid var(--card-green); }
+.card.accent-amber { border-left: 3px solid var(--card-amber); }
+.card.accent-red { border-left: 3px solid var(--card-red); }
+.card.accent-violet { border-left: 3px solid var(--card-violet); }
+.card.accent-cyan { border-left: 3px solid var(--card-cyan); }
+.card.accent-blue { border-left: 3px solid var(--card-blue); }
+.card .stat-value { font-size: 28px; font-weight: 800; margin: 0; }
+.card .stat-desc { font-size: 14px; margin: 0; }
+
+/* ===== Table ===== */
+.table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th {
+  background: var(--bg-tertiary); padding: 10px 16px; text-align: left;
+  font-weight: 600; font-size: 0.78rem; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted);
+  border-bottom: 1px solid var(--border); position: sticky; top: 0;
+}
+td { padding: 12px 16px; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg-secondary); }
+
+/* ===== Code ===== */
+code {
+  font-family: var(--font-mono); background: var(--code-bg);
+  padding: 1px 6px; border-radius: 4px; font-size: 0.88em;
+}
+.code-block {
+  position: relative; background: var(--code-bg); border: 1px solid var(--code-border);
+  border-radius: var(--radius); margin: 12px 0; overflow: hidden;
+}
+.code-block pre { padding: 16px 18px; overflow-x: auto; line-height: 1.6; margin: 0; }
+.code-block code { background: none; padding: 0; font-size: 0.85rem; font-family: var(--font-mono); }
+.code-block .lang-tag {
+  position: absolute; top: 6px; right: 8px; font-size: 0.7rem; color: var(--text-muted);
+  background: var(--bg-secondary); padding: 1px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.15s;
+}
+.code-block:hover .lang-tag { opacity: 1; }
+.code-block .copy-btn {
+  position: absolute; top: 6px; right: 60px; font-size: 0.72rem; color: var(--text-muted);
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 4px;
+  padding: 2px 8px; cursor: pointer; opacity: 0; transition: opacity 0.15s;
+}
+.code-block:hover .copy-btn { opacity: 1; }
+.code-block .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+.code-block .copy-btn.copied { color: var(--accent-green); border-color: var(--accent-green); }
+/* Manual syntax highlight spans (zero-dependency fallback) */
+.code-block .cmt { color: var(--text-muted); }
+.code-block .kw { color: var(--accent-purple); }
+.code-block .fn { color: var(--accent); }
+.code-block .str { color: var(--accent-green); }
+.code-block .num { color: var(--accent-orange); }
+
+/* ===== Diagram (ASCII art) ===== */
+.diagram {
+  background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; font-family: var(--font-mono); font-size: 0.82rem;
+  line-height: 1.5; overflow-x: auto; white-space: pre; margin: 16px 0; color: var(--text);
+  position: relative;
+}
+.diagram-hint {
+  position: absolute; bottom: 8px; right: 12px; font-size: 0.7rem; color: var(--text-muted);
+  opacity: 0; transition: opacity 0.2s;
+}
+.diagram:hover .diagram-hint { opacity: 0.7; }
+
+/* ===== SVG Diagram (inline) ===== */
+.diagram figure { margin: 0; }
+.diagram svg { max-width: 100%; height: auto; }
+figure.diagram {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
+  padding: 20px; margin: 20px 0; text-align: center;
+  cursor: zoom-in; position: relative;
+  max-height: 500px; overflow: auto;
+}
+figure.diagram:hover { border-color: var(--accent); }
+figure.diagram::after {
+  content: '\70B9\51FB\653E\5927'; position: absolute;
+  bottom: 6px; right: 10px; font-size: 12px;
+  color: var(--text-faint); opacity: 0;
+  transition: opacity 0.2s; pointer-events: none;
+}
+figure.diagram:hover::after { opacity: 1; }
+figure.diagram figcaption { margin-top: 12px; font-size: 13px; color: var(--text-faint); font-style: italic; }
+figure.diagram figcaption .fig-source,
+.mermaid-wrap figcaption .fig-source {
+  float: right; font-size: 11px; color: var(--text-muted); font-style: normal; font-weight: 400;
+}
+
+/* ===== Diagram Zoom Overlay ===== */
+.diagram-overlay {
+  display: none; position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85); z-index: 9999;
+  cursor: grab; overflow: hidden;
+}
+.diagram-overlay.active { display: flex; align-items: center; justify-content: center; }
+.diagram-overlay.grabbing { cursor: grabbing; }
+.diagram-overlay-inner { transform-origin: center center; }
+.diagram-overlay .zoom-controls {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 8px; background: rgba(30,30,50,0.9);
+  padding: 8px 16px; border-radius: 40px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4); z-index: 10000; user-select: none;
+}
+.diagram-overlay .zoom-controls button {
+  background: rgba(255,255,255,0.1); border: none; color: #fff;
+  width: 36px; height: 36px; border-radius: 50%; font-size: 18px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.diagram-overlay .zoom-controls button:hover { background: rgba(255,255,255,0.25); }
+.diagram-overlay .zoom-controls .zoom-level {
+  color: #aaa; font-size: 13px; min-width: 50px; text-align: center; line-height: 36px;
+}
+.diagram-overlay .zoom-close {
+  position: fixed; top: 16px; right: 20px;
+  background: rgba(255,255,255,0.1); border: none; color: #fff;
+  width: 40px; height: 40px; border-radius: 50%; font-size: 22px;
+  cursor: pointer; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+}
+.diagram-overlay .zoom-close:hover { background: rgba(255,255,255,0.25); }
+.diagram-overlay .zoom-hint {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.5); font-size: 13px; z-index: 10000; pointer-events: none;
+}
+
+/* ===== Mermaid diagram container ===== */
+.mermaid-wrap {
+  margin: 20px 0; padding: 20px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-secondary); text-align: center;
+  overflow-x: auto; cursor: zoom-in; position: relative;
+  min-height: 120px; max-height: 600px; overflow: auto;
+}
+.mermaid-wrap:hover { border-color: var(--accent); }
+.mermaid-wrap::after {
+  content: '\70B9\51FB\653E\5927'; position: absolute;
+  bottom: 6px; right: 10px; font-size: 12px;
+  color: var(--text-faint); opacity: 0;
+  transition: opacity 0.2s; pointer-events: none;
+}
+.mermaid-wrap:hover::after { opacity: 1; }
+.mermaid-wrap .mermaid { display: inline-block; max-width: 100%; }
+.mermaid-wrap figcaption { margin-top: 12px; font-size: 13px; color: var(--text-faint); font-style: italic; }
+.mermaid-loading { padding: 40px; color: var(--text-faint); font-size: 14px; }
+
+/* ===== Flow ===== */
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0; }
+.flow-step {
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 14px; text-align: center; flex: 1; min-width: 100px;
+  position: relative;
+}
+.flow-step b { display: block; font-size: 0.82rem; color: var(--accent); margin-bottom: 2px; }
+.flow-step span { font-size: 0.78rem; color: var(--text-secondary); }
+.flow-arrow { color: var(--text-muted); font-size: 1rem; flex-shrink: 0; }
+
+/* Flow vertical variant */
+.flow.flow-vertical { flex-direction: column; align-items: stretch; max-width: 480px; }
+.flow.flow-vertical .flow-step { flex: none; min-width: auto; }
+.flow.flow-vertical .flow-arrow { text-align: center; transform: none; }
+
+/* Flow branch node */
+.flow-step.flow-branch { border-color: var(--accent); border-style: dashed; }
+.flow-step.flow-branch b { color: var(--accent); }
+.flow-step.flow-branch .branch-yes,
+.flow-step.flow-branch .branch-no {
+  display: block; font-size: 0.75rem; margin-top: 4px; padding: 2px 0;
+}
+.flow-step.flow-branch .branch-yes { color: var(--accent-green); }
+.flow-step.flow-branch .branch-no { color: var(--accent-red); }
+
+/* ===== Layer Stack ===== */
+.layer-stack { display: flex; flex-direction: column; gap: 4px; margin: 16px 0; }
+.layer {
+  padding: 14px 18px; border-radius: var(--radius); font-weight: 600; font-size: 0.9rem;
+  display: flex; align-items: center; gap: 12px;
+}
+.layer .layer-label { font-size: 0.75rem; opacity: 0.7; font-weight: 400; }
+.layer.app { background: var(--accent-light); border: 1px solid var(--accent); color: var(--accent); }
+.layer.core { background: var(--accent-purple-light); border: 1px solid var(--accent-purple); color: var(--accent-purple); }
+.layer.infra { background: var(--accent-orange-light); border: 1px solid var(--accent-orange); color: var(--accent-orange); }
+.layer.hw { background: var(--accent-green-light); border: 1px solid var(--accent-green); color: var(--accent-green); }
+
+/* ===== Step Indicators ===== */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 16px 0; }
+.step {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 16px 16px 52px; position: relative;
+}
+.step::before {
+  content: attr(data-step); position: absolute; left: 14px; top: 16px;
+  width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff;
+  font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+.step h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+.step p { font-size: 0.82rem; color: var(--text-secondary); margin: 0; }
+
+/* ===== Prerequisite Box ===== */
+.prereq {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: var(--radius); padding: 16px 18px; margin: 14px 0;
+}
+.prereq h4 { font-size: 0.9rem; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+.prereq ul { margin: 0 0 0 18px; }
+.prereq li { font-size: 0.88rem; color: var(--text-secondary); }
+
+/* ===== Dependency Tree ===== */
+.dep-tree {
+  background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px; font-family: var(--font-mono); font-size: 0.85rem;
+  line-height: 1.6; overflow-x: auto; white-space: pre; margin: 12px 0; color: var(--text);
+}
+
+/* ===== Details (FAQ) ===== */
+details.faq { margin: 8px 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+details.faq summary {
+  padding: 12px 16px; cursor: pointer; font-weight: 600; background: var(--bg-secondary);
+  display: flex; align-items: center; gap: 8px; list-style: none; font-size: 0.92rem;
+}
+details.faq summary::-webkit-details-marker { display: none; }
+details.faq summary::before { content: '\25B6'; font-size: 0.65rem; color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0; }
+details.faq[open] summary::before { transform: rotate(90deg); }
+details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-secondary); }
+
+/* ===== Feature List ===== */
+.feature-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.feature-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px;
+  background: var(--bg-secondary); border-radius: var(--radius); font-size: 0.88rem;
+}
+.feature-item .check { color: var(--accent-green); font-weight: bold; flex-shrink: 0; margin-top: 2px; }
+
+/* ===== Tag / Badge ===== */
+.tag {
+  display: inline-block; padding: 2px 10px; border-radius: 12px;
+  font-size: 0.75rem; font-weight: 600; margin-top: 10px;
+}
+
+/* ===== Changelog ===== */
+.changelog { list-style: none; padding: 0; margin: 16px 0; }
+.changelog li { padding: 8px 0; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 12px; }
+.changelog li:last-child { border-bottom: none; }
+.changelog time { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+/* ===== Source Reference (Phase 2) ===== */
+.source-ref {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--link); font-size: 0.85em; text-decoration: none;
+  border-bottom: 1px dashed var(--link); transition: all 0.15s;
+}
+.source-ref:hover { color: var(--link-hover); border-bottom-style: solid; text-decoration: none; }
+.source-ref code { background: none; padding: 0; font-size: 0.85em; }
+
+.relevant-sources {
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 18px; margin: 16px 0;
+}
+.relevant-sources h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 8px; color: var(--accent); }
+.relevant-sources ul { margin: 0; padding: 0; list-style: none; }
+.relevant-sources li { padding: 4px 0; font-size: 0.88rem; }
+
+.sources-block {
+  margin: 16px 0 8px; padding: 8px 12px;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.82rem; color: var(--text-muted);
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+}
+.sources-label { font-weight: 600; color: var(--text-faint); }
+
+/* ===== Scope Block (Phase 4) ===== */
+.scope-block {
+  background: var(--info-bg); border-left: 3px solid var(--info);
+  padding: 12px 16px; border-radius: var(--radius); margin-bottom: 20px;
+  font-size: 0.9rem;
+}
+
+/* ===== Anchor offset ===== */
+[id] { scroll-margin-top: calc(var(--header-height) + 16px); }
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed; top: var(--header-height); left: 0; width: 280px;
+    height: calc(100vh - var(--header-height)); z-index: 99; transform: translateX(-100%);
+    transition: transform 0.25s ease; box-shadow: var(--shadow-md);
+    background: var(--bg);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-toggle { display: flex; }
+  .main-content, .main { padding: 24px 20px 40px; }
+  .card-grid, .card-grid.cols-2, .card-grid.cols-3 { grid-template-columns: 1fr; }
+  .flow:not(.flow-vertical) { flex-direction: column; }
+  .flow:not(.flow-vertical) .flow-arrow { transform: rotate(90deg); }
+  .steps { grid-template-columns: 1fr; }
+}
+
+/* ===== Dark topbar backdrop ===== */
+[data-theme="dark"] .topbar { background: rgba(13,17,23,0.88); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .topbar { background: rgba(13,17,23,0.88); }
+}
+
+/* ===== Mermaid dark mode ===== */
+[data-theme="dark"] .mermaid-wrap { background: var(--bg-tertiary); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mermaid-wrap { background: var(--bg-tertiary); }
+}
+
+/* ===== Diagram copy button (moved from inline style #19) ===== */
+.has-copy-btn { position: relative; }
+.diagram-copy-btn {
+  position: absolute; top: 8px; right: 8px;
+  font-size: 0.72rem; color: var(--text-muted);
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 8px; cursor: pointer;
+  opacity: 0; transition: opacity 0.15s;
+}
+.diagram-copy-btn.visible { opacity: 1; }
+
+/* ===== Footer ===== */
+.doc-footer {
+  text-align: center; padding: 40px 24px;
+  color: var(--text-muted); font-size: 0.82rem;
+  border-top: 1px solid var(--border);
+}
+.doc-footer p + p { margin-top: 6px; }
+
+/* ===== Print ===== */
+@media print {
+  .topbar, .sidebar, .copy-btn, .lang-tag, .diagram-hint { display: none !important; }
+  .layout { grid-template-columns: 1fr; }
+  .main-content, .main { max-width: 100%; padding: 0; }
+  .section { page-break-inside: avoid; }
+  details, details.section-block, details.faq { break-inside: avoid; }
+  details[open] > summary + * { break-inside: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.8em; color: var(--text-muted); }
+}
+/* @sync:doc-shell.css:end */
+/* === Template-specific overrides === */
+.module-panel { margin: 8px 0; }
+.module-panel > summary {
+  padding: 10px 16px; background: var(--bg-secondary);
+  cursor: pointer; font-weight: 700; font-size: 16px;
+  list-style: none; user-select: none;
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.module-panel > summary::-webkit-details-marker { display: none; }
+.module-panel > summary::before {
+  content: "\25B8"; display: inline-block; width: 16px;
+  color: var(--text-faint); transition: transform .15s;
+}
+.module-panel[open] > summary::before { transform: rotate(90deg); }
+.module-panel > summary:hover { background: var(--bg-tertiary); }
+.module-panel > .module-body {
+  padding: 16px 20px; border: 1px solid var(--border);
+  border-top: none; border-radius: 0 0 8px 8px;
+}
+[data-theme="dark"] .hljs { background: var(--code-bg); }
+[data-theme="dark"] .hljs-keyword { color: #ff7b72; }
+[data-theme="dark"] .hljs-string, [data-theme="dark"] .hljs-attr { color: #a5d6ff; }
+[data-theme="dark"] .hljs-comment { color: #8b949e; }
+[data-theme="dark"] .hljs-type, [data-theme="dark"] .hljs-built_in { color: #ffa657; }
+[data-theme="dark"] .hljs-number { color: #79c0ff; }
+[data-theme="dark"] .hljs-function { color: #d2a8ff; }
+[data-theme="dark"] .hljs-class .hljs-title { color: #ffa657; }
+[data-theme="dark"] .hljs-meta { color: #79c0ff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .hljs { background: var(--code-bg); }
+  :root:not([data-theme="light"]) .hljs-keyword { color: #ff7b72; }
+  :root:not([data-theme="light"]) .hljs-string { color: #a5d6ff; }
+  :root:not([data-theme="light"]) .hljs-comment { color: #8b949e; }
+  :root:not([data-theme="light"]) .hljs-type { color: #ffa657; }
+}
   </style>
 </head>
-<body>
+<body data-doctype="system-design">
 
-<!-- 文档元信息 -->
-<div class="doc-meta">
-  <h1>Doc-Wiki 系统架构设计文档</h1>
-  <p><em>Claude Code Skill — 技术文档生成器</em></p>
-  <div class="doc-tags">
-    <span class="tag">claude-code-skill</span>
-    <span class="tag">documentation-generator</span>
-    <span class="tag">HTML-template</span>
-    <span class="tag">Node.js</span>
-    <span class="tag">progressive-disclosure</span>
-    <span class="tag">DeepWiki-style</span>
-  </div>
-</div>
-
-<div class="scope-block">
-  <strong>Scope:</strong> 本文覆盖 Doc-Wiki 的整体架构、五层子系统设计、模板引擎机制、校验流水线和全力模式工作流。
-  不覆盖单个模板的 HTML 细节（见 <code>references/html-components.md</code>）和校验脚本的逐函数实现。
-</div>
-
-<!-- 关联源文件 -->
-<div class="relevant-sources">
-  <h4>关联源文件</h4>
-  <ul>
-    <li><a class="source-ref" href="../SKILL.md"><code>SKILL.md</code></a> — Skill 主入口，路由 + 铁律 + 工作流</li>
-    <li><a class="source-ref" href="../scripts/validate-doc.js#L1-L18"><code>scripts/validate-doc.js:1-18</code></a> — 17 类校验 + 交互测试</li>
-    <li><a class="source-ref" href="../scripts/md-to-html.js#L1-L19"><code>scripts/md-to-html.js:1-19</code></a> — MD→HTML 转换器</li>
-    <li><a class="source-ref" href="../scripts/inline-shared.js#L1-L17"><code>scripts/inline-shared.js:1-17</code></a> — CSS/JS 模板同步</li>
-    <li><a class="source-ref" href="../scripts/doc-shell.js#L1-L30"><code>scripts/doc-shell.js:1-30</code></a> — 运行时交互功能</li>
-    <li><a class="source-ref" href="../scripts/doc-shell.css#L1-L70"><code>scripts/doc-shell.css:1-70</code></a> — 设计系统</li>
-    <li><a class="source-ref" href="../scripts/skin-switcher.js#L1-L30"><code>scripts/skin-switcher.js:1-30</code></a> — 6 套皮肤切换</li>
-    <li><a class="source-ref" href="../references/module-workflow.md"><code>references/module-workflow.md</code></a> — Module 工作流</li>
-    <li><a class="source-ref" href="../references/system-workflow.md"><code>references/system-workflow.md</code></a> — System 工作流</li>
-    <li><a class="source-ref" href="../references/guide-workflow.md"><code>references/guide-workflow.md</code></a> — Guide 工作流</li>
-    <li><a class="source-ref" href="../references/html-components.md"><code>references/html-components.md</code></a> — HTML 组件规范</li>
-  </ul>
-</div>
-
-<!-- 目录 -->
-<nav id="toc">
-  <h4>目录</h4>
-  <ul>
-    <li><a href="#sec-overview">1. 概述</a></li>
-    <li><a href="#sec-architecture">2. 分层架构</a></li>
-    <li><a href="#sec-skill-core">3. Skill 核心（SKILL.md）</a></li>
-    <li><a href="#sec-template-engine">4. 模板引擎</a></li>
-    <li><a href="#sec-validation">5. 校验流水线</a></li>
-    <li><a href="#sec-runtime">6. 运行时系统</a></li>
-    <li><a href="#sec-fullpower">7. 全力模式</a></li>
-    <li><a href="#sec-dataflow">8. 数据流</a></li>
-    <li><a href="#sec-glossary">术语表</a></li>
-  </ul>
-</nav>
-
-<!-- ===== 第1章: 概述 ===== -->
-<section id="sec-overview">
-  <h2 id="sec-overview-h2">1. 概述</h2>
-
-  <div class="section-summary">
-    <p>Doc-Wiki 是一个 <strong>Claude Code Skill</strong>，将真实源码转成可验证的、离线可用的技术文档。支持三种文档类型（module/system/guide），共享一套设计系统（6 套皮肤、暗色模式、响应式布局），通过 17 类自动化校验保证质量。</p>
-  </div>
-
-  <details open id="sec-overview-details">
-    <summary>详细说明</summary>
-    <div>
-      <h3 id="sec-overview-bg">1.1 背景</h3>
-      <p>AI 生成的技术文档存在普遍问题：编造代码引用、视觉风格不一致、缺乏可验证性。
-      Doc-Wiki 通过<strong>7 条铁律</strong>（先读后写、不许编造、颜色锁死、零装饰、零外链、每图必说、引用溯源）
-      和<strong>17 类自动化校验</strong>解决了这些问题。</p>
-      <p>核心理念：<strong>把真实源码转成可验证的、离线可用的工程文档。不是营销页、不是 PPT——是"读完能上手干活"的技术文档。</strong></p>
-
-      <h3 id="sec-overview-types">1.2 文档类型</h3>
-      <table>
-        <thead><tr><th>类型</th><th>定位</th><th>输出</th><th>适用场景</th></tr></thead>
-        <tbody>
-          <tr><td><strong>module</strong></td><td>API 参考手册</td><td><code>.md</code> + <code>.html</code>，12 章框架</td><td>单个模块/类的详细设计</td></tr>
-          <tr><td><strong>system</strong></td><td>架构全景图</td><td><code>.md</code> + <code>.html</code>，Mermaid 架构图</td><td>整个系统的分层架构</td></tr>
-          <tr><td><strong>guide</strong></td><td>端到端教程</td><td>单文件 <code>.html</code>，沿数据流叙事</td><td>新人上手、排障</td></tr>
-          <tr><td><strong>batch</strong></td><td>批量生成</td><td>多个 <code>doc/tech-docs/*.html</code></td><td>所有模块文档 + 索引页</td></tr>
-        </tbody>
-      </table>
-
-      <h3 id="sec-overview-scale">1.3 项目规模</h3>
-      <table>
-        <thead><tr><th>指标</th><th>数值</th></tr></thead>
-        <tbody>
-          <tr><td>文件总数</td><td>33</td></tr>
-          <tr><td>代码行数</td><td>~13,000</td></tr>
-          <tr><td>子系统数</td><td>5（Skill 核心、模板、脚本、示例、参考）</td></tr>
-          <tr><td>技术栈</td><td>Node.js / HTML / CSS / JavaScript / Markdown</td></tr>
-          <tr><td>校验项</td><td>17 类（含交互测试 7 项）</td></tr>
-          <tr><td>皮肤数</td><td>6（Teal/Editorial/Vellum/Mono/Carto/Signal）</td></tr>
-        </tbody>
-      </table>
-
-      <div class="callout">
-        <strong>设计决策</strong>
-        选择纯 Node.js + HTML 而非 React/Vue 等框架，因为文档必须<strong>离线可用</strong>——
-        单文件 HTML，零外部依赖（仅 highlight.js CDN，离线时回退到手动 span）。
-        这使得文档可以在任何浏览器中打开，无需构建步骤。
-      </div>
-
-      <div class="sources-block">
-        <span class="sources-label">Sources:</span>
-        <a class="source-ref" href="../SKILL.md"><code>SKILL.md:14-16</code></a>
-        <a class="source-ref" href="../README.md"><code>README.md:1-12</code></a>
-      </div>
+  <nav class="topbar">
+    <span class="topbar-brand">System Docs</span>
+    <span class="topbar-sep">/</span>
+    <span class="topbar-title">Doc-Wiki 系统架构设计文档</span>
+    <div class="topbar-actions">
+      <button class="topbar-btn menu-toggle" onclick="toggleSidebar()" title="目录">&#9776;</button>
+      <button class="topbar-btn" onclick="toggleTheme()" title="切换主题">&#9680;</button>
+      <button class="topbar-btn" onclick="window.print()" title="打印">&#9113;</button>
     </div>
-  </details>
+  </nav>
 
-  <details id="sec-overview-deep">
-    <summary>深入分析</summary>
-    <div>
-      <h3 id="sec-overview-principles">核心设计原则</h3>
-      <table>
-        <thead><tr><th>#</th><th>原则</th><th>含义</th><th>校验覆盖</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>不读源码不动手</td><td>没读过的函数/类 = 不存在</td><td>人工审查</td></tr>
-          <tr><td>2</td><td>不许编造</td><td>宁可 <code>&lt;!-- TODO --&gt;</code> 也不造假</td><td><code>checkSourceRefs</code></td></tr>
-          <tr><td>3</td><td>颜色锁死</td><td>只用 CSS 变量，禁止 inline <code>color: #hex</code></td><td><code>checkVisualConstraints</code></td></tr>
-          <tr><td>4</td><td>零装饰</td><td>无渐变、大阴影、blur、浮起动画</td><td><code>checkVisualConstraints</code></td></tr>
-          <tr><td>5</td><td>零外链</td><td>图表用 SVG/CSS/Mermaid 内联</td><td><code>checkVisualConstraints</code></td></tr>
-          <tr><td>6</td><td>每图必说</td><td>所有图表必须有 <code>&lt;figcaption&gt;</code></td><td><code>checkFigCaptions</code></td></tr>
-          <tr><td>7</td><td>引用溯源</td><td>代码引用必须带 <code>file:line</code></td><td><code>checkSourceRefs</code></td></tr>
-          <tr><td>8</td><td>全力模式独立审核</td><td>审核必须由独立 subagent 执行</td><td>流程约束</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </details>
-</section>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <nav><ul class="toc-list" id="toc"></ul></nav>
+    </aside>
 
-<!-- ===== 第2章: 分层架构 ===== -->
-<section id="sec-architecture">
-  <h2 id="sec-architecture-h2">2. 分层架构</h2>
+    <article class="main" id="content">
+      <header class="doc-meta">
+        <span class="doc-version">V1.0</span>
+        <h1>Doc-Wiki 系统架构设计文档</h1>
+        <dl class="meta-grid">
+          <dt>编写日期</dt><dd>2026-06-16</dd>
+          <dt>更新日期</dt><dd>2026-06-16</dd>
+        </dl>
+      </header>
 
-  <div class="section-summary">
-    <p>Doc-Wiki 采用五层架构：SKILL.md（路由+规则）→ references/（工作流）→ templates/（骨架）→ scripts/（工具链）→ examples/（样本）。每层职责清晰，通过文件引用和占位符约定解耦。</p>
-  </div>
 
-  <details open id="sec-architecture-details">
-    <summary>架构详解</summary>
-    <div>
-      <h3 id="sec-arch-layers">五层架构</h3>
-      <p>Doc-Wiki 采用五层架构，每层职责单一，通过文件引用和占位符约定解耦。
-      这种分层设计的核心优势是<strong>独立演进</strong>——新增文档类型只需添加 reference + template，
-      不影响校验逻辑；新增校验规则只需修改 validate-doc.js，不影响模板结构。</p>
-      <p>层间依赖是单向的：L1（路由）→ L2（工作流）→ L3（模板）← L4（工具链）← L5（样本）。
-      L4 和 L3 之间通过 <code>@sync</code> 标记实现双向同步，但这是开发时的同步，不是运行时的依赖。</p>
-        <thead><tr><th>层级</th><th>目录</th><th>职责</th><th>关键文件</th></tr></thead>
-        <tbody>
-          <tr><td>L1: 路由层</td><td><code>SKILL.md</code></td><td>文档类型路由、执行模式选择、铁律定义、工作流编排</td><td><code>SKILL.md</code></td></tr>
-          <tr><td>L2: 工作流层</td><td><code>references/</code></td><td>每种文档类型的详细 Phase 0→1→2→3 流程</td><td><code>*-workflow.md</code>, <code>html-components.md</code></td></tr>
-          <tr><td>L3: 模板层</td><td><code>templates/</code></td><td>HTML 骨架（CSS/JS 内嵌）、MD 模板、章节模板</td><td><code>*.html</code>, <code>sections/*.html</code></td></tr>
-          <tr><td>L4: 工具链层</td><td><code>scripts/</code></td><td>校验、转换、同步、皮肤切换、设计系统</td><td><code>validate-doc.js</code>, <code>md-to-html.js</code></td></tr>
-          <tr><td>L5: 样本层</td><td><code>examples/</code></td><td>各文档类型的黄金样本，对照参考</td><td><code>*-content-example.html</code></td></tr>
-        </tbody>
-      </table>
+      <details open id="sec-overview">
+        <summary><h2 id="sec-overview-h">1. 概述</h2></summary>
+        <div class="section-body">
+<div class="scope-block"><strong>Scope</strong>：本文覆盖 Doc-Wiki 的整体架构、五层子系统设计、模板引擎机制、校验流水线、全力模式工作流和设计系统。不覆盖单个模板的 HTML 细节（见 <code>references/html-components.md</code>）和校验脚本的逐函数实现。</div>
+<p>Doc-Wiki 是一个 <strong>Claude Code Skill</strong>，将真实源码转成可验证的、离线可用的技术文档。它解决的核心问题是：AI 生成的技术文档普遍存在编造代码引用、视觉风格不一致、缺乏可验证性三大问题。Doc-Wiki 通过 <strong>8 条铁律</strong>（先读后写、不许编造、颜色锁死、零装饰、零外链、每图必说、引用溯源、全力模式独立审核）和 <strong>17 类自动化校验</strong> 系统性地解决了这些问题。</p>
+<h3 id="sec-11项目定位">1.1 项目定位</h3>
+<p>Doc-Wiki 诞生于实际工程需求——需要一个能自动从源码生成高质量技术文档的工具，且生成的文档必须可验证（每个代码引用都有 <code>file:line</code>）、离线可用（单文件 HTML，零外部依赖）、视觉一致（共享设计系统，6 套皮肤）。</p>
+<p>与 DeepWiki（在线 SaaS，依赖 GitHub 集成）和 ZRead.ai（在线分析，不可离线）不同，Doc-Wiki 是一个纯本地运行的 Claude Code Skill——所有资源在 skill 目录内，无需网络（仅 highlight.js CDN 有离线回退），文档输出为自包含的单文件 HTML。这使得它适用于内网环境、离线场景和安全敏感项目。</p>
+<h3 id="sec-12核心能力">1.2 核心能力</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>能力</th><th>详细说明</th><th>实现模块</th><th>成熟度</th></tr></thead>
+<tbody>
+<tr><td><strong>三种文档类型</strong></td><td>Module（API 参考）、System（架构全景）、Guide（端到端教程），每种有独立工作流和模板</td><td><code>SKILL.md</code> + <code>references/</code></td><td>Stable</td></tr>
+<tr><td><strong>全力模式</strong></td><td>不区分类型，自动分析项目生成完整文档体系：系统架构 + 核心模块 + Guide + 索引页</td><td><code>SKILL.md</code> §全力模式</td><td>Beta</td></tr>
+<tr><td><strong>17 类自动化校验</strong></td><td>Mermaid 语法、标题 ID、代码块、表格、内联 MD、折叠章节、TOC、HTML 骨架、源码引用、术语表、Scope、视觉约束、SVG 护栏、图说、空章节、重复内容、内容密度</td><td><code>scripts/validate-doc.js</code></td><td>Stable</td></tr>
+<tr><td><strong>6 套视觉皮肤</strong></td><td>Teal/Editorial/Vellum/Mono/Carto/Signal，支持暗色模式 + OS 偏好检测</td><td><code>scripts/skin-switcher.js</code></td><td>Stable</td></tr>
+<tr><td><strong>@sync 同步机制</strong></td><td>CSS/JS 修改后一条命令同步到所有模板，解决"改了 CSS 忘了同步"的一致性问题</td><td><code>scripts/inline-shared.js</code></td><td>Stable</td></tr>
+<tr><td><strong>渐进式披露</strong></td><td>三层结构：Summary（始终可见）→ Details（默认展开）→ Deep Dive（默认折叠），对齐 DeepWiki/ZRead</td><td><code>templates/sections/</code> + <code>templates/fullpower/</code></td><td>Stable</td></tr>
+<tr><td><strong>MD→HTML 转换</strong></td><td>将 Markdown 文档转为带完整样式的单文件 HTML，支持 module/system/guide 三种类型</td><td><code>scripts/md-to-html.js</code></td><td>Stable</td></tr>
+</tbody></table></div>
+<h3 id="sec-13技术栈">1.3 技术栈</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>组件</th><th>选型</th><th>版本</th><th>用途</th><th>选型理由</th></tr></thead>
+<tbody>
+<tr><td>运行时</td><td>Node.js</td><td>LTS</td><td>校验脚本、转换脚本、同步工具</td><td>零安装成本（Claude Code 环境自带），fs/path 模块够用</td></tr>
+<tr><td>模板语言</td><td>原生 HTML</td><td>—</td><td>文档骨架</td><td>单文件 HTML 零依赖，离线可用，浏览器直接打开</td></tr>
+<tr><td>设计系统</td><td>CSS 变量</td><td>—</td><td>颜色、字号、间距</td><td>暗色模式自动切换，皮肤系统通过覆盖变量实现</td></tr>
+<tr><td>图表</td><td>Mermaid + 内联 SVG</td><td>10.9.0</td><td>架构图、状态图、流程图</td><td>Mermaid 适合复杂图，SVG 适合精细控制</td></tr>
+<tr><td>代码高亮</td><td>highlight.js</td><td>11.9.0</td><td>代码块语法高亮</td><td>CDN 加载，离线回退到手动 span</td></tr>
+<tr><td>校验</td><td>Node.js 脚本</td><td>—</td><td>17 类自动化检查</td><td>快速、可扩展、支持 --fix 自动修复</td></tr>
+</tbody></table></div>
+<h3 id="sec-14适用场景">1.4 适用场景</h3>
+<p><strong>✅ 推荐使用：</strong></p>
+<ul>
+  <li><strong>Claude Code 用户</strong>需要为项目生成技术文档</li>
+  <li><strong>内网/离线环境</strong>无法使用 DeepWiki 等在线服务</li>
+  <li><strong>多模块项目</strong>需要系统性的文档体系（不是孤立的单个文档）</li>
+  <li><strong>视觉一致性要求高</strong>的团队（共享设计系统 + 皮肤切换）</li>
+</ul>
+<p><strong>⚠️ 不推荐：</strong></p>
+<ul>
+  <li><strong>纯文本 Markdown 项目</strong>：Doc-Wiki 的核心价值在 HTML 交互特性（暗色模式、图表缩放、ScrollSpy），纯 Markdown 项目用 Jekyll/MkDocs 更合适</li>
+  <li><strong>单文件脚本</strong>：少于 100 行的脚本，inline 注释足够，不需要独立文档</li>
+</ul>
+<h3 id="sec-15项目规模">1.5 项目规模</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>源码文件数</td><td>48</td><td>不含 doc/ 输出</td></tr>
+<tr><td>代码行数</td><td>~17,000</td><td>含注释，不含空行</td></tr>
+<tr><td>子系统数</td><td>5</td><td>路由、工作流、模板、工具链、样本</td></tr>
+<tr><td>校验项</td><td>17 类</td><td>含交互测试 7 项</td></tr>
+<tr><td>皮肤数</td><td>6</td><td>Teal/Editorial/Vellum/Mono/Carto/Signal</td></tr>
+<tr><td>Git 提交</td><td>19</td><td>2026-05-16 ~ 2026-06-16</td></tr>
+<tr><td>公开 API</td><td>5</td><td>validate-doc.js, md-to-html.js, inline-shared.js, doc-shell.js, skin-switcher.js</td></tr>
+</tbody></table></div>
+<blockquote><p><strong>设计决策：</strong> 选择纯 Node.js + HTML 而非 React/Vue 等框架，因为文档必须<strong>离线可用</strong>——单文件 HTML，零外部依赖（仅 highlight.js CDN，离线时回退到手动 span）。这使得文档可以在任何浏览器中打开，无需构建步骤。代价是模板维护需要手动处理 @sync 标记同步。</p></blockquote>
+<h3 id="sec-16相关源文件">1.6 相关源文件</h3>
+<ul>
+  <li><code>SKILL.md:14-16</code> — Skill 主入口，路由 + 铁律 + 工作流</li>
+  <li><code>README.md:1-12</code> — 项目概述</li>
+</ul>
+        </div>
+      </details>
 
-      <div class="callout">
-        <strong>设计决策</strong>
-        五层架构而非单一配置文件，是因为文档生成涉及<strong>路由决策</strong>（选类型）、<strong>内容规范</strong>（怎么写）、
-        <strong>视觉规范</strong>（怎么排版）、<strong>质量校验</strong>（怎么检查）四个独立关注点。
-        分层使得每层可以独立演进——新增文档类型只需添加 reference + template，不影响校验逻辑。
-      </div>
-
-      <h3 id="sec-arch-files">文件结构</h3>
-      <pre><code class="language-text">doc-writer/
+      <details open id="sec-arch">
+        <summary><h2 id="sec-arch-h">2. 分层架构</h2></summary>
+        <div class="section-body">
+<p>Doc-Wiki 采用五层架构，每层职责单一，通过文件引用和占位符约定解耦。分层的核心优势是<strong>独立演进</strong>——新增文档类型只需添加 reference + template，不影响校验逻辑；新增校验规则只需修改 validate-doc.js，不影响模板结构。</p>
+<h3 id="sec-21五层架构">2.1 五层架构</h3>
+<div class="code-block" data-lang="text"><pre><code class="language-text">┌─────────────────────────────────────────────────────────┐
+│  L1: 路由层 — SKILL.md                                  │
+│  文档类型路由、执行模式选择、铁律、工作流编排              │
+├─────────────────────────────────────────────────────────┤
+│  L2: 工作流层 — references/                              │
+│  每种文档类型的详细 Phase 0→1→2→3 流程                    │
+├─────────────────────────────────────────────────────────┤
+│  L3: 模板层 — templates/                                 │
+│  HTML 骨架（CSS/JS 内嵌）、章节模板、全 力模式深度模板    │
+├─────────────────────────────────────────────────────────┤
+│  L4: 工具链层 — scripts/                                 │
+│  校验、转换、同步、皮肤切换、设计系统                      │
+├─────────────────────────────────────────────────────────┤
+│  L5: 样本层 — examples/                                  │
+│  各文档类型的黄金样本，对照参考                            │
+└─────────────────────────────────────────────────────────┘</code></pre></div>
+<p>层间依赖方向：L1 → L2 → L3 ← L4 ← L5。L4 和 L3 之间通过 <code>@sync</code> 标记实现双向同步（开发时，非运行时）。</p>
+<h3 id="sec-22文件结构">2.2 文件结构</h3>
+<div class="code-block" data-lang="text"><pre><code class="language-text">doc-writer/
 ├── SKILL.md                          # L1: Skill 主入口
 ├── references/                       # L2: 工作流定义
 │   ├── module-workflow.md            #   Module 类型详细流程
@@ -231,146 +864,184 @@
 │   ├── guide-workflow.md             #   Guide 类型详细流程
 │   └── html-components.md            #   共享 HTML 组件规范
 ├── templates/                        # L3: HTML 骨架 + 章节模板
-│   ├── module-design.html            #   Module HTML 骨架
-│   ├── system-design.html            #   System HTML 骨架
-│   ├── guide.html                    #   Guide HTML 骨架
+│   ├── module-design.html            #   Module HTML 骨架（1582 行）
+│   ├── system-design.html            #   System HTML 骨架（1278 行）
+│   ├── guide.html                    #   Guide HTML 骨架（1266 行）
 │   ├── module-index.html             #   Module 索引页
 │   ├── system-index.html             #   System 索引页
-│   └── sections/                     #   渐进式披露章节模板
-│       ├── overview.html             #     概述模板
-│       ├── architecture.html         #     架构模板
-│       ├── module-detail.html        #     模块详情模板
-│       ├── state-machine.html        #     状态机模板
-│       ├── flowchart.html            #     流程图模板
-│       ├── faq.html                  #     FAQ 模板
-│       └── glossary.html             #     术语表模板
+│   ├── module-design.md              #   Module MD 模板（中文）
+│   ├── module-design.en.md           #   Module MD 模板（英文）
+│   ├── module-summary.md             #   模块摘要模板
+│   ├── sections/                     #   渐进式披露章节模板（7 个）
+│   │   ├── overview.html
+│   │   ├── architecture.html
+│   │   ├── module-detail.html
+│   │   ├── state-machine.html
+│   │   ├── flowchart.html
+│   │   ├── faq.html
+│   │   └── glossary.html
+│   └── fullpower/                    #   全力模式深度模板（15 个）
+│       ├── 01-overview.html          #     项目概述
+│       ├── 02-architecture.html      #     系统架构
+│       ├── 03-module-detail.html     #     模块详情
+│       ├── 04-data-flow.html         #     数据流
+│       ├── 05-state-machine.html     #     状态机
+│       ├── 06-api-reference.html     #     API 参考
+│       ├── 07-configuration.html     #     配置系统
+│       ├── 08-error-handling.html    #     错误处理
+│       ├── 09-performance.html       #     性能分析
+│       ├── 10-dependency.html        #     依赖关系
+│       ├── 11-testing.html           #     测试覆盖
+│       ├── 12-troubleshooting.html   #     故障排查
+│       ├── 13-faq.html               #     FAQ
+│       ├── 14-glossary.html          #     术语表
+│       └── 15-flowchart.html         #     流程图
 ├── scripts/                          # L4: 工具链
-│   ├── validate-doc.js               #   17 类校验 + 交互测试
-│   ├── md-to-html.js                 #   MD→HTML 转换
-│   ├── inline-shared.js              #   CSS/JS 模板同步
-│   ├── doc-shell.css                 #   设计系统（~30KB）
-│   ├── doc-shell.js                  #   运行时功能（~15KB）
-│   └── skin-switcher.js              #   6 套皮肤切换（~22KB）
+│   ├── validate-doc.js               #   17 类校验 + 交互测试（1004 行）
+│   ├── md-to-html.js                 #   MD→HTML 转换（849 行）
+│   ├── inline-shared.js              #   CSS/JS 模板同步（301 行）
+│   ├── doc-shell.css                 #   设计系统（692 行）
+│   ├── doc-shell.js                  #   运行时功能（414 行）
+│   └── skin-switcher.js              #   6 套皮肤切换（81 行）
 └── examples/                         # L5: 黄金样本
     ├── module-content-example.html
     ├── system-content-example.html
     ├── guide-content-example.html
-    └── fullpower-content-example.html</code></pre>
-    </div>
-  </details>
+    └── fullpower-content-example.html</code></pre></div>
+<h3 id="sec-23层间耦合">2.3 层间耦合</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>依赖方向</th><th>机制</th><th>示例</th></tr></thead>
+<tbody>
+<tr><td>L1 → L2</td><td>Markdown 链接</td><td><code>SKILL.md</code> 中 <code><a href="references/module-workflow.md">module-workflow.md</a></code></td></tr>
+<tr><td>L2 → L3</td><td>文件路径约定</td><td><code>references/module-workflow.md</code> 引用 <code>templates/module-design.html</code></td></tr>
+<tr><td>L3 → L4</td><td><code>@sync</code> 标记</td><td>HTML 模板中 <code>/<em> @sync:doc-shell.css:start </em>/</code> 占位符</td></tr>
+<tr><td>L4 → L3</td><td><code>inline-shared.js --sync</code></td><td>将 CSS/JS 内容注入模板的 <code>@sync</code> 区域</td></tr>
+<tr><td>L5 → L2</td><td>对照参考</td><td>examples 展示 L2 规范的实际输出效果</td></tr>
+</tbody></table></div>
+<blockquote><p><strong>设计决策：</strong> 五层架构而非单一配置文件，是因为文档生成涉及<strong>路由决策</strong>（选类型）、<strong>内容规范</strong>（怎么写）、<strong>视觉规范</strong>（怎么排版）、<strong>质量校验</strong>（怎么检查）四个独立关注点。分层使得每层可以独立演进——新增文档类型只需添加 reference + template，不影响校验逻辑。代价是新贡献者需要理解分层约定。</p></blockquote>
+<h3 id="sec-24相关源文件">2.4 相关源文件</h3>
+<ul>
+  <li><code>SKILL.md:90-103</code> — 五层架构定义</li>
+  <li><code>SKILL.md:780-870</code> — 资源清单</li>
+</ul>
+        </div>
+      </details>
 
-  <details id="sec-architecture-deep">
-    <summary>深入分析</summary>
-    <div>
-      <h3 id="sec-arch-coupling">层间耦合</h3>
-      <table>
-        <thead><tr><th>依赖方向</th><th>机制</th><th>示例</th></tr></thead>
-        <tbody>
-          <tr><td>L1 → L2</td><td>Markdown 链接</td><td><code>SKILL.md</code> 中 <code>[module-workflow.md](references/module-workflow.md)</code></td></tr>
-          <tr><td>L2 → L3</td><td>文件路径约定</td><td><code>references/module-workflow.md</code> 引用 <code>templates/module-design.html</code></td></tr>
-          <tr><td>L3 → L4</td><td><code>@sync</code> 标记</td><td>HTML 模板中 <code>/* @sync:doc-shell.css:start */</code> 占位符</td></tr>
-          <tr><td>L4 → L3</td><td><code>inline-shared.js --sync</code></td><td>将 CSS/JS 内容注入模板的 <code>@sync</code> 区域</td></tr>
-          <tr><td>L5 → L2</td><td>对照参考</td><td>examples 展示 L2 规范的实际输出效果</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </details>
-</section>
+      <details open id="sec-diagram">
+        <summary><h2 id="sec-diagram-h">3. Skill 核心（SKILL.md）</h2></summary>
+        <div class="section-body">
+<p>SKILL.md（1003 行）是整个系统的入口，包含文档类型路由、执行模式选择、8 条铁律、内容驱动深度规则、普通模式工作流（Phase 0→1→2→3）和全力模式工作流（8 阶段）。它是 L1 路由层的唯一文件，也是整个 skill 的"大脑"。</p>
+<h3 id="sec-31文档类型路由">3.1 文档类型路由</h3>
+<p>用户触发后，SKILL.md 根据意图关键词自动路由到四种文档类型。路由规则基于触发词匹配——用户说"模块文档"或"给 X 写文档"时路由到 module，说"系统设计"时路由到 system，说"项目指南"或"guide"时路由到 guide。意图不明确时，必须用 AskQuestion 让用户选择。</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>触发词</th><th>路由目标</th><th>详细流程</th></tr></thead>
+<tbody>
+<tr><td>"模块文档"、"给 X 写文档"、"deepwiki X.h"</td><td>module</td><td><code>references/module-workflow.md</code></td></tr>
+<tr><td>"系统设计"、"架构设计"、"整体设计"</td><td>system</td><td><code>references/system-workflow.md</code></td></tr>
+<tr><td>"项目指南"、"guide"、"上手指南"</td><td>guide</td><td><code>references/guide-workflow.md</code></td></tr>
+<tr><td>"分模块写文档"、"批量生成"</td><td>batch</td><td>循环复用 module 流程</td></tr>
+</tbody></table></div>
+<h3 id="sec-32执行模式">3.2 执行模式</h3>
+<p>确定文档类型后，SKILL.md 必须询问用户选择执行模式：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>模式</th><th>特征</th><th>适用场景</th></tr></thead>
+<tbody>
+<tr><td>⚡ 普通模式</td><td>单 agent 单次完成，快速生成</td><td>日常文档需求</td></tr>
+<tr><td>🔥 全力模式</td><td>多 subagent 并行 + 深度研究 + 多轮自审</td><td>高质量文档需求</td></tr>
+</tbody></table></div>
+<p>全力模式的核心创新是<strong>不区分文档类型</strong>——自动探测项目结构，一次性生成完整文档体系（系统架构 + 核心模块 + Guide + 索引页），使用 15 个深度模板，每个章节三层渐进式披露。</p>
+<h3 id="sec-33铁律体系">3.3 铁律体系</h3>
+<p>8 条铁律解决 AI 生成文档的三个核心问题：<strong>编造</strong>、<strong>不可验证</strong>、<strong>视觉不一致</strong>。</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>#</th><th>铁律</th><th>含义</th><th>校验覆盖</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>不读源码不动手</td><td>没读过的函数/类 = 不存在</td><td>人工审查</td></tr>
+<tr><td>2</td><td>不许编造</td><td>宁可 <code>&lt;!-- TODO --&gt;</code> 也不造假</td><td><code>checkSourceRefs</code></td></tr>
+<tr><td>3</td><td>颜色锁死</td><td>只用 CSS 变量，禁止 inline <code>color: #hex</code></td><td><code>checkVisualConstraints</code></td></tr>
+<tr><td>4</td><td>零装饰</td><td>无渐变、大阴影、blur、浮起动画</td><td><code>checkVisualConstraints</code></td></tr>
+<tr><td>5</td><td>零外链</td><td>图表用 SVG/CSS/Mermaid 内联</td><td><code>checkVisualConstraints</code></td></tr>
+<tr><td>6</td><td>每图必说</td><td>所有图表必须有 <code>&lt;figcaption&gt;</code></td><td><code>checkFigCaptions</code></td></tr>
+<tr><td>7</td><td>引用溯源</td><td>代码引用必须带 <code>file:line</code></td><td><code>checkSourceRefs</code></td></tr>
+<tr><td>8</td><td>全力模式独立审核</td><td>审核必须由独立 subagent 执行</td><td>流程约束</td></tr>
+</tbody></table></div>
+<h3 id="sec-34内容驱动深度">3.4 内容驱动深度</h3>
+<p>模板只定义"可用的组件库和章节池"，<strong>不硬编码输出的章节数量和深度</strong>。章节取舍的判据是源码复杂度，不是模板框架。一个 30 行的工具函数不需要 12 章；一个 2000 行的状态机模块可能每章都要。</p>
+<p>每章最低内容密度要求：每个 <code>## H2</code> 章节必须包含 <strong>≥ 2 段叙述性文字 + ≥ 1 个结构化元素</strong>（表格/代码块/列表/图表）。</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>文档类型</th><th>源码规模</th><th>最低章节数</th><th>最低代码块</th><th>最低源码引用</th></tr></thead>
+<tbody>
+<tr><td>module</td><td>&lt; 200 行</td><td>5 章</td><td>3</td><td>2</td></tr>
+<tr><td>module</td><td>200-1000 行</td><td>7 章</td><td>5</td><td>4</td></tr>
+<tr><td>module</td><td>&gt; 1000 行</td><td>9+ 章</td><td>8</td><td>6</td></tr>
+<tr><td>system</td><td>3-5 模块</td><td>6 章</td><td>—</td><td>每模块 1+</td></tr>
+<tr><td>system</td><td>&gt; 10 模块</td><td>10+ 章</td><td>—</td><td>每模块 1+</td></tr>
+<tr><td>guide</td><td>简单 CLI</td><td>5 章</td><td>6</td><td>—</td></tr>
+<tr><td>guide</td><td>复杂系统</td><td>9+ 章</td><td>15</td><td>—</td></tr>
+</tbody></table></div>
+<blockquote><p><strong>设计决策：</strong> 内容驱动深度而非模板驱动，是因为一个 30 行的工具函数不需要 12 章，而一个 2000 行的状态机模块可能每章都要。<strong>章节取舍的判据是源码复杂度，不是模板框架。</strong> 宁可多章覆盖完整，也不要把多个独立概念硬塞进一章。</p></blockquote>
+<h3 id="sec-35全力模式工作流">3.5 全力模式工作流</h3>
+<p>全力模式采用 8 阶段流程，不计 token 消耗，以文档质量为唯一目标：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>阶段</th><th>执行者</th><th>动作</th><th>输出</th></tr></thead>
+<tbody>
+<tr><td>0. 项目探测</td><td>主 agent</td><td>扫描目录、统计规模、识别技术栈</td><td>项目概况报告</td></tr>
+<tr><td>1. 任务规划</td><td>主 agent</td><td>规划 subagent 任务表</td><td>任务分配计划</td></tr>
+<tr><td>2. 并行分析</td><td>多 subagent</td><td>同时读取源码，返回结构化发现</td><td>知识图谱</td></tr>
+<tr><td>3. 深度研究</td><td>主 agent + 补充</td><td>gap-driven 补充 + 外部参考</td><td>补充分析 + 参考摘要</td></tr>
+<tr><td>4. 内容生成</td><td>主 agent</td><td>使用 15 个深度模板生成文档体系</td><td>HTML 文档集</td></tr>
+<tr><td>5. 自审</td><td>独立审核 subagent</td><td>6 维度评分（总分 60）</td><td>审核报告 + 修订清单</td></tr>
+<tr><td>6. 修订循环</td><td>主 agent</td><td>按修订清单逐项修改（最多 5 轮）</td><td>修订后文档</td></tr>
+<tr><td>7. 交付</td><td>主 agent</td><td>校验 + 交互测试 + 自迭代循环</td><td>最终文档 + 质量报告</td></tr>
+</tbody></table></div>
+<p>全力模式产出物：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>产出物</th><th>内容</th><th>使用的模板</th><th>输出路径</th></tr></thead>
+<tbody>
+<tr><td>系统架构文档</td><td>分层架构图、模块职责、数据流、线程模型</td><td>01+02+04+07+08+09+10+11+14</td><td><code>doc/&lt;Project&gt;_Architecture_Design.html</code></td></tr>
+<tr><td>核心模块文档</td><td>API 参考、使用示例、实现分析、状态机</td><td>03+05+06+08+09+11+14</td><td><code>doc/tech-docs/&lt;Module&gt;_Design.html</code></td></tr>
+<tr><td>端到端 Guide</td><td>沿数据流叙事、配置指南、故障排查</td><td>01+04+07+12+13+14+15</td><td><code>doc/&lt;Project&gt;_Guide.html</code></td></tr>
+<tr><td>索引页</td><td>所有文档的导航入口</td><td>—</td><td><code>doc/index.html</code></td></tr>
+</tbody></table></div>
+<h3 id="sec-36自迭代循环">3.6 自迭代循环</h3>
+<p>校验不是一次性检查，而是闭环迭代。agent 生成文档后，必须运行校验、修复问题、再校验，直到所有检查通过：</p>
+<div class="code-block" data-lang="text"><pre><code class="language-text">生成文档
+  ↓
+运行 validate-doc.js --new-doc --fix
+  ↓
+有问题？
+  ├─ 自动修复的问题（--fix）→ 已修复，继续
+  └─ 需人工修复的问题 → agent 就地修复
+  ↓
+重新运行 validate-doc.js
+  ↓
+全部通过？ → 交付
+  └─ 仍有问题 → 回到修复步骤（最多 3 轮）</code></pre></div>
+<p><strong>终止条件：</strong> 所有校验通过 / 连续两轮无提升 / 3 轮上限。</p>
+<h3 id="sec-37相关源文件">3.7 相关源文件</h3>
+<ul>
+  <li><code>SKILL.md:1-12</code> — Skill 头部定义</li>
+  <li><code>SKILL.md:75-87</code> — 铁律</li>
+  <li><code>SKILL.md:107-155</code> — 全力模式工作流</li>
+  <li><code>SKILL.md:521-617</code> — 普通模式工作流</li>
+</ul>
+        </div>
+      </details>
 
-<!-- ===== 第3章: Skill 核心 ===== -->
-<section id="sec-skill-core">
-  <h2 id="sec-skill-core-h2">3. Skill 核心（SKILL.md）</h2>
-
-  <div class="section-summary">
-    <p>SKILL.md 是整个系统的入口，包含文档类型路由、执行模式选择、7+1 条铁律、内容驱动深度规则、普通模式工作流（Phase 0→1→2→3）和全力模式工作流（7 阶段）。</p>
-  </div>
-
-  <details open id="sec-skill-core-details">
-    <summary>核心机制详解</summary>
-    <div>
-      <h3 id="sec-skill-routing">3.1 文档类型路由</h3>
-      <p>用户触发后，SKILL.md 根据意图关键词自动路由到四种文档类型。路由规则基于触发词匹配——
-      用户说"模块文档"或"给 X 写文档"时路由到 module，说"系统设计"时路由到 system，
-      说"项目指南"或"guide"时路由到 guide。意图不明确时，必须用 AskQuestion 让用户选择。</p>
-      <p>确定类型后，立即读取对应 reference 文件获取详细工作流指导，同时读取 <code>html-components.md</code> 获取共享组件规范。</p>
-      <table>
-        <thead><tr><th>触发词</th><th>路由目标</th><th>详细流程</th></tr></thead>
-        <tbody>
-          <tr><td>"模块文档"、"给 X 写文档"</td><td>module</td><td><code>references/module-workflow.md</code></td></tr>
-          <tr><td>"系统设计"、"架构设计"</td><td>system</td><td><code>references/system-workflow.md</code></td></tr>
-          <tr><td>"项目指南"、"guide"</td><td>guide</td><td><code>references/guide-workflow.md</code></td></tr>
-          <tr><td>"分模块写文档"、"批量生成"</td><td>batch</td><td>循环复用 module 流程</td></tr>
-        </tbody>
-      </table>
-
-      <h3 id="sec-skill-modes">3.2 执行模式</h3>
-      <p>确定文档类型后，SKILL.md 必须询问用户选择执行模式。普通模式适合日常文档需求，单 agent 单次完成；
-      全力模式适合高质量文档需求，采用多 subagent 并行分析 + 深度研究 + 多轮自审，不计 token 消耗。</p>
-      <p>全力模式的核心差异在于：不区分文档类型，自动分析项目并生成完整文档体系（系统架构 + 核心模块 + Guide + 索引页）。</p>
-      <table>
-        <thead><tr><th>模式</th><th>特征</th><th>适用场景</th></tr></thead>
-        <tbody>
-          <tr><td>⚡ 普通模式</td><td>单 agent 单次完成，快速生成</td><td>日常文档需求</td></tr>
-          <tr><td>🔥 全力模式</td><td>多 subagent 并行 + 深度研究 + 多轮自审</td><td>高质量文档需求</td></tr>
-        </tbody>
-      </table>
-
-      <h3 id="sec-skill-depth">3.3 内容驱动深度</h3>
-      <p>模板只定义"可用的组件库和章节池"，<strong>不硬编码输出的章节数量和深度</strong>。
-      章节取舍的判据是源码复杂度，不是模板框架。这是 Doc-Wiki 最重要的设计决策之一——
-      传统的文档模板会预定义固定的章节结构（如"必须有 12 章"），导致简单模块被迫填充无意义的章节，
-      复杂模块又被强制压缩到有限的章节中。</p>
-      <p>Doc-Wiki 的解决方案是：<strong>源码驱动深度</strong>。一个 30 行的工具函数不需要 12 章；
-      一个 2000 行的状态机模块可能每章都要。每章的最低内容密度也有明确要求——
-      每个 <code>## H2</code> 章节必须包含 ≥2 段叙述性文字 + ≥1 个结构化元素。</p>
-      <table>
-        <thead><tr><th>文档类型</th><th>源码规模</th><th>最低章节数</th><th>最低代码块</th></tr></thead>
-        <tbody>
-          <tr><td>module</td><td>&lt; 200 行</td><td>5 章</td><td>3</td></tr>
-          <tr><td>module</td><td>200-1000 行</td><td>7 章</td><td>5</td></tr>
-          <tr><td>module</td><td>&gt; 1000 行</td><td>9+ 章</td><td>8</td></tr>
-          <tr><td>system</td><td>3-5 模块</td><td>6 章</td><td>-</td></tr>
-          <tr><td>system</td><td>&gt; 10 模块</td><td>10+ 章</td><td>-</td></tr>
-        </tbody>
-      </table>
-
-      <div class="callout">
-        <strong>设计决策</strong>
-        内容驱动深度而非模板驱动，是因为一个 30 行的工具函数不需要 12 章，
-        而一个 2000 行的状态机模块可能每章都要。<strong>章节取舍的判据是源码复杂度，不是模板框架。</strong>
-      </div>
-    </div>
-  </details>
-</section>
-
-<!-- ===== 第4章: 模板引擎 ===== -->
-<section id="sec-template-engine">
-  <h2 id="sec-template-engine-h2">4. 模板引擎</h2>
-
-  <div class="section-summary">
-    <p>模板引擎采用<strong>骨架+内容分离</strong>模式：HTML 模板提供骨架（CSS/JS 内嵌），agent 生成内容填入 <code>{{SECTIONS}}</code> 占位符。支持渐进式披露三层结构（Summary → Details → Deep Dive）。</p>
-  </div>
-
-  <details open id="sec-template-engine-details">
-    <summary>模板机制详解</summary>
-    <div>
-      <h3 id="sec-tpl-architecture">4.1 骨架+内容分离</h3>
-      <p>模板引擎的核心设计是<strong>骨架+内容分离</strong>——HTML 模板提供完整的骨架（CSS/JS/sidebar/TOC），
-      agent 只负责生成内容片段填入 <code>{{SECTIONS}}</code> 占位符。这确保了所有文档的视觉一致性，
-      无论由哪个 agent 生成。</p>
-      <p>骨架包含：DOCTYPE、charset、viewport、内嵌的 CSS（通过 @sync 标记）、侧边栏 TOC、
-      主内容区域、暗色模式切换按钮、内嵌的 JS（通过 @sync 标记）。agent 生成的内容只需是合法的 HTML 片段，
-      不需要包含任何样式或脚本。</p>
-      <pre><code class="language-text">HTML 模板（templates/*.html）
-  ├── CSS（@sync:doc-shell.css:start/end 内嵌）
-  ├── JS（@sync:doc-shell.js/start/end 内嵌）
+      <details open id="sec-modules">
+        <summary><h2 id="sec-modules-h">4. 模板引擎</h2></summary>
+        <div class="section-body">
+<p>模板引擎采用<strong>骨架+内容分离</strong>模式：HTML 模板提供骨架（CSS/JS 内嵌），agent 生成内容填入 <code><code>SECTIONS</code></code> 占位符。支持渐进式披露三层结构（Summary → Details → Deep Dive）。</p>
+<h3 id="sec-41骨架内容分离">4.1 骨架+内容分离</h3>
+<p>模板引擎的核心设计是<strong>骨架+内容分离</strong>——HTML 模板提供完整的骨架（CSS/JS/sidebar/TOC），agent 只负责生成内容片段填入 <code><code>SECTIONS</code></code> 占位符。这确保了所有文档的视觉一致性，无论由哪个 agent 生成。</p>
+<div class="code-block" data-lang="text"><pre><code class="language-text">HTML 模板（templates/*.html）
+  ├── CSS（@sync:doc-shell.css:start/end 内嵌，~692 行）
+  ├── JS（@sync:doc-shell.js/start/end 内嵌，~414 行）
+  ├── JS（@sync:skin-switcher.js:start/end 内嵌，~81 行）
   ├── HTML 骨架（head, body, sidebar, main）
-  └── {{SECTIONS}} 占位符 ← agent 生成的内容填入这里</code></pre>
-
-      <h3 id="sec-tpl-sync">4.2 @sync 同步机制</h3>
-      <p>三个共享运行时文件（CSS/JS/Skin）通过 <code>@sync</code> 标记嵌入模板。
-      当 CSS 或 JS 修改后，运行 <code>inline-shared.js --sync</code> 自动替换所有模板中的对应区域。</p>
-      <pre><code class="language-javascript">// inline-shared.js 同步逻辑
+  └── {{SECTIONS}} 占位符 ← agent 生成的内容填入这里</code></pre></div>
+<h3 id="sec-42sync同步机制">4.2 @sync 同步机制</h3>
+<p>三个共享运行时文件（CSS/JS/Skin）通过 <code>@sync</code> 标记嵌入模板。当 CSS 或 JS 修改后，运行 <code>inline-shared.js --sync</code> 自动替换所有模板中的对应区域。</p>
+<div class="code-block" data-lang="javascript"><pre><code class="language-javascript">// inline-shared.js 同步逻辑
 const SHARED_FILES = {
   'doc-shell.css': path.join(SCRIPTS_DIR, 'doc-shell.css'),
   'doc-shell.js': path.join(SCRIPTS_DIR, 'doc-shell.js'),
@@ -383,59 +1054,74 @@ function syncTemplate(templatePath, sharedContent) {
   for (const [name, content] of Object.entries(sharedContent)) {
     const startMark = `/* @sync:${name}:start */`;
     const endMark = `/* @sync:${name}:end */`;
+    // 验证 end marker 存在（防止数据丢失）
+    if (!html.includes(endMark)) {
+      errors.push(`${name}: start marker found but end marker missing`);
+      continue;
+    }
     const re = new RegExp(`${startMark}[\\s\\S]*?${endMark}`, 'g');
     html = html.replace(re, `${startMark}\n${content}\n${endMark}`);
   }
   fs.writeFileSync(templatePath, html, 'utf8');
-}</code></pre>
-      <p>模板专属的 CSS 覆盖（如 module 的 <code>--max-width: 880px</code>）位于标记区域之外，不受同步影响。</p>
-      <table>
-        <thead><tr><th>文件</th><th>职责</th><th>大小</th><th>同步命令</th></tr></thead>
-        <tbody>
-          <tr><td><code>doc-shell.css</code></td><td>设计系统 + 全部组件样式</td><td>~30KB</td><td rowspan="3"><code>node inline-shared.js --sync</code></td></tr>
-          <tr><td><code>doc-shell.js</code></td><td>TOC/ScrollSpy/高亮/缩放/Mermaid</td><td>~15KB</td></tr>
-          <tr><td><code>skin-switcher.js</code></td><td>6 套皮肤切换</td><td>~22KB</td></tr>
-        </tbody>
-      </table>
+}</code></pre></div>
+<p>模板专属的 CSS 覆盖（如 module 的 <code>--max-width: 880px</code>）位于标记区域之外，不受同步影响。</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>文件</th><th>职责</th><th>大小</th><th>同步命令</th></tr></thead>
+<tbody>
+<tr><td><code>doc-shell.css</code></td><td>设计系统 + 全部组件样式</td><td>692 行</td><td><code>node inline-shared.js --sync</code></td></tr>
+<tr><td><code>doc-shell.js</code></td><td>TOC/ScrollSpy/高亮/缩放/Mermaid</td><td>414 行</td><td>同上</td></tr>
+<tr><td><code>skin-switcher.js</code></td><td>6 套皮肤切换</td><td>81 行</td><td>同上</td></tr>
+</tbody></table></div>
+<h3 id="sec-43html模板">4.3 HTML 模板</h3>
+<p>三个 HTML 模板分别对应三种文档类型：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>模板</th><th>行数</th><th>布局</th><th>特有组件</th></tr></thead>
+<tbody>
+<tr><td><code>module-design.html</code></td><td>1582</td><td>details 折叠</td><td>Tabs API 展示、SVG 图表</td></tr>
+<tr><td><code>system-design.html</code></td><td>1278</td><td>details 折叠</td><td>module-panel 模块面板</td></tr>
+<tr><td><code>guide.html</code></td><td>1266</td><td>section 平面</td><td>Hero 头部、badge 标注</td></tr>
+</tbody></table></div>
+<p>每个模板都包含完整的 CSS（692 行设计系统 + 模板专属覆盖）、JS（414 行交互功能 + 81 行皮肤切换）、Mermaid CDN 引用和 highlight.js CDN 引用。</p>
+<h3 id="sec-44章节模板">4.4 章节模板</h3>
+<p><strong>普通模式</strong>：<code>templates/sections/</code> 目录下 7 个基础模板：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>模板</th><th>适用场景</th><th>三层结构</th></tr></thead>
+<tbody>
+<tr><td><code>overview.html</code></td><td>概述</td><td>Summary → 背景/解决方案 → 深入分析</td></tr>
+<tr><td><code>architecture.html</code></td><td>架构</td><td>Summary → 架构图/分层 → 依赖/性能</td></tr>
+<tr><td><code>module-detail.html</code></td><td>模块详情</td><td>Summary → API/示例 → 实现/边界</td></tr>
+<tr><td><code>state-machine.html</code></td><td>状态机</td><td>Summary → 转换表/图 → 详细行为</td></tr>
+<tr><td><code>flowchart.html</code></td><td>流程图</td><td>Summary → 流程图/步骤 → 异常/性能</td></tr>
+<tr><td><code>faq.html</code></td><td>FAQ</td><td>Summary → 5+ Q&amp;A 折叠</td></tr>
+<tr><td><code>glossary.html</code></td><td>术语表</td><td>Summary → 术语/说明/出处</td></tr>
+</tbody></table></div>
+<p><strong>全力模式</strong>：<code>templates/fullpower/</code> 目录下 15 个深度模板（总计 2587 行），每个模板包含完整的三层渐进式披露结构和示例内容，展示 DeepWiki/ZRead 级别的文档深度。</p>
+<h3 id="sec-45mdhtml转换">4.5 MD→HTML 转换</h3>
+<p><code>md-to-html.js</code>（849 行）将 Markdown 文档转为带完整样式的单文件 HTML。支持三种文档类型，每种类型有独立的模板和转换策略。</p>
+<div class="code-block" data-lang="bash"><pre><code class="language-bash">node scripts/md-to-html.js --type module doc/tech-docs/Task_Design.md
+node scripts/md-to-html.js --type system doc/Architecture_Design.md
+node scripts/md-to-html.js --type guide  doc/Guide.md
+node scripts/md-to-html.js --type module --all
+node scripts/md-to-html.js --type module --index &quot;ProjectName&quot; &quot;description&quot;</code></pre></div>
+<p>转换流程：读取 MD → 解析元信息（frontmatter）→ 拆分章节 → 内联 Markdown（表格/代码/链接/粗体）→ 注入模板 <code><code>SECTIONS</code></code> → 输出 HTML。</p>
+<h3 id="sec-46相关源文件">4.6 相关源文件</h3>
+<ul>
+  <li><code>scripts/inline-shared.js:1-17</code> — @sync 同步机制</li>
+  <li><code>scripts/md-to-html.js:1-19</code> — MD→HTML 转换器</li>
+  <li><code>templates/module-design.html:1-10</code> — Module 模板入口</li>
+  <li><code>templates/system-design.html:1-10</code> — System 模板入口</li>
+  <li><code>templates/guide.html:1-10</code> — Guide 模板入口</li>
+</ul>
+        </div>
+      </details>
 
-      <h3 id="sec-tpl-sections">4.3 渐进式披露章节模板</h3>
-      <p>7 个章节模板，每个遵循三层渐进式披露结构。这种结构的设计灵感来自 DeepWiki 和 ZRead.ai——
-      读者可以快速扫描 Summary 判断是否需要深入，大多数读者只需阅读 Details 层，
-      高级读者可以展开 Deep Dive 获取实现细节和边界情况分析。</p>
-      <p>模板使用 <code>{{占位符}}</code> 标记需要填充的内容，agent 替换占位符后即可生成完整的章节 HTML。
-      每个模板都包含设计决策 Callout 和 Sources 块，确保内容有 WHY 解释和源码溯源。</p>
-      <table>
-        <thead><tr><th>模板</th><th>适用场景</th><th>三层结构</th></tr></thead>
-        <tbody>
-          <tr><td><code>overview.html</code></td><td>概述</td><td>Summary → 背景/解决方案 → 深入分析</td></tr>
-          <tr><td><code>architecture.html</code></td><td>架构</td><td>Summary → 架构图/分层 → 依赖/性能</td></tr>
-          <tr><td><code>module-detail.html</code></td><td>模块详情</td><td>Summary → API/示例 → 实现/边界</td></tr>
-          <tr><td><code>state-machine.html</code></td><td>状态机</td><td>Summary → 转换表/图 → 详细行为</td></tr>
-          <tr><td><code>flowchart.html</code></td><td>流程图</td><td>Summary → 流程图/步骤 → 异常/性能</td></tr>
-          <tr><td><code>faq.html</code></td><td>FAQ</td><td>Summary → 5+ Q&A 折叠</td></tr>
-          <tr><td><code>glossary.html</code></td><td>术语表</td><td>Summary → 术语/说明/出处</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </details>
-</section>
-
-<!-- ===== 第5章: 校验流水线 ===== -->
-<section id="sec-validation">
-  <h2 id="sec-validation-h2">5. 校验流水线</h2>
-
-  <div class="section-summary">
-    <p><code>validate-doc.js</code> 实现 17 类自动化校验，覆盖内容质量、视觉约束、交互功能三个维度。<code>--fix</code> 可自动修复部分问题，<code>--test-interactive</code> 启用全力模式交互测试。</p>
-  </div>
-
-  <details open id="sec-validation-details">
-    <summary>校验项详解</summary>
-    <div>
-      <h3 id="sec-val-checks">17 类校验项</h3>
-      <p>校验脚本采用插件式架构，每类检查是一个独立函数，通过 Report 对象收集结果。
-      <code>--fix</code> 模式下，Mermaid 块、heading ID、代码块等可自动修复；其他问题报告后由 agent 就地修复。</p>
-      <pre><code class="language-javascript">// validate-doc.js 校验架构
-function validateFile(filePath, fix) {
+      <details id="sec-dataflow">
+        <summary><h2 id="sec-dataflow-h">5. 校验流水线</h2></summary>
+        <div class="section-body">
+<p><code>validate-doc.js</code>（1004 行）实现 17 类自动化校验，覆盖内容质量、视觉约束、交互功能三个维度。<code>--fix</code> 可自动修复部分问题，<code>--test-interactive</code> 启用全力模式交互测试。</p>
+<h3 id="sec-51校验架构">5.1 校验架构</h3>
+<p>校验脚本采用插件式架构，每类检查是一个独立函数，通过 Report 对象收集结果。<code>--fix</code> 模式下，Mermaid 块、heading ID、代码块等可自动修复；其他问题报告后由 agent 就地修复。</p>
+<div class="code-block" data-lang="javascript"><pre><code class="language-javascript">function validateFile(filePath, fix) {
   let html = fs.readFileSync(filePath, 'utf-8');
   const report = new Report(path.basename(filePath));
 
@@ -463,252 +1149,903 @@ function validateFile(filePath, fix) {
     checkProgressiveDisclosure(html, report);      // I1. 渐进式披露
     checkInteractionFeatures(html, report);        // I2-I7. 交互功能
   }
-}</code></pre>
-      <p>Report 对象收集所有检查结果后，按类别分组输出，统计 pass/warn/fail/fix 数量。</p>
-        <thead><tr><th>#</th><th>类别</th><th>检查内容</th><th>自动修复</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>Mermaid 块</td><td>HTML 实体、箭头语法、花括号</td><td>✓</td></tr>
-          <tr><td>2</td><td>章节标题 ID</td><td>h2/h3 唯一 id、TOC 可定位</td><td>✓</td></tr>
-          <tr><td>3</td><td>代码块</td><td>language tag、HTML 转义</td><td>✓</td></tr>
-          <tr><td>4</td><td>表格</td><td>thead/tbody 结构</td><td>报告</td></tr>
-          <tr><td>5</td><td>内联 Markdown</td><td>链接、粗体已解析</td><td>报告</td></tr>
-          <tr><td>6</td><td>可折叠章节</td><td>details/summary 结构</td><td>报告</td></tr>
-          <tr><td>7</td><td>TOC 完整性</td><td>非空、链接有效</td><td>✓</td></tr>
-          <tr><td>8</td><td>HTML 骨架</td><td>charset、viewport、lang</td><td>报告</td></tr>
-          <tr><td>9</td><td>源码引用</td><td>source-ref + href 含行号</td><td>--new-doc 必填</td></tr>
-          <tr><td>10</td><td>术语表</td><td>glossary 章节存在</td><td>--new-doc 必填</td></tr>
-          <tr><td>11</td><td>Scope 声明</td><td>scope-block 存在</td><td>--new-doc 必填</td></tr>
-          <tr><td>12</td><td>视觉约束</td><td>外链图片、渐变、大阴影、硬编码色</td><td>报告</td></tr>
-          <tr><td>13</td><td>SVG 护栏</td><td>行数、节点数、无障碍</td><td>报告</td></tr>
-          <tr><td>14</td><td>图说完整性</td><td>figcaption + 编号格式</td><td>报告</td></tr>
-          <tr><td>15</td><td>空章节</td><td>section-body 不为空</td><td>报告</td></tr>
-          <tr><td>16</td><td>重复内容</td><td>重复 callout/段落</td><td>报告</td></tr>
-          <tr><td>17</td><td>内容密度</td><td>每节 ≥2 段 + ≥1 结构元素</td><td>warn</td></tr>
-        </tbody>
-      </table>
+}</code></pre></div>
+<h3 id="sec-52校验项详情">5.2 校验项详情</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>#</th><th>类别</th><th>检查内容</th><th>自动修复</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Mermaid 块</td><td>HTML 实体、箭头语法、花括号、空块</td><td>✓</td></tr>
+<tr><td>2</td><td>章节标题 ID</td><td>h2/h3 唯一 id、TOC 可定位</td><td>✓</td></tr>
+<tr><td>3</td><td>代码块</td><td>language tag、HTML 转义、bare <code>&lt;pre&gt;&lt;code&gt;</code></td><td>✓</td></tr>
+<tr><td>4</td><td>表格</td><td>thead/tbody 结构</td><td>报告</td></tr>
+<tr><td>5</td><td>内联 Markdown</td><td>链接、粗体已解析</td><td>报告</td></tr>
+<tr><td>6</td><td>可折叠章节</td><td>details/summary 配对、open/collapsed 计数</td><td>报告</td></tr>
+<tr><td>7</td><td>TOC 完整性</td><td>非空、链接有效、JS buildTOC 兼容</td><td>✓</td></tr>
+<tr><td>8</td><td>HTML 骨架</td><td>charset、viewport、lang、title、doctype</td><td>报告</td></tr>
+<tr><td>9</td><td>源码引用</td><td>source-ref 存在 + href 含行号（非代码文件豁免）</td><td>--new-doc 必填</td></tr>
+<tr><td>10</td><td>术语表</td><td>glossary 章节存在</td><td>--new-doc 必填</td></tr>
+<tr><td>11</td><td>Scope 声明</td><td>scope-block 存在</td><td>--new-doc 必填</td></tr>
+<tr><td>12</td><td>视觉约束</td><td>外链图片、渐变、大阴影、硬编码色、纯黑白、浮起效果、CSS url() 外链</td><td>报告</td></tr>
+<tr><td>13</td><td>SVG 护栏</td><td>行数（≤80）、节点数（4-12）、role/aria-label</td><td>报告</td></tr>
+<tr><td>14</td><td>图说完整性</td><td>figcaption 存在 + 编号格式 "图 X.X —"</td><td>报告</td></tr>
+<tr><td>15</td><td>空章节检测</td><td>section-body 不为空</td><td>报告</td></tr>
+<tr><td>16</td><td>重复内容</td><td>重复 callout、重复段落（&gt;50 字符）</td><td>报告</td></tr>
+<tr><td>17</td><td>内容密度</td><td>每节 ≥2 段 + ≥1 结构元素、代码块/节比 ≥0.5、段落/节比 ≥2</td><td>warn</td></tr>
+</tbody></table></div>
+<h3 id="sec-53交互测试testinteractive">5.3 交互测试（--test-interactive）</h3>
+<p>交互测试是全力模式的专属功能，验证文档的交互特性是否正常工作：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>#</th><th>测试项</th><th>通过标准</th></tr></thead>
+<tbody>
+<tr><td>I1</td><td>渐进式披露</td><td>每个 H2 章节有 section-summary</td></tr>
+<tr><td>I2</td><td>折叠/展开</td><td>details + summary 结构正确</td></tr>
+<tr><td>I3</td><td>代码高亮</td><td>所有代码块有 language class</td></tr>
+<tr><td>I4</td><td>暗色模式</td><td>[data-theme="dark"] CSS 存在</td></tr>
+<tr><td>I5</td><td>响应式布局</td><td>@media 查询存在</td></tr>
+<tr><td>I6</td><td>搜索友好</td><td>id 唯一、TOC 链接有效</td></tr>
+<tr><td>I7</td><td>图表交互</td><td>SVG role="img" + aria-label</td></tr>
+</tbody></table></div>
+<h3 id="sec-54防回归规则">5.4 防回归规则</h3>
+<p>以下问题曾发生过，修复后由 <code>validate-doc.js</code> 自动拦截。任何未来的改动不得移除这些检查：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>问题</th><th>根因</th><th>检查函数</th></tr></thead>
+<tbody>
+<tr><td>Mermaid 用 <code>&lt;div&gt;</code> 但 CDN 期望 <code>&lt;pre&gt;</code></td><td>选择器不统一</td><td><code>checkMermaid</code> 同时匹配 div/pre</td></tr>
+<tr><td>inline <code>color:#hex</code> 逃过视觉检查</td><td>只查了 gradient/shadow</td><td><code>checkVisualConstraints</code> 增加 hex 检查</td></tr>
+<tr><td>空 section-body 被生成</td><td>AI slop 惰性</td><td><code>checkEmptySections</code></td></tr>
+<tr><td>重复段落/callout</td><td>AI slop 重复</td><td><code>checkDuplicateContent</code></td></tr>
+<tr><td>source-ref href 为空</td><td>占位没填</td><td><code>checkSourceRefs</code> href 格式校验</td></tr>
+<tr><td>figcaption 无编号</td><td>缺格式要求</td><td><code>checkFigCaptions</code> 编号格式验证</td></tr>
+<tr><td>source-ref 非代码文件误报行号缺失</td><td>.md/.html 不需要行号</td><td><code>NO_LINE_REQUIRED</code> 正则豁免</td></tr>
+</tbody></table></div>
+<h3 id="sec-55相关源文件">5.5 相关源文件</h3>
+<ul>
+  <li><code>scripts/validate-doc.js:0-54</code> — CLI 参数解析</li>
+  <li><code>scripts/validate-doc.js:116-167</code> — checkMermaid</li>
+  <li><code>scripts/validate-doc.js:423-455</code> — checkSourceRefs</li>
+  <li><code>scripts/validate-doc.js:479-559</code> — checkVisualConstraints</li>
+  <li><code>scripts/validate-doc.js:736-791</code> — checkContentDensity</li>
+  <li><code>scripts/validate-doc.js:796-833</code> — checkProgressiveDisclosure</li>
+  <li><code>scripts/validate-doc.js:838-896</code> — checkInteractionFeatures</li>
+</ul>
+        </div>
+      </details>
 
-      <h3 id="sec-val-interactive">交互测试（--test-interactive）</h3>
-      <p>交互测试是全力模式的专属功能，验证文档的交互特性是否正常工作。
-      这 7 项测试覆盖了渐进式披露、折叠/展开、代码高亮、暗色模式、响应式布局、搜索友好和图表交互——
-      这些是 DeepWiki/ZRead 级别文档的必备交互能力。</p>
-      <p>交互测试与内容校验是互补的——内容校验确保"写得对"，交互测试确保"用得好"。
-      全力模式下，两类测试都必须通过才能交付。</p>
-        <thead><tr><th>#</th><th>测试项</th><th>通过标准</th></tr></thead>
-        <tbody>
-          <tr><td>I1</td><td>渐进式披露</td><td>每个 H2 章节有 section-summary</td></tr>
-          <tr><td>I2</td><td>折叠/展开</td><td>details + summary 结构正确</td></tr>
-          <tr><td>I3</td><td>代码高亮</td><td>所有代码块有 language class</td></tr>
-          <tr><td>I4</td><td>暗色模式</td><td>[data-theme="dark"] CSS 存在</td></tr>
-          <tr><td>I5</td><td>响应式布局</td><td>@media 查询存在</td></tr>
-          <tr><td>I6</td><td>搜索友好</td><td>id 唯一、TOC 链接有效</td></tr>
-          <tr><td>I7</td><td>图表交互</td><td>SVG role="img" + aria-label</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </details>
-</section>
+      <details id="sec-thread">
+        <summary><h2 id="sec-thread-h">6. 运行时系统</h2></summary>
+        <div class="section-body">
+<p>运行时由三个共享文件组成：CSS 设计系统（6 套皮肤 + 暗色模式）、JS 交互功能（TOC/ScrollSpy/代码高亮/图表缩放）、皮肤切换器。所有文档类型共享同一套运行时。</p>
+<h3 id="sec-61设计系统docshellcss">6.1 设计系统（doc-shell.css）</h3>
+<p>CSS 设计系统（692 行）定义了完整的视觉规范，所有文档类型共享同一套 CSS 变量。核心理念是<strong>约束即自由</strong>——通过严格的变量约束（禁止硬编码颜色、禁止渐变、禁止大阴影），确保所有生成的文档具有一致的视觉风格。</p>
+<p>CSS 变量分为语义层和组件层：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>层级</th><th>变量</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>语义层</td><td><code>--bg</code>, <code>--text</code>, <code>--accent</code></td><td>暗色模式自动切换</td></tr>
+<tr><td>组件层</td><td><code>--callout-info</code>, <code>--code-bg</code></td><td>通过 <code>var(--xxx, fallback)</code> 确保离线可用</td></tr>
+<tr><td>布局层</td><td><code>--max-width</code>, <code>--toc-width</code>, <code>--header-height</code></td><td>模板可覆盖</td></tr>
+</tbody></table></div>
+<p>设计规范：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>维度</th><th>规范</th><th>CSS 变量</th></tr></thead>
+<tbody>
+<tr><td>字号梯度</td><td>H1 32 &gt; H2 22 &gt; H3 17 &gt; body 15 &gt; small 0.85rem</td><td><code>--font-sans</code>, <code>--font-mono</code></td></tr>
+<tr><td>间距</td><td>4px 步进（4/8/12/16/20/24/28/32/40）</td><td><code>--radius</code>, <code>--radius-sm</code></td></tr>
+<tr><td>颜色</td><td>暖灰系，非纯黑白</td><td><code>--bg</code>, <code>--text</code>, <code>--accent</code> 等</td></tr>
+<tr><td>圆角</td><td>最大 8px（药丸 badge 除外）</td><td><code>--radius: 6px</code></td></tr>
+<tr><td>暗色模式</td><td>3 层回退：data-theme &gt; prefers-color-scheme &gt; 默认 light</td><td><code>[data-theme="dark"]</code></td></tr>
+</tbody></table></div>
+<h3 id="sec-62交互功能docshelljs">6.2 交互功能（doc-shell.js）</h3>
+<p>doc-shell.js（414 行）实现了 6 项核心交互功能，所有功能采用 try-catch 包裹的 features[] 数组模式，单个功能失败不影响其他功能：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>功能</th><th>实现方式</th><th>关键设计</th></tr></thead>
+<tbody>
+<tr><td>主题切换</td><td>localStorage + OS preference + 默认 light</td><td>3 层回退，Mermaid 自动重渲染</td></tr>
+<tr><td>TOC 自动生成</td><td>扫描 h2/h3 生成侧边栏</td><td>支持 guide（nav）和 module/system（ul）两种容器</td></tr>
+<tr><td>ScrollSpy</td><td>IntersectionObserver 高亮当前章节</td><td>rootMargin 调整偏移量</td></tr>
+<tr><td>代码高亮</td><td>highlight.js CDN + 复制按钮 + 语言标签</td><td>离线回退到手动 span</td></tr>
+<tr><td>图表缩放</td><td>点击全屏 + 滚轮缩放 + 拖拽平移 + Esc 关闭</td><td>支持触屏双指缩放</td></tr>
+<tr><td>Mermaid 暗色</td><td>主题切换时自动重渲染</td><td>保留源码（data-mermaid-src），防止 innerHTML 丢失</td></tr>
+</tbody></table></div>
+<div class="code-block" data-lang="javascript"><pre><code class="language-javascript">// features[] 数组模式：单个功能失败不影响其他
+var features = [
+  ['TOC', buildTOC],
+  ['ScrollSpy', setupScrollSpy],
+  ['CodeBlocks', setupCodeBlocks],
+  ['DiagramCopy', setupDiagramCopy],
+  ['DiagramZoom', setupDiagramZoom],
+  ['Mermaid', setupMermaid]
+];
+features.forEach(function(f) {
+  try { f[1](); }
+  catch (e) { console.warn('doc-shell: ' + f[0] + ' init failed:', e.message); }
+});</code></pre></div>
+<h3 id="sec-63皮肤系统skinswitcherjs">6.3 皮肤系统（skin-switcher.js）</h3>
+<p>皮肤系统（81 行）提供 6 套预设视觉风格，通过覆盖 CSS 变量实现。每套皮肤定义了完整的颜色方案（light + dark），切换时只需更新 <code>data-skin</code> 属性。</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>皮肤</th><th>色调</th><th>适用场景</th></tr></thead>
+<tbody>
+<tr><td>Teal</td><td>青绿色（默认）</td><td>通用技术文档</td></tr>
+<tr><td>Soft Editorial</td><td>暖纸墨字</td><td>长文阅读</td></tr>
+<tr><td>Vellum</td><td>深蓝纸张</td><td>学术风格</td></tr>
+<tr><td>Monochrome</td><td>极简墨白</td><td>打印友好</td></tr>
+<tr><td>Cartography</td><td>古典制图</td><td>演示展示</td></tr>
+<tr><td>Signal</td><td>深蓝金线</td><td>嵌入式/硬件文档</td></tr>
+</tbody></table></div>
+<p>所有皮肤共享相同的字号梯度、间距规则和圆角限制，只在颜色方案上做差异化。皮肤选择保存在 localStorage 中，下次打开时自动恢复。</p>
+<h3 id="sec-64相关源文件">6.4 相关源文件</h3>
+<ul>
+  <li><code>scripts/doc-shell.css:1-59</code> — CSS 变量定义</li>
+  <li><code>scripts/doc-shell.css:128-170</code> — Reset + Topbar</li>
+  <li><code>scripts/doc-shell.css:238-258</code> — Details 折叠样式</li>
+  <li><code>scripts/doc-shell.css:326-339</code> — Callout 样式</li>
+  <li><code>scripts/doc-shell.js:0-30</code> — 主题切换</li>
+  <li><code>scripts/doc-shell.js:40-125</code> — TOC 自动生成</li>
+  <li><code>scripts/doc-shell.js:231-347</code> — 图表缩放</li>
+  <li><code>scripts/doc-shell.js:349-382</code> — Mermaid 暗色模式</li>
+  <li><code>scripts/skin-switcher.js:1-80</code> — 皮肤系统</li>
+</ul>
+        </div>
+      </details>
 
-<!-- ===== 第6章: 运行时系统 ===== -->
-<section id="sec-runtime">
-  <h2 id="sec-runtime-h2">6. 运行时系统</h2>
+      <details id="sec-config">
+        <summary><h2 id="sec-config-h">7. 全力模式</h2></summary>
+        <div class="section-body">
+<p>全力模式是 Doc-Wiki 的高级工作流，<strong>不区分文档类型</strong>，自动分析项目并生成完整文档体系。采用 8 阶段流程：项目探测→任务规划→并行分析→深度研究→内容生成→自审→修订循环→交付。</p>
+<h3 id="sec-71项目探测阶段0">7.1 项目探测（阶段 0）</h3>
+<p>全力模式不询问文档类型，自动探测项目结构：</p>
+<ol>
+  <li><strong>扫描目录结构</strong> — 识别 src/ 下的模块目录</li>
+  <li><strong>统计源码规模</strong> — 文件数、代码行数、模块数</li>
+  <li><strong>读取入口文件</strong> — README、CMakeLists、package.json、main 函数等</li>
+  <li><strong>识别项目类型</strong> — CLI 工具 / 库 / 服务 / 框架 / 嵌入式 / 桌面应用</li>
+  <li><strong>识别技术栈</strong> — 语言、构建系统、依赖管理、测试框架</li>
+  <li><strong>规划文档体系</strong> — 根据探测结果，决定生成哪些文档</li>
+</ol>
+<h3 id="sec-72任务规划阶段1">7.2 任务规划（阶段 1）</h3>
+<p>根据探测结果规划 subagent 任务表：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>源码规模</th><th>subagent 数量</th><th>任务分工</th></tr></thead>
+<tbody>
+<tr><td>小型（&lt; 10 文件）</td><td>2</td><td>① 源码分析 ② 测试/配置</td></tr>
+<tr><td>中型（10-50 文件）</td><td>3-4</td><td>① 核心模块 ② 外围模块 ③ 测试/CI ④ 依赖图</td></tr>
+<tr><td>大型（&gt; 50 文件）</td><td>5-6</td><td>① 入口层 ② 核心业务 ③ 基础设施 ④ 测试 ⑤ 配置/部署 ⑥ 调用链</td></tr>
+</tbody></table></div>
+<p>每个 subagent 任务必须定义：<strong>目标</strong>（具体要分析什么）、<strong>输入</strong>（文件列表/目录范围）、<strong>输出协议</strong>（必须返回结构化的发现）。</p>
+<h3 id="sec-73并行分析阶段2">7.3 并行分析（阶段 2）</h3>
+<p>主 agent 同时启动所有 subagent，每个 subagent 按任务协议独立分析源码。所有 subagent 完成后，主 agent 汇总结果，生成<strong>知识图谱</strong>：模块 → 函数 → 依赖 → 数据流。</p>
+<h3 id="sec-74深度研究阶段3">7.4 深度研究（阶段 3）</h3>
+<p>主 agent 检查知识图谱，识别薄弱环节并补派 subagent：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>缺口类型</th><th>触发条件</th><th>补充动作</th></tr></thead>
+<tbody>
+<tr><td>模块只有入口文件</td><td>某模块只读了头文件没读实现</td><td>补派 subagent 读实现文件</td></tr>
+<tr><td>调用链断裂</td><td>跨 3+ 模块的调用只分析了两头</td><td>补派 subagent 追踪中间环节</td></tr>
+<tr><td>状态机缺失</td><td>有状态管理但没找到状态定义</td><td>补派 subagent 搜索枚举/常量</td></tr>
+<tr><td>错误路径不全</td><td>某函数有 throw 但没分析 catch</td><td>补派 subagent 追踪异常传播</td></tr>
+</tbody></table></div>
+<p>同时派一个 subagent 搜索同类型知名项目的文档结构，收集可借鉴的章节组织和表达方式。</p>
+<h3 id="sec-75内容生成阶段4">7.5 内容生成（阶段 4）</h3>
+<p>用全部收集的信息生成文档。使用 <code>templates/fullpower/</code> 下的 15 个深度模板，每个 H2 章节对应一个模板文件。</p>
+<p>相比普通模式的质量提升：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>维度</th><th>普通模式</th><th>全力模式</th></tr></thead>
+<tbody>
+<tr><td>模板</td><td>7 个基础骨架</td><td>15 个深度模板，含完整示例内容</td></tr>
+<tr><td>源码引用密度</td><td>最低要求</td><td>翻倍，核心函数必引用</td></tr>
+<tr><td>设计决策 Callout</td><td>≥ 4 个</td><td>≥ 8 个，每个架构选择都解释 WHY</td></tr>
+<tr><td>跨模块调用链</td><td>描述到直接调用</td><td>追踪 3 层以上，含参数传递</td></tr>
+<tr><td>代码示例</td><td>按章节要求</td><td>每个公开 API 都有使用示例</td></tr>
+<tr><td>错误处理</td><td>有就写</td><td>穷举所有错误路径 + 推荐处理方式</td></tr>
+<tr><td>性能相关</td><td>有就写</td><td>主动标注算法复杂度和瓶颈点</td></tr>
+<tr><td>状态机</td><td>有就写</td><td>完整转换表，含前置条件+副作用+并发安全</td></tr>
+<tr><td>配置</td><td>列参数</td><td>每个参数含不当值后果，含加载优先级+验证规则</td></tr>
+</tbody></table></div>
+<h3 id="sec-76自审评分体系阶段5">7.6 自审评分体系（阶段 5）</h3>
+<p>自审采用 6 维度评分体系，每个维度 0-10 分，总分 60 分。通过线设为 50/60（83%）：</p>
+<div class="table-wrapper"><table>
+<thead><tr><th>维度</th><th>满分</th><th>评分标准</th></tr></thead>
+<tbody>
+<tr><td>准确性</td><td>10</td><td>代码引用真实、API 签名正确</td></tr>
+<tr><td>完整性</td><td>10</td><td>覆盖所有核心模块、不遗漏关键流程</td></tr>
+<tr><td>深度</td><td>10</td><td>解释 WHY、算法分析、性能说明</td></tr>
+<tr><td>可操作性</td><td>10</td><td>读者能照着上手、代码示例可运行</td></tr>
+<tr><td>结构</td><td>10</td><td>章节层次清晰、编号一致、术语表完整</td></tr>
+<tr><td>视觉合规</td><td>10</td><td>符合全部铁律、CSS 变量、无硬编码色</td></tr>
+</tbody></table></div>
+<p>审核 subagent 必须返回结构化结果：总分、各维度分数、修订清单。修订清单包含具体的操作（补充/修正/增加）、目标位置（章节编号）和详细说明。</p>
+<h3 id="sec-77修订循环阶段6">7.7 修订循环（阶段 6）</h3>
+<p>主 agent 按修订清单逐项修改文档，每项完成后标记 done。修订完成后，回到阶段 5 重新审核。</p>
+<p><strong>循环终止条件：</strong></p>
+<div class="table-wrapper"><table>
+<thead><tr><th>条件</th><th>结果</th></tr></thead>
+<tbody>
+<tr><td>审核得分 ≥ 50/60</td><td>✅ 通过，进入交付</td></tr>
+<tr><td>连续两轮得分相同（无提升）</td><td>⚠️ 停止，报告瓶颈原因</td></tr>
+<tr><td>已达 5 轮上限</td><td>⚠️ 停止，报告当前状态</td></tr>
+</tbody></table></div>
+<h3 id="sec-78交付阶段7">7.8 交付（阶段 7）</h3>
+<ol>
+  <li>运行校验脚本（同普通模式 Phase 3 的自迭代循环）</li>
+  <li>运行交互测试（<code>--test-interactive</code>）</li>
+  <li>输出质量报告</li>
+</ol>
+<h3 id="sec-79相关源文件">7.9 相关源文件</h3>
+<ul>
+  <li><code>SKILL.md:107-155</code> — 全力模式总览</li>
+  <li><code>SKILL.md:157-179</code> — 阶段 0：项目探测</li>
+  <li><code>SKILL.md:181-205</code> — 阶段 1：任务规划</li>
+  <li><code>SKILL.md:237-250</code> — 阶段 4：内容生成</li>
+  <li><code>SKILL.md:347-398</code> — 阶段 5-6：自审+修订</li>
+</ul>
+        </div>
+      </details>
 
-  <div class="section-summary">
-    <p>运行时由三个共享文件组成：CSS 设计系统（6 套皮肤 + 暗色模式）、JS 交互功能（TOC/ScrollSpy/代码高亮/图表缩放）、皮肤切换器。所有文档类型共享同一套运行时。</p>
-  </div>
-
-  <details open id="sec-runtime-details">
-    <summary>运行时详解</summary>
-    <div>
-      <h3 id="sec-rt-css">6.1 设计系统（doc-shell.css）</h3>
-      <p>CSS 设计系统定义了完整的视觉规范，所有文档类型共享同一套 CSS 变量。
-      设计系统的核心理念是<strong>约束即自由</strong>——通过严格的变量约束（禁止硬编码颜色、禁止渐变、禁止大阴影），
-      确保所有生成的文档具有一致的视觉风格，无论由哪个 agent 生成。</p>
-      <p>CSS 变量分为语义层（<code>--text</code>, <code>--bg</code>, <code>--accent</code>）和组件层（<code>--callout-info</code>, <code>--code-bg</code>），
-      语义层在暗色模式下自动切换，组件层通过 <code>var(--xxx, fallback)</code> 确保离线可用。</p>
-      <table>
-        <thead><tr><th>维度</th><th>规范</th><th>CSS 变量</th></tr></thead>
-        <tbody>
-          <tr><td>字号梯度</td><td>H1 32 > H2 22 > H3 17 > body 15 > small 0.85rem</td><td><code>--font-sans</code>, <code>--font-mono</code></td></tr>
-          <tr><td>间距</td><td>4px 步进（4/8/12/16/20/24/28/32/40）</td><td><code>--radius</code>, <code>--radius-sm</code></td></tr>
-          <tr><td>颜色</td><td>暖灰系，非纯黑白</td><td><code>--bg</code>, <code>--text</code>, <code>--accent</code> 等</td></tr>
-          <tr><td>圆角</td><td>最大 8px（药丸 badge 除外）</td><td><code>--radius: 6px</code></td></tr>
-        </tbody>
-      </table>
-
-      <h3 id="sec-rt-js">6.2 交互功能（doc-shell.js）</h3>
-      <p>doc-shell.js 实现了 6 项核心交互功能，所有功能采用 try-catch 包裹的 features[] 数组模式，
-      单个功能失败不影响其他功能。主题切换采用 3 层回退：localStorage 保存 → OS 偏好检测 → 默认 light。</p>
-      <p>TOC 自动生成扫描所有 h2/h3 标签，生成侧边栏导航；ScrollSpy 使用 IntersectionObserver
-      高亮当前章节；图表缩放支持点击全屏 + 滚轮缩放 + Esc 关闭；Mermaid 暗色模式在主题切换时自动重渲染。</p>
-        <thead><tr><th>功能</th><th>实现方式</th><th>线程安全</th></tr></thead>
-        <tbody>
-          <tr><td>主题切换</td><td>localStorage + OS preference + 默认 light</td><td>-</td></tr>
-          <tr><td>TOC 自动生成</td><td>扫描 h2/h3 生成侧边栏</td><td>-</td></tr>
-          <tr><td>ScrollSpy</td><td>IntersectionObserver 高亮当前章节</td><td>-</td></tr>
-          <tr><td>代码高亮</td><td>highlight.js CDN（离线回退）</td><td>-</td></tr>
-          <tr><td>图表缩放</td><td>点击全屏 + 滚轮缩放 + Esc 关闭</td><td>-</td></tr>
-          <tr><td>Mermaid 暗色</td><td>主题切换时自动重渲染</td><td>-</td></tr>
-        </tbody>
-      </table>
-
-      <h3 id="sec-rt-skin">6.3 皮肤系统（skin-switcher.js）</h3>
-      <p>皮肤系统提供 6 套预设视觉风格，通过覆盖 CSS 变量实现。每套皮肤定义了完整的颜色方案
-      （背景、文字、强调色、代码高亮等），切换时只需更新 <code>data-skin</code> 属性。
-      皮肤选择保存在 localStorage 中，下次打开时自动恢复。</p>
-      <p>皮肤设计遵循<strong>约束即自由</strong>原则——所有皮肤共享相同的字号梯度、间距规则和圆角限制，
-      只在颜色方案上做差异化。这确保了无论选择哪个皮肤，文档的排版和结构始终保持一致。</p>
-        <thead><tr><th>皮肤</th><th>色调</th><th>适用场景</th></tr></thead>
-        <tbody>
-          <tr><td>Teal</td><td>青绿色（默认）</td><td>通用技术文档</td></tr>
-          <tr><td>Editorial</td><td>编辑风格</td><td>长文阅读</td></tr>
-          <tr><td>Vellum</td><td>羊皮纸色</td><td>经典风格</td></tr>
-          <tr><td>Mono</td><td>单色灰度</td><td>打印友好</td></tr>
-          <tr><td>Carto</td><td>高对比度</td><td>演示展示</td></tr>
-          <tr><td>Signal</td><td>信号风格</td><td>嵌入式/硬件文档</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </details>
-</section>
-
-<!-- ===== 第7章: 全力模式 ===== -->
-<section id="sec-fullpower">
-  <h2 id="sec-fullpower-h2">7. 全力模式</h2>
-
-  <div class="section-summary">
-    <p>全力模式是 Doc-Wiki 的高级工作流，<strong>不区分文档类型</strong>，自动分析项目并生成完整文档体系。采用 7 阶段流程：项目探测→任务规划→并行分析→深度研究→内容生成→自审→修订循环→交付。</p>
-  </div>
-
-  <details open id="sec-fullpower-details">
-    <summary>全力模式详解</summary>
-    <div>
-      <h3 id="sec-fp-flow">7.1 七阶段流程</h3>
-      <p>全力模式的核心创新是<strong>不区分文档类型</strong>——普通模式需要用户先选类型再生成，
-      全力模式自动探测项目结构，一次性生成完整文档体系。这消除了用户的选择负担，
-      也避免了"选错类型导致文档不完整"的问题。</p>
-      <p>另一个关键设计是<strong>独立审核 subagent</strong>（铁律 §8）——生成者自审容易"自我感觉良好"，
-      独立审核者用"新鲜眼光"审查，更容易发现问题。审核采用 6 维度评分（总分 60，≥ 50 通过），
-      不通过时返回修订清单，主 agent 按清单逐项修改后重新审核，最多循环 5 轮。</p>
-        <thead><tr><th>阶段</th><th>执行者</th><th>动作</th><th>输出</th></tr></thead>
-        <tbody>
-          <tr><td>0. 项目探测</td><td>主 agent</td><td>扫描目录、统计规模、识别技术栈</td><td>项目概况报告</td></tr>
-          <tr><td>1. 任务规划</td><td>主 agent</td><td>规划 subagent 任务表</td><td>任务分配计划</td></tr>
-          <tr><td>2. 并行分析</td><td>多 subagent</td><td>同时读取源码，返回结构化发现</td><td>知识图谱</td></tr>
-          <tr><td>3. 深度研究</td><td>主 agent + 补充</td><td>gap-driven 补充 + 外部参考</td><td>补充分析 + 参考摘要</td></tr>
-          <tr><td>4. 内容生成</td><td>主 agent</td><td>生成完整文档体系</td><td>HTML 文档集</td></tr>
-          <tr><td>5. 自审</td><td>独立审核 subagent</td><td>6 维度评分（总分 60）</td><td>审核报告 + 修订清单</td></tr>
-          <tr><td>6. 修订循环</td><td>主 agent</td><td>按修订清单逐项修改（最多 5 轮）</td><td>修订后文档</td></tr>
-          <tr><td>7. 交付</td><td>主 agent</td><td>校验 + 交互测试 + 质量报告</td><td>最终文档 + 质量报告</td></tr>
-        </tbody>
-      </table>
-
-      <h3 id="sec-fp-output">7.2 产出物</h3>
-      <p>全力模式一次性生成完整文档体系，不需要用户选择类型。系统架构文档覆盖整个项目的分层架构和模块职责；
-      核心模块文档为每个核心模块生成独立的 API 参考和实现细节；端到端 Guide 沿数据流叙事，适合新人上手；
-      索引页提供所有文档的导航入口。</p>
-      <p>产出物之间有清晰的引用关系——系统架构文档引用各模块文档，Guide 引用系统架构和模块文档，
-      索引页汇总所有文档。这形成了一个自洽的文档体系，而非孤立的文档集合。</p>
-        <thead><tr><th>产出物</th><th>内容</th><th>输出路径</th></tr></thead>
-        <tbody>
-          <tr><td>系统架构文档</td><td>分层架构图、模块职责、数据流</td><td><code>doc/&lt;Project&gt;_Architecture_Design.html</code></td></tr>
-          <tr><td>核心模块文档</td><td>每个核心模块的 API + 实现细节</td><td><code>doc/tech-docs/&lt;Module&gt;_Design.html</code></td></tr>
-          <tr><td>端到端 Guide</td><td>沿数据流叙事的上手教程</td><td><code>doc/&lt;Project&gt;_Guide.html</code></td></tr>
-          <tr><td>索引页</td><td>所有文档的导航入口</td><td><code>doc/index.html</code></td></tr>
-        </tbody>
-      </table>
-
-      <h3 id="sec-fp-review">7.3 自审评分体系</h3>
-      <p>自审采用 6 维度评分体系，每个维度 0-10 分，总分 60 分。通过线设为 50/60（83%），
-      这是"高质量但不追求完美"的平衡点——设得太高会导致过多轮循环，设得太低则质量提升不明显。</p>
-      <p>审核 subagent 必须返回结构化结果：总分、各维度分数、修订清单。修订清单包含具体的操作（补充/修正/增加）、
-      目标位置（章节编号）和详细说明。主 agent 按清单逐项修改，每项完成后标记 done。</p>
-        <thead><tr><th>维度</th><th>满分</th><th>评分标准</th></tr></thead>
-        <tbody>
-          <tr><td>准确性</td><td>10</td><td>代码引用真实、API 签名正确</td></tr>
-          <tr><td>完整性</td><td>10</td><td>覆盖所有核心模块、不遗漏关键流程</td></tr>
-          <tr><td>深度</td><td>10</td><td>解释 WHY、算法分析、性能说明</td></tr>
-          <tr><td>可操作性</td><td>10</td><td>读者能照着上手、代码示例可运行</td></tr>
-          <tr><td>结构</td><td>10</td><td>章节层次清晰、编号一致、术语表完整</td></tr>
-          <tr><td>视觉合规</td><td>10</td><td>符合全部铁律、CSS 变量、无硬编码色</td></tr>
-        </tbody>
-      </table>
-      <p><strong>通过线：≥ 50/60（83%）</strong></p>
-    </div>
-  </details>
-</section>
-
-<!-- ===== 第8章: 数据流 ===== -->
-<section id="sec-dataflow">
-  <h2 id="sec-dataflow-h2">8. 数据流</h2>
-
-  <div class="section-summary">
-    <p>Doc-Wiki 的数据流沿两个方向流动：正向（源码→文档）和反向（校验→修复）。正向流经 SKILL.md 路由→reference 指导→template 骨架→agent 内容填充→校验交付。</p>
-  </div>
-
-  <details open id="sec-dataflow-details">
-    <summary>数据流详解</summary>
-    <div>
-      <h3 id="sec-df-forward">8.1 正向流：源码→文档</h3>
-      <p>正向流是文档生成的主流程，从用户触发到最终交付。每个阶段的输出是下一阶段的输入，
-      形成清晰的管道。SKILL.md 负责路由决策，references 负责内容规范，templates 负责视觉骨架，
-      agent 负责内容填充，validate-doc 负责质量把关。</p>
-      <p>关键设计：agent 生成的内容是<strong>HTML 片段</strong>（填入 <code>{{SECTIONS}}</code>），而非完整 HTML 文件。
-      骨架（CSS/JS/sidebar/TOC）由模板提供，确保视觉一致性。</p>
-      <pre><code class="language-text">用户触发（"写文档"）
+      <details id="sec-fault">
+        <summary><h2 id="sec-fault-h">8. 数据流</h2></summary>
+        <div class="section-body">
+<p>Doc-Wiki 的数据流沿两个方向流动：正向（源码→文档）和反向（校验→修复）。正向流经 SKILL.md 路由→reference 指导→template 骨架→agent 内容填充→校验交付。</p>
+<h3 id="sec-81正向流源码文档">8.1 正向流：源码→文档</h3>
+<div class="code-block" data-lang="text"><pre><code class="language-text">用户触发（&quot;写文档&quot;）
   → SKILL.md 路由（判断类型 + 选择模式）
   → references/*-workflow.md（指导 Phase 0→1→2→3）
   → Phase 0: 读源码（记录 file:line）
   → Phase 1: 结构设计（选章节框架）
   → Phase 2: 内容生成（填入模板 {{SECTIONS}}）
-  → Phase 3: 校验交付（validate-doc.js 17 类检查）</code></pre>
-
-      <h3 id="sec-df-reverse">8.2 反向流：校验→修复</h3>
-      <p>反向流是质量保障的核心机制。校验脚本发现问题后，分为两类处理：
-      <code>--fix</code> 可自动修复的问题（如 Mermaid 语法、heading ID）直接写回文件；
-      不可自动修复的问题（如视觉违规、空章节）报告给 agent 就地修复。</p>
-      <p>修复后重新校验，形成"生成→校验→修复→再校验"的闭环。新文档必须所有校验通过才能交付。</p>
-      <pre><code class="language-text">validate-doc.js 发现问题
+  → Phase 3: 校验交付（validate-doc.js 17 类检查）</code></pre></div>
+<p>关键设计：agent 生成的内容是<strong>HTML 片段</strong>（填入 <code><code>SECTIONS</code></code>），而非完整 HTML 文件。骨架（CSS/JS/sidebar/TOC）由模板提供，确保视觉一致性。</p>
+<h3 id="sec-82反向流校验修复">8.2 反向流：校验→修复</h3>
+<div class="code-block" data-lang="text"><pre><code class="language-text">validate-doc.js 发现问题
   → report.fail() / report.warn()
   → --fix 自动修复（Mermaid、heading ID、代码块）
   → agent 就地修复（视觉违规、空章节）
-  → 重新校验直到通过</code></pre>
-
-      <h3 id="sec-df-sync">8.3 同步流：CSS/JS→模板</h3>
-      <p>同步流确保三个共享运行时文件的修改能自动传播到所有 HTML 模板。
-      这解决了"改了 CSS 忘了同步模板"的一致性问题——只需运行一条命令，所有模板自动更新。</p>
-      <p>每个模板通过 <code>@sync</code> 标记区域嵌入共享内容，模板专属的 CSS 覆盖位于标记区域之外，
-      不受同步影响。这使得每个文档类型可以有独特的视觉调整（如 module 的 <code>--max-width: 880px</code>），
-      同时共享完整的设计系统。</p>
-      <pre><code class="language-text">修改 doc-shell.css / doc-shell.js / skin-switcher.js
+  → 重新校验直到通过</code></pre></div>
+<p>修复后重新校验，形成"生成→校验→修复→再校验"的闭环。新文档必须所有校验通过才能交付。</p>
+<h3 id="sec-83同步流cssjs模板">8.3 同步流：CSS/JS→模板</h3>
+<div class="code-block" data-lang="text"><pre><code class="language-text">修改 doc-shell.css / doc-shell.js / skin-switcher.js
   → node inline-shared.js --sync
   → 替换 templates/*.html 中 @sync 标记区域
-  → 所有模板自动更新</code></pre>
-    </div>
-  </details>
-</section>
+  → 所有模板自动更新</code></pre></div>
+<p>每个模板通过 <code>@sync</code> 标记区域嵌入共享内容，模板专属的 CSS 覆盖位于标记区域之外，不受同步影响。</p>
+<h3 id="sec-84转换流mdhtml">8.4 转换流：MD→HTML</h3>
+<div class="code-block" data-lang="text"><pre><code class="language-text">Markdown 文件
+  → md-to-html.js 解析元信息 + 拆分章节
+  → 内联 Markdown（表格/代码/链接/粗体）
+  → 注入 HTML 模板 {{SECTIONS}} 占位符
+  → 输出单文件 HTML（CSS/JS 已内嵌）</code></pre></div>
+<h3 id="sec-85相关源文件">8.5 相关源文件</h3>
+<ul>
+  <li><code>SKILL.md:521-560</code> — 普通模式工作流</li>
+  <li><code>scripts/validate-doc.js:900-947</code> — validateFile 主函数</li>
+  <li><code>scripts/inline-shared.js:106-164</code> — syncFile 同步函数</li>
+  <li><code>scripts/md-to-html.js:606-739</code> — buildHtml 构建函数</li>
+</ul>
+        </div>
+      </details>
 
-<!-- ===== 术语表 ===== -->
-<section id="sec-glossary">
-  <h2 id="sec-glossary-h2">术语表</h2>
-  <div class="section-summary">
-    <p>Doc-Wiki 系统核心术语定义，涵盖文档生成、模板引擎、校验、皮肤等领域概念。</p>
+      <details id="sec-perf">
+        <summary><h2 id="sec-perf-h">9. 索引系统</h2></summary>
+        <div class="section-body">
+<p>索引页是文档体系的导航入口，支持模块分组、筛选和搜索。</p>
+<h3 id="sec-91模块索引docmetajson">9.1 模块索引（doc-meta.json）</h3>
+<p><code>--index</code> 生成索引页时，脚本会在扫描目录查找 <code>doc-meta.json</code>。此文件可选——不存在时回退到按文件名平铺。</p>
+<div class="code-block" data-lang="json"><pre><code class="language-json">{
+  &quot;modules&quot;: {
+    &quot;ModuleName&quot;: { &quot;group&quot;: &quot;groupId&quot;, &quot;desc&quot;: &quot;模块描述&quot; }
+  },
+  &quot;groups&quot;: {
+    &quot;groupId&quot;: &quot;分组显示名&quot;
+  },
+  &quot;groupOrder&quot;: [&quot;groupId&quot;]
+}</code></pre></div>
+<h3 id="sec-92系统索引">9.2 系统索引</h3>
+<p>系统索引支持按类别（Architecture/Design/Requirements）分组展示文档：</p>
+<div class="code-block" data-lang="json"><pre><code class="language-json">{
+  &quot;categories&quot;: {
+    &quot;Architecture&quot;: { &quot;label&quot;: &quot;架构设计&quot;, &quot;desc&quot;: &quot;系统整体架构&quot; },
+    &quot;Design&quot;:       { &quot;label&quot;: &quot;详细设计&quot;, &quot;desc&quot;: &quot;核心概念与配置&quot; },
+    &quot;Requirements&quot;: { &quot;label&quot;: &quot;需求文档&quot;, &quot;desc&quot;: &quot;功能与非功能需求&quot; }
+  }
+}</code></pre></div>
+<h3 id="sec-93相关源文件">9.3 相关源文件</h3>
+<ul>
+  <li><code>scripts/md-to-html.js:83-129</code> — module index 生成</li>
+  <li><code>scripts/md-to-html.js:165-213</code> — system index 生成</li>
+  <li><code>templates/module-index.html</code> — 模块索引模板</li>
+  <li><code>templates/system-index.html</code> — 系统索引模板</li>
+</ul>
+        </div>
+      </details>
+
+      <details id="sec-extension">
+        <summary><h2 id="sec-extension-h">10. 设计决策记录</h2></summary>
+        <div class="section-body">
+<p>以下是项目中做出的关键设计决策，每个决策都记录了背景、选择、代价和替代方案。</p>
+<h3 id="sec-101单文件htmlvs静态站点">10.1 单文件 HTML vs 静态站点</h3>
+<p><strong>决策：</strong> 选择单文件 HTML（CSS/JS 内嵌）而非 Jekyll/Hugo 等静态站点。</p>
+<p><strong>原因：</strong> 文档必须离线可用、零依赖、浏览器直接打开。静态站点需要构建步骤和服务器。</p>
+<p><strong>代价：</strong> 每个 HTML 文件都包含完整的 CSS/JS（~70KB），文件体积较大；修改 CSS 需要通过 @sync 机制同步到所有模板。</p>
+<h3 id="sec-102sync标记vs模板引擎">10.2 @sync 标记 vs 模板引擎</h3>
+<p><strong>决策：</strong> 选择 @sync 标记（正则替换）而非 Handlebars/EJS 等模板引擎。</p>
+<p><strong>原因：</strong> 模板引擎增加依赖，@sync 是纯 Node.js 正则替换，零依赖。</p>
+<p><strong>代价：</strong> 只能同步整块内容，不能做条件渲染或循环；模板专属覆盖需要放在标记区域之外。</p>
+<h3 id="sec-103内联markdownvs纯html">10.3 内联 Markdown vs 纯 HTML</h3>
+<p><strong>决策：</strong> agent 生成内容时使用 Markdown 语法（由 md-to-html.js 转换），而非直接写 HTML。</p>
+<p><strong>原因：</strong> Markdown 更易写、更易读、更不容易出 HTML 语法错误。</p>
+<p><strong>代价：</strong> md-to-html.js 需要维护一套 Markdown 解析器（849 行），且不支持所有 Markdown 扩展语法。</p>
+<h3 id="sec-104独立审核subagentvs自审">10.4 独立审核 subagent vs 自审</h3>
+<p><strong>决策：</strong> 全力模式下，审核必须由独立 subagent 执行（铁律 §8），不得由生成者自审。</p>
+<p><strong>原因：</strong> 生成者自审容易"自我感觉良好"，独立审核者用"新鲜眼光"审查更容易发现问题。</p>
+<p><strong>代价：</strong> 额外消耗一个 subagent 的 token，增加交付时间。</p>
+<h3 id="sec-1056套皮肤vs单一主题">10.5 6 套皮肤 vs 单一主题</h3>
+<p><strong>决策：</strong> 提供 6 套可切换的视觉皮肤，而非单一固定主题。</p>
+<p><strong>原因：</strong> 不同场景（通用、学术、打印、演示）需要不同的视觉风格；皮肤系统通过覆盖 CSS 变量实现，增量成本很低。</p>
+<p><strong>代价：</strong> skin-switcher.js 需要维护 6 套完整的颜色方案（light + dark），增加 ~80 行代码。</p>
+<h3 id="sec-106相关源文件">10.6 相关源文件</h3>
+<ul>
+  <li><code>SKILL.md:780-870</code> — 资源清单和模板说明</li>
+  <li><code>scripts/inline-shared.js:37-80</code> — CSS_OVERRIDES 和 CSS_EXTRAS</li>
+</ul>
+        </div>
+      </details>
+
+      <details id="sec-11已知限制与未来演进">
+        <summary><h2 id="sec-11已知限制与未来演进-h">11. 已知限制与未来演进</h2></summary>
+        <div class="section-body">
+<h3 id="sec-111已知限制">11.1 已知限制</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>限制</th><th>说明</th><th>影响</th></tr></thead>
+<tbody>
+<tr><td>DEBT-1</td><td>md-to-html.js 不读取模板 <code><code>SECTIONS</code></code>，而是硬编码 HTML 骨架</td><td>模板结构改动无法自动同步到 md-to-html 输出</td></tr>
+<tr><td>无增量更新</td><td>每次生成都是全量重写，不能只更新变化的部分</td><td>大项目生成时间较长</td></tr>
+<tr><td>无 diff 预览</td><td>不能对比新旧文档的差异</td><td>修订时需要人工检查变化</td></tr>
+<tr><td>Mermaid 版本锁定</td><td>CDN 引用 10.9.0，不能自动升级</td><td>新语法可能不支持</td></tr>
+</tbody></table></div>
+<h3 id="sec-112未来演进方向">11.2 未来演进方向</h3>
+<div class="table-wrapper"><table>
+<thead><tr><th>方向</th><th>说明</th><th>优先级</th></tr></thead>
+<tbody>
+<tr><td>增量更新</td><td>只重新生成变化的章节</td><td>High</td></tr>
+<tr><td>diff 预览</td><td>生成前展示将要变更的内容</td><td>Medium</td></tr>
+<tr><td>自定义皮肤</td><td>用户自定义颜色方案</td><td>Low</td></tr>
+<tr><td>多语言支持</td><td>中英文双语文档</td><td>Medium</td></tr>
+<tr><td>插件系统</td><td>允许第三方添加校验规则和模板</td><td>Low</td></tr>
+</tbody></table></div>
+        </div>
+      </details>
+
+      <details id="sec-glossary">
+        <summary><h2 id="sec-glossary-h">术语表</h2></summary>
+        <div class="section-body">
+<div class="table-wrapper"><table>
+<thead><tr><th>术语</th><th>说明</th><th>出处</th></tr></thead>
+<tbody>
+<tr><td>Skill</td><td>Claude Code 的能力扩展单元，通过 SKILL.md 定义</td><td>Claude Code 文档</td></tr>
+<tr><td>@sync</td><td>HTML 模板中的标记，用于同步共享 CSS/JS 内容</td><td><code>scripts/inline-shared.js</code></td></tr>
+<tr><td><code>SECTIONS</code></td><td>HTML 模板中的占位符，agent 生成的内容填入此处</td><td><code>templates/*.html</code></td></tr>
+<tr><td>doc-shell</td><td>共享设计系统（CSS + JS + Skin），所有文档类型共用</td><td><code>scripts/doc-shell.*</code></td></tr>
+<tr><td>渐进式披露</td><td>三层内容结构：Summary（始终可见）→ Details（默认展开）→ Deep Dive（默认折叠）</td><td><code>templates/sections/</code></td></tr>
+<tr><td>铁律</td><td>8 条不可违反的文档质量规则，违反 = 不合格</td><td><code>SKILL.md</code></td></tr>
+<tr><td>全力模式</td><td>高级工作流：多 subagent 并行 + 深度研究 + 多轮自审</td><td><code>SKILL.md</code></td></tr>
+<tr><td>validate-doc</td><td>17 类自动化校验脚本，支持 --fix 和 --test-interactive</td><td><code>scripts/validate-doc.js</code></td></tr>
+<tr><td>md-to-html</td><td>Markdown→HTML 转换器，支持 module/system/guide 三种类型</td><td><code>scripts/md-to-html.js</code></td></tr>
+<tr><td>skin</td><td>视觉皮肤，6 套可切换（Teal/Editorial/Vellum/Mono/Carto/Signal）</td><td><code>scripts/skin-switcher.js</code></td></tr>
+<tr><td>MLFQ</td><td>多级反馈队列——这是 Doc-Wiki 示例中常用的调度算法，非 Doc-Wiki 本身使用</td><td>示例文档</td></tr>
+<tr><td>@sync 标记</td><td><code>/<em> @sync:filename:start </em>/</code> 和 <code>/<em> @sync:filename:end </em>/</code> 包围的区域</td><td><code>scripts/inline-shared.js</code></td></tr>
+<tr><td>layer-stack</td><td>分层架构图组件，用不同颜色表示不同层级</td><td><code>references/html-components.md</code></td></tr>
+<tr><td>source-ref</td><td>源码引用链接组件，格式 <code>&lt;a class="source-ref" href="file#Lline"&gt;</code></td><td><code>references/html-components.md</code></td></tr>
+<tr><td>scope-block</td><td>Scope 声明组件，标注文档覆盖范围</td><td><code>references/html-components.md</code></td></tr>
+<tr><td>section-summary</td><td>渐进式披露 Layer 1，始终可见的 1-2 句话概述</td><td><code>templates/sections/</code></td></tr>
+<tr><td>doc-meta.json</td><td>索引页自定义配置文件，定义模块分组和描述</td><td><code>scripts/md-to-html.js</code></td></tr>
+</tbody></table></div>
+        </div>
+      </details>
+
+    </article>
   </div>
-  <table>
-    <thead><tr><th>术语</th><th>说明</th><th>出处</th></tr></thead>
-    <tbody>
-      <tr><td><code>Skill</code></td><td>Claude Code 的能力扩展单元，通过 SKILL.md 定义</td><td>Claude Code 文档</td></tr>
-      <tr><td><code>@sync</code></td><td>HTML 模板中的标记，用于同步共享 CSS/JS 内容</td><td><code>scripts/inline-shared.js</code></td></tr>
-      <tr><td><code>{{SECTIONS}}</code></td><td>HTML 模板中的占位符，agent 生成的内容填入此处</td><td><code>templates/*.html</code></td></tr>
-      <tr><td><code>doc-shell</code></td><td>共享设计系统（CSS + JS + Skin），所有文档类型共用</td><td><code>scripts/doc-shell.*</code></td></tr>
-      <tr><td><code>渐进式披露</code></td><td>三层内容结构：Summary（始终可见）→ Details（默认展开）→ Deep Dive（默认折叠）</td><td><code>templates/sections/</code></td></tr>
-      <tr><td><code>铁律</code></td><td>8 条不可违反的文档质量规则，违反 = 不合格</td><td><code>SKILL.md</code></td></tr>
-      <tr><td><code>全力模式</code></td><td>高级工作流：多 subagent 并行 + 深度研究 + 多轮自审</td><td><code>SKILL.md</code></td></tr>
-      <tr><td><code>validate-doc</code></td><td>17 类自动化校验脚本，支持 --fix 和 --test-interactive</td><td><code>scripts/validate-doc.js</code></td></tr>
-      <tr><td><code>md-to-html</code></td><td>Markdown→HTML 转换器，支持 module/system/guide 三种类型</td><td><code>scripts/md-to-html.js</code></td></tr>
-      <tr><td><code>skin</code></td><td>视觉皮肤，6 套可切换（Teal/Editorial/Vellum/Mono/Carto/Signal）</td><td><code>scripts/skin-switcher.js</code></td></tr>
-    </tbody>
-  </table>
-</section>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+  <script>
+/* @sync:doc-shell.js:start */
+/* ===== doc-shell.js — Shared JS for all doc types ===== */
+/* Shared interactive features for all doc-writer document types */
+(function() {
+  'use strict';
+
+  var root = document.documentElement;
+
+  // --- Theme: 3-layer (localStorage > OS preference > default light) ---
+  var savedTheme = localStorage.getItem('doc-theme');
+  if (savedTheme) {
+    root.setAttribute('data-theme', savedTheme);
+  } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    root.setAttribute('data-theme', 'dark');
+  }
+
+  function currentThemeIsDark() {
+    var t = root.getAttribute('data-theme');
+    if (t) return t === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  window.toggleTheme = function() {
+    var current = root.getAttribute('data-theme');
+    var next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('doc-theme', next);
+    rerenderMermaid(next === 'dark');
+  };
+
+  // --- Mobile sidebar toggle ---
+  window.toggleSidebar = function() {
+    document.getElementById('sidebar').classList.toggle('open');
+  };
+
+  function closeSidebarOnMobile() {
+    if (window.innerWidth <= 900) {
+      document.getElementById('sidebar').classList.remove('open');
+    }
+  }
+
+  // --- TOC auto-generation ---
+  function slugify(text) {
+    return text.trim().toLowerCase()
+      .replace(/[\s]+/g, '-')
+      .replace(/[^\w一-鿿-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  function buildTOC() {
+    var toc = document.getElementById('toc');
+    if (!toc) return;
+
+    // Determine TOC container type: <nav> (guide) or <ul.toc-list> (module/system)
+    var isNav = toc.tagName === 'NAV';
+    var container = isNav ? toc : toc.querySelector('ul') || toc;
+
+    var items = [];
+
+    // Collect H2 from flat sections and collapsible sections
+    document.querySelectorAll(
+      '.section[id] > .section-title, ' +
+      '.section[id] > .section-header h2, ' +
+      'details.section-block[id] > summary h2, ' +
+      'details[id] > summary h2'
+    ).forEach(function(el) {
+      var section = el.closest('[id]');
+      if (!section) return;
+      items.push({ id: section.id, text: el.textContent.trim(), level: 2 });
+    });
+
+    // Collect H3 with ids
+    document.querySelectorAll('.section[id] h3[id], .section-body h3[id], details.section-block[id] h3[id], details[id] h3[id]').forEach(function(el) {
+      items.push({ id: el.id, text: el.textContent.trim(), level: 3 });
+    });
+
+    // Auto-generate ids for H3 without ids
+    document.querySelectorAll('.section h3:not([id]), .section-body h3:not([id])').forEach(function(el) {
+      var id = slugify(el.textContent);
+      if (id && !document.getElementById(id)) {
+        el.id = id;
+        items.push({ id: id, text: el.textContent.trim(), level: 3 });
+      }
+    });
+
+    // Build HTML
+    if (isNav) {
+      // Guide-style: flat <a> links
+      var html = '';
+      items.forEach(function(item) {
+        var cls = item.level === 3 ? 'toc-link toc-h3' : 'toc-link';
+        html += '<a class="' + cls + '" href="#' + item.id + '">' + item.text + '</a>';
+      });
+      container.innerHTML = html;
+    } else {
+      // Module/system-style: <ul><li><a>
+      container.innerHTML = '';
+      items.forEach(function(item) {
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.href = '#' + item.id;
+        a.textContent = item.text;
+        if (item.level === 3) a.classList.add('toc-h3');
+        a.addEventListener('click', function(e) {
+          e.preventDefault();
+          var target = document.getElementById(item.id);
+          if (target) {
+            var details = target.closest('details');
+            if (details && !details.open) details.open = true;
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          closeSidebarOnMobile();
+        });
+        li.appendChild(a);
+        container.appendChild(li);
+      });
+    }
+
+    // Close sidebar on mobile after click
+    container.querySelectorAll('a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        closeSidebarOnMobile();
+      });
+    });
+  }
+
+  // --- ScrollSpy ---
+  function setupScrollSpy() {
+    var links = document.querySelectorAll('.toc-link, .toc-list a');
+    if (!links.length) return;
+
+    var targets = [];
+    links.forEach(function(link) {
+      var id = link.getAttribute('href');
+      if (!id) return;
+      id = id.slice(1);
+      var el = document.getElementById(id);
+      if (el) targets.push({ el: el, link: link });
+    });
+
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          links.forEach(function(l) { l.classList.remove('active'); });
+          var match = targets.find(function(t) { return t.el === entry.target; });
+          if (match) match.link.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-80px 0px -70% 0px', threshold: 0 });
+
+    targets.forEach(function(t) { observer.observe(t.el); });
+  }
+
+  // --- Code highlighting + copy buttons ---
+  function setupCodeBlocks() {
+    document.querySelectorAll('.code-block').forEach(function(block) {
+      // Inject copy button
+      if (!block.querySelector('.copy-btn')) {
+        var btn = document.createElement('button');
+        btn.className = 'copy-btn';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', function() {
+          var code = block.querySelector('code');
+          if (code && navigator.clipboard) {
+            navigator.clipboard.writeText(code.textContent).then(function() {
+              btn.textContent = '✓';
+              btn.classList.add('copied');
+              setTimeout(function() {
+                btn.textContent = 'Copy';
+                btn.classList.remove('copied');
+              }, 1500);
+            });
+          }
+        });
+        block.appendChild(btn);
+      }
+
+      // Inject language tag
+      var code = block.querySelector('code');
+      if (code && !block.querySelector('.lang-tag')) {
+        var lang = code.className.match(/language-(\w+)/);
+        if (!lang) {
+          lang = (block.getAttribute('data-lang') || '').match(/^(\w+)$/);
+        }
+        if (lang) {
+          var tag = document.createElement('span');
+          tag.className = 'lang-tag';
+          tag.textContent = lang[1];
+          block.appendChild(tag);
+        }
+      }
+    });
+
+    // highlight.js
+    if (typeof hljs !== 'undefined') {
+      document.querySelectorAll('.code-block pre code').forEach(function(el) {
+        var lang = el.closest('.code-block') ? el.closest('.code-block').getAttribute('data-lang') : null;
+        if (lang && hljs.getLanguage(lang)) {
+          el.className = 'hljs language-' + lang;
+          hljs.highlightElement(el);
+        } else {
+          hljs.highlightElement(el);
+        }
+      });
+    }
+  }
+
+  // --- Diagram copy buttons (ASCII art) ---
+  function setupDiagramCopy() {
+    document.querySelectorAll('.diagram').forEach(function(block) {
+      if (block.querySelector('svg')) return; // Skip SVG diagrams
+      if (block.querySelector('.copy-btn')) return;
+
+      var btn = document.createElement('button');
+      btn.className = 'copy-btn diagram-copy-btn';
+      btn.textContent = 'Copy';
+      block.classList.add('has-copy-btn');
+      block.onmouseenter = function() { btn.classList.add('visible'); };
+      block.onmouseleave = function() { btn.classList.remove('visible'); };
+      btn.onclick = function() {
+        var text = block.textContent.replace('Copy', '').replace(/✓/g, '').trim();
+        navigator.clipboard.writeText(text).then(function() {
+          btn.textContent = '✓';
+          setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
+        });
+      };
+      block.appendChild(btn);
+    });
+  }
+
+  // --- Diagram Zoom (SVG click to fullscreen) ---
+  function setupDiagramZoom() {
+    var existingOverlay = document.querySelector('.diagram-overlay');
+    if (existingOverlay) return; // Already set up
+
+    var overlay = document.createElement('div');
+    overlay.className = 'diagram-overlay';
+    overlay.innerHTML =
+      '<button class="zoom-close" title="关闭 (Esc)">&times;</button>' +
+      '<span class="zoom-hint">滚轮缩放 · 拖拽平移 · 点击空白处关闭</span>' +
+      '<div class="diagram-overlay-inner"></div>' +
+      '<div class="zoom-controls">' +
+      '<button class="zoom-out" title="缩小">−</button>' +
+      '<span class="zoom-level">100%</span>' +
+      '<button class="zoom-in" title="放大">+</button>' +
+      '<button class="zoom-reset" title="重置">⟲</button>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    var inner = overlay.querySelector('.diagram-overlay-inner');
+    var zoomLevelEl = overlay.querySelector('.zoom-level');
+    var scale = 1, panX = 0, panY = 0, isDragging = false, dragX, dragY;
+    var MIN = 0.2, MAX = 5;
+
+    function update() {
+      inner.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+      zoomLevelEl.textContent = Math.round(scale * 100) + '%';
+    }
+    function reset() { scale = 1; panX = 0; panY = 0; update(); }
+    function close() {
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+      inner.innerHTML = '';
+    }
+
+    document.addEventListener('click', function(e) {
+      var diagram = e.target.closest('figure.diagram, .mermaid-wrap');
+      if (!diagram || overlay.classList.contains('active')) return;
+      var svg = diagram.querySelector('svg');
+      if (!svg) return;
+      inner.innerHTML = '';
+      var clone = svg.cloneNode(true);
+      clone.style.maxWidth = 'none';
+      var vb = clone.getAttribute('viewBox');
+      if (vb) { var p = vb.split(/[\s,]+/); clone.style.width = (parseInt(p[2]) || 700) + 'px'; }
+      inner.appendChild(clone);
+      reset();
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      setTimeout(function() {
+        var r = clone.getBoundingClientRect();
+        var vw = window.innerWidth * 0.9, vh = window.innerHeight * 0.8;
+        if (r.width > vw || r.height > vh) {
+          scale = Math.min(vw / r.width, vh / r.height);
+          update();
+        }
+      }, 50);
+    });
+
+    overlay.querySelector('.zoom-close').addEventListener('click', close);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay || e.target === inner) close();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && overlay.classList.contains('active')) close();
+    });
+
+    overlay.querySelector('.zoom-in').addEventListener('click', function(e) {
+      e.stopPropagation(); scale = Math.min(MAX, scale * 1.25); update();
+    });
+    overlay.querySelector('.zoom-out').addEventListener('click', function(e) {
+      e.stopPropagation(); scale = Math.max(MIN, scale / 1.25); update();
+    });
+    overlay.querySelector('.zoom-reset').addEventListener('click', function(e) {
+      e.stopPropagation(); reset();
+    });
+
+    overlay.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      scale = Math.max(MIN, Math.min(MAX, scale * (e.deltaY > 0 ? 0.9 : 1.1)));
+      update();
+    }, { passive: false });
+
+    inner.addEventListener('mousedown', function(e) {
+      isDragging = true; dragX = e.clientX - panX; dragY = e.clientY - panY;
+      overlay.classList.add('grabbing'); e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      panX = e.clientX - dragX; panY = e.clientY - dragY; update();
+    });
+    document.addEventListener('mouseup', function() {
+      isDragging = false; overlay.classList.remove('grabbing');
+    });
+
+    var lastDist = 0;
+    inner.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 1) {
+        isDragging = true; dragX = e.touches[0].clientX - panX; dragY = e.touches[0].clientY - panY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      }
+      e.preventDefault();
+    }, { passive: false });
+    inner.addEventListener('touchmove', function(e) {
+      if (e.touches.length === 1 && isDragging) {
+        panX = e.touches[0].clientX - dragX; panY = e.touches[0].clientY - dragY; update();
+      } else if (e.touches.length === 2 && lastDist > 0) {
+        var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        scale = Math.max(MIN, Math.min(MAX, scale * (d / lastDist)));
+        lastDist = d; update();
+      }
+      e.preventDefault();
+    }, { passive: false });
+    inner.addEventListener('touchend', function() { isDragging = false; lastDist = 0; });
+  }
+
+  // --- Mermaid dark mode ---
+  function getMermaidTheme(isDark) { return isDark ? 'dark' : 'default'; }
+
+  function setupMermaid() {
+    if (typeof mermaid === 'undefined') return;
+    var isDark = currentThemeIsDark();
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: getMermaidTheme(isDark),
+      securityLevel: 'loose'
+    });
+    mermaid.run({ querySelector: '.mermaid' });
+  }
+
+  function rerenderMermaid(isDark) {
+    if (typeof mermaid === 'undefined') return;
+    document.querySelectorAll('.mermaid').forEach(function(el) {
+      el.removeAttribute('data-processed');
+      var src = el.getAttribute('data-mermaid-src');
+      if (src) {
+        el.textContent = src;
+      }
+    });
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: getMermaidTheme(isDark),
+        securityLevel: 'loose'
+      });
+      mermaid.run({ querySelector: '.mermaid' });
+    } catch (e) {
+      console.warn('doc-shell: Mermaid rerender failed:', e.message);
+    }
+  }
+
+  // --- Cmd+K / Ctrl+K in-page search ---
+  document.addEventListener('keydown', function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      var query = prompt('搜索文档内容:');
+      if (query) window.find(query, false, false, true);
+    }
+  });
+
+  // --- Init ---
+  // Preserve Mermaid source before rendering — must happen before ANY mermaid call
+  document.querySelectorAll('.mermaid').forEach(function(el) {
+    if (!el.getAttribute('data-mermaid-src')) {
+      el.setAttribute('data-mermaid-src', el.textContent || el.innerHTML);
+    }
+  });
+
+  // Each feature init wrapped in try-catch to prevent cascade failure
+  var features = [
+    ['TOC', buildTOC],
+    ['ScrollSpy', setupScrollSpy],
+    ['CodeBlocks', setupCodeBlocks],
+    ['DiagramCopy', setupDiagramCopy],
+    ['DiagramZoom', setupDiagramZoom],
+    ['Mermaid', setupMermaid]
+  ];
+  features.forEach(function(f) {
+    try { f[1](); }
+    catch (e) { console.warn('doc-shell: ' + f[0] + ' init failed:', e.message); }
+  });
+})();
+/* @sync:doc-shell.js:end */
+/* @sync:skin-switcher.js:start */
+/* ── Skin Switcher ── */
+(function() {
+  'use strict';
+  var STORAGE_KEY = 'doc-skin';
+  var DEFAULT_SKIN = 'hdsa-teal';
+  var loadedFonts = new Set();
+  var SKINS = {
+    'hdsa-teal': {
+      name: 'Teal', desc: '青白主题 · 原始风格', icon: '&#9672;',
+      displayFont: '"Microsoft YaHei"', bodyFont: '"Microsoft YaHei"', monoFont: 'Consolas',
+      displayWeight: '700', letterSpacing: '-0.01em', textTransform: 'none',
+      radius: '8px', radiusLg: '8px', radiusSm: '4px',
+      shadowSm: '0 1px 3px rgba(0,0,0,.06)', shadowMd: '0 4px 12px rgba(0,0,0,.08)', shadowLg: '0 8px 28px rgba(0,0,0,.12)',
+      headingBorder: '2px solid var(--border-light)', headingStyle: 'normal',
+      light: {'--bg':'#ffffff','--bg-secondary':'#f7f9fb','--bg-tertiary':'#edf2f3','--text':'#1f2a30','--text-secondary':'#4a5568','--text-muted':'#66737c','--text-faint':'#8a95a4','--border':'#dfe6e8','--border-light':'#edf2f3','--accent':'#1c8790','--accent-hover':'#15696f','--accent-soft':'#e9fbfa','--accent-light':'#e9fbfa','--code-bg':'#f5f7f9','--code-border':'#e2e8ed','--link':'#1a6fa0','--link-hover':'#14587e','--info':'#3b82f6','--info-bg':'#eff6ff','--info-border':'#bfdbfe','--success':'#16a34a','--success-bg':'#edf7f0','--success-border':'#bbf0c9','--warning':'#ca8a04','--warning-bg':'#fefce8','--warning-border':'#fde68a','--danger':'#dc2626','--danger-bg':'#fef2f2','--danger-border':'#fecaca','--note':'#7c3aed','--note-bg':'#f5f3ff','--note-border':'#ddd6fe','--card-green':'#16a34a','--card-amber':'#ca8a04','--card-red':'#dc2626','--card-violet':'#7c3aed','--card-cyan':'#0891b2','--card-blue':'#3b82f6'},
+      dark: {'--bg':'#0d1117','--bg-secondary':'#161b22','--bg-tertiary':'#1c2128','--text':'#e6edf3','--text-secondary':'#b1bac4','--text-muted':'#8b949e','--text-faint':'#6e7681','--border':'#30363d','--border-light':'#21262d','--accent':'#58d5c9','--accent-hover':'#79e0d7','--accent-soft':'#122b2e','--accent-light':'#122b2e','--code-bg':'#1c2128','--code-border':'#30363d','--link':'#58a6ff','--link-hover':'#79b8ff','--info':'#58a6ff','--info-bg':'#0d1d31','--info-border':'#1f4170','--success':'#3fb950','--success-bg':'#0d2818','--success-border':'#1a4731','--warning':'#d29922','--warning-bg':'#2a1f05','--warning-border':'#4b3a12','--danger':'#f85149','--danger-bg':'#2d0d0d','--danger-border':'#5a1a1a','--note':'#a371f7','--note-bg':'#1a0d2e','--note-border':'#3b2066','--card-green':'#3fb950','--card-amber':'#d29922','--card-red':'#f85149','--card-violet':'#a371f7','--card-cyan':'#39d2c0','--card-blue':'#58a6ff'}
+    },
+    'soft-editorial': {
+      name: 'Soft Editorial', desc: '暖纸墨字 · 优雅衬线', icon: '&#9753;',
+      displayFont: '"Cormorant Garamond"', bodyFont: '"Work Sans"', monoFont: '"IBM Plex Mono"',
+      displayWeight: '500', letterSpacing: '-0.01em', textTransform: 'none',
+      radius: '10px', radiusLg: '16px', radiusSm: '6px',
+      shadowSm: '0 1px 3px rgba(42,36,27,.06)', shadowMd: '0 4px 12px rgba(42,36,27,.08)', shadowLg: '0 8px 30px rgba(42,36,27,.12)',
+      headingBorder: '2px solid var(--border-light)', headingStyle: 'normal',
+      light: {'--bg':'#F2EEDF','--bg-secondary':'#ECE6D2','--bg-tertiary':'#E4DDD0','--text':'#2A241B','--text-secondary':'#5C5345','--text-muted':'#7A7060','--text-faint':'#9A9080','--border':'#D8D0C0','--border-light':'#E4DDD0','--accent':'#B07070','--accent-hover':'#9A5A5A','--accent-soft':'#F5EDED','--accent-light':'#F5EDED','--code-bg':'#ECE6D2','--code-border':'#D8D0C0','--link':'#8B5E5E','--link-hover':'#6B4040','--info':'#7B8FA0','--info-bg':'#EDF0F2','--info-border':'#C8D0D8','--success':'#7B9A6B','--success-bg':'#EDF2EE','--success-border':'#C8D8CC','--warning':'#B08B40','--warning-bg':'#F5F0E0','--warning-border':'#D8CCA0','--danger':'#B05050','--danger-bg':'#F5EDED','--danger-border':'#D8B0B0','--note':'#8B7B9A','--note-bg':'#F0EDF5','--note-border':'#C8C0D8','--card-green':'#B7C7A8','--card-amber':'#D6DD63','--card-red':'#E1A4C2','--card-violet':'#C9BEDC','--card-cyan':'#A8C0B8','--card-blue':'#9AB0C8'},
+      dark: {'--bg':'#1E1B16','--bg-secondary':'#282420','--bg-tertiary':'#302B25','--text':'#E8DDD0','--text-secondary':'#B0A595','--text-muted':'#8A7E70','--text-faint':'#6A6055','--border':'#4A4440','--border-light':'#352F2A','--accent':'#D4A0A0','--accent-hover':'#E0B5B5','--accent-soft':'#2A1E1E','--accent-light':'#2A1E1E','--code-bg':'#282420','--code-border':'#4A4440','--link':'#D4A0A0','--link-hover':'#E0B5B5','--info':'#8A9AA8','--info-bg':'#222628','--info-border':'#3A4045','--success':'#8AAA7A','--success-bg':'#222822','--success-border':'#3A4538','--warning':'#C0A060','--warning-bg':'#282418','--warning-border':'#4A4030','--danger':'#C07070','--danger-bg':'#282020','--danger-border':'#4A3535','--note':'#A090B0','--note-bg':'#242228','--note-border':'#3A3545','--card-green':'#6A7A5C','--card-amber':'#8A8A3A','--card-red':'#8A5A72','--card-violet':'#706080','--card-cyan':'#5A7068','--card-blue':'#5A6A7A'}
+    },
+    'vellum': {
+      name: 'Vellum', desc: '深蓝纸张 · 学术斜体', icon: '&#9733;',
+      displayFont: '"Cormorant Garamond"', bodyFont: '"DM Sans"', monoFont: '"Courier Prime"',
+      displayWeight: '500', letterSpacing: '-0.005em', textTransform: 'none',
+      radius: '8px', radiusLg: '12px', radiusSm: '4px',
+      shadowSm: '0 1px 4px rgba(0,0,0,.1)', shadowMd: '0 4px 16px rgba(0,0,0,.12)', shadowLg: '0 8px 32px rgba(0,0,0,.18)',
+      headingBorder: '1px solid var(--border-light)', headingStyle: 'italic',
+      light: {'--bg':'#F5F0E4','--bg-secondary':'#EDE8DA','--bg-tertiary':'#E5E0D2','--text':'#1A1A16','--text-secondary':'#5E5E54','--text-muted':'#8A8A80','--text-faint':'#A0A096','--border':'#D0C8B8','--border-light':'#E0D8C8','--accent':'#2A5A60','--accent-hover':'#1A4A50','--accent-soft':'#E8F0F0','--accent-light':'#E8F0F0','--code-bg':'#EDE8DA','--code-border':'#D0C8B8','--link':'#2A5A60','--link-hover':'#1A4A50','--info':'#4A7A80','--info-bg':'#E8F0F2','--info-border':'#B0D0D5','--success':'#5A8A5A','--success-bg':'#EAF2EA','--success-border':'#B0D0B0','--warning':'#8A7A3A','--warning-bg':'#F2F0E0','--warning-border':'#D0C8A0','--danger':'#8A4A4A','--danger-bg':'#F2EAEA','--danger-border':'#D0B0B0','--note':'#6A5A8A','--note-bg':'#EDE8F5','--note-border':'#C0B8D8','--card-green':'#A0B89A','--card-amber':'#D0C870','--card-red':'#C8A0A0','--card-violet':'#B0A0C8','--card-cyan':'#90B0B0','--card-blue':'#90A8C0'},
+      dark: {'--bg':'#141620','--bg-secondary':'#1C1E2A','--bg-tertiary':'#242634','--text':'#E8E4D8','--text-secondary':'#A8A498','--text-muted':'#78746C','--text-faint':'#5A5850','--border':'#3A3C4A','--border-light':'#2A2C38','--accent':'#6AB0B8','--accent-hover':'#80C0C8','--accent-soft':'#1A2A2C','--accent-light':'#1A2A2C','--code-bg':'#1C1E2A','--code-border':'#3A3C4A','--link':'#6AB0B8','--link-hover':'#80C0C8','--info':'#6A9AA0','--info-bg':'#182024','--info-border':'#2A3A40','--success':'#6A9A6A','--success-bg':'#182018','--success-border':'#2A3A2A','--warning':'#A0904A','--warning-bg':'#202018','--warning-border':'#3A3A2A','--danger':'#A06060','--danger-bg':'#201818','--danger-border':'#3A2A2A','--note':'#8070A0','--note-bg':'#1C1824','--note-border':'#302A40','--card-green':'#5A7058','--card-amber':'#808040','--card-red':'#806060','--card-violet':'#685878','--card-cyan':'#506868','--card-blue':'#506078'}
+    },
+    'monochrome': {
+      name: 'Monochrome', desc: '极简墨白 · 几何无衬线', icon: '&#9632;',
+      displayFont: '"Jost"', bodyFont: '"Jost"', monoFont: '"JetBrains Mono"',
+      displayWeight: '300', letterSpacing: '-0.02em', textTransform: 'none',
+      radius: '4px', radiusLg: '6px', radiusSm: '2px',
+      shadowSm: 'none', shadowMd: 'none', shadowLg: '0 2px 8px rgba(0,0,0,.06)',
+      headingBorder: '1px solid var(--border)', headingStyle: 'normal',
+      light: {'--bg':'#FAFAF6','--bg-secondary':'#F2F2EE','--bg-tertiary':'#EAEAE6','--text':'#1A1A18','--text-secondary':'#4A4A48','--text-muted':'#8A8A88','--text-faint':'#B0B0AE','--border':'#DCDCD8','--border-light':'#EAEAE6','--accent':'#2A2A28','--accent-hover':'#0A0A08','--accent-soft':'#F0F0EC','--accent-light':'#F0F0EC','--code-bg':'#F2F2EE','--code-border':'#DCDCD8','--link':'#2A2A28','--link-hover':'#0A0A08','--info':'#5A6A7A','--info-bg':'#F0F2F5','--info-border':'#C8D0D8','--success':'#5A7A5A','--success-bg':'#F0F5F0','--success-border':'#C8D8C8','--warning':'#7A7A3A','--warning-bg':'#F5F5E8','--warning-border':'#D8D8C0','--danger':'#7A3A3A','--danger-bg':'#F5E8E8','--danger-border':'#D8C0C0','--note':'#5A4A7A','--note-bg':'#F2F0F5','--note-border':'#D0C8D8','--card-green':'#B0B8A8','--card-amber':'#C8C8A0','--card-red':'#C0A8A8','--card-violet':'#B0A8B8','--card-cyan':'#A0B0B0','--card-blue':'#A0A8B8'},
+      dark: {'--bg':'#161616','--bg-secondary':'#1E1E1E','--bg-tertiary':'#262626','--text':'#E8E8E6','--text-secondary':'#A8A8A6','--text-muted':'#6A6A68','--text-faint':'#4A4A48','--border':'#3A3A38','--border-light':'#2A2A28','--accent':'#E0E0DE','--accent-hover':'#F0F0EE','--accent-soft':'#222220','--accent-light':'#222220','--code-bg':'#1E1E1E','--code-border':'#3A3A38','--link':'#E0E0DE','--link-hover':'#F0F0EE','--info':'#7A8A9A','--info-bg':'#1A1E22','--info-border':'#2A3A42','--success':'#6A8A6A','--success-bg':'#1A201A','--success-border':'#2A3A2A','--warning':'#8A8A5A','--warning-bg':'#20201A','--warning-border':'#3A3A2A','--danger':'#9A5A5A','--danger-bg':'#201A1A','--danger-border':'#3A2A2A','--note':'#7A6A9A','--note-bg':'#1E1A22','--note-border':'#302A3A','--card-green':'#5A6A58','--card-amber':'#7A7A48','--card-red':'#7A5858','--card-violet':'#685878','--card-cyan':'#506868','--card-blue':'#505870'}
+    },
+    'cartography': {
+      name: 'Cartography', desc: '古典制图 · 深衬线', icon: '&#9776;',
+      displayFont: '"Playfair Display"', bodyFont: '"Source Serif 4"', monoFont: '"JetBrains Mono"',
+      displayWeight: '600', letterSpacing: '-0.005em', textTransform: 'none',
+      radius: '6px', radiusLg: '10px', radiusSm: '3px',
+      shadowSm: '0 1px 2px rgba(30,24,18,.05)', shadowMd: '0 3px 10px rgba(30,24,18,.08)', shadowLg: '0 6px 24px rgba(30,24,18,.1)',
+      headingBorder: '2px solid var(--accent)', headingStyle: 'normal',
+      light: {'--bg':'#F8F3EA','--bg-secondary':'#F0EBE0','--bg-tertiary':'#E8E3D8','--text':'#2E2418','--text-secondary':'#5A5040','--text-muted':'#807060','--text-faint':'#A09080','--border':'#D5CBBA','--border-light':'#E5DDD0','--accent':'#8B4513','--accent-hover':'#6B3510','--accent-soft':'#F5EDE5','--accent-light':'#F5EDE5','--code-bg':'#F0EBE0','--code-border':'#D5CBBA','--link':'#8B4513','--link-hover':'#6B3510','--info':'#5A7080','--info-bg':'#EDF0F2','--info-border':'#C0D0D8','--success':'#5A7A5A','--success-bg':'#EDF2EE','--success-border':'#C0D8C8','--warning':'#8A7030','--warning-bg':'#F5F0E0','--warning-border':'#D8C898','--danger':'#8A3A3A','--danger-bg':'#F5EDED','--danger-border':'#D8B0B0','--note':'#6A4A80','--note-bg':'#F0EDF5','--note-border':'#C0B0D8','--card-green':'#A8B89A','--card-amber':'#D0C070','--card-red':'#C8A090','--card-violet':'#B0A0C0','--card-cyan':'#90B0A8','--card-blue':'#90A0B8'},
+      dark: {'--bg':'#1A1610','--bg-secondary':'#242018','--bg-tertiary':'#2E2A20','--text':'#E8E0D0','--text-secondary':'#B0A898','--text-muted':'#807868','--text-faint':'#605848','--border':'#4A4438','--border-light':'#3A3428','--accent':'#D08040','--accent-hover':'#E09050','--accent-soft':'#2A2018','--accent-light':'#2A2018','--code-bg':'#242018','--code-border':'#4A4438','--link':'#D08040','--link-hover':'#E09050','--info':'#7090A0','--info-bg':'#1A2025','--info-border':'#2A3A42','--success':'#70A070','--success-bg':'#1A221A','--success-border':'#2A3A2A','--warning':'#A09040','--warning-bg':'#22201A','--warning-border':'#3A3828','--danger':'#A06060','--danger-bg':'#221A1A','--danger-border':'#3A2A2A','--note':'#8070A0','--note-bg':'#1E1A22','--note-border':'#302840','--card-green':'#607858','--card-amber':'#888040','--card-red':'#806858','--card-violet':'#706080','--card-cyan':'#587068','--card-blue':'#586878'}
+    },
+    'signal': {
+      name: 'Signal', desc: '深蓝金线 · 制度感', icon: '&#9670;',
+      displayFont: '"Newsreader"', bodyFont: '"Hanken Grotesk"', monoFont: '"JetBrains Mono"',
+      displayWeight: '500', letterSpacing: '0', textTransform: 'none',
+      radius: '6px', radiusLg: '8px', radiusSm: '3px',
+      shadowSm: '0 1px 3px rgba(10,15,30,.08)', shadowMd: '0 4px 14px rgba(10,15,30,.1)', shadowLg: '0 8px 28px rgba(10,15,30,.15)',
+      headingBorder: '1px solid var(--border)', headingStyle: 'normal',
+      light: {'--bg':'#F5F0E4','--bg-secondary':'#EDE8DA','--bg-tertiary':'#E5E0D2','--text':'#101828','--text-secondary':'#3A4558','--text-muted':'#6A7588','--text-faint':'#95A0B0','--border':'#D0CCC0','--border-light':'#E0DCD0','--accent':'#B89650','--accent-hover':'#A08040','--accent-soft':'#F5F0E0','--accent-light':'#F5F0E0','--code-bg':'#EDE8DA','--code-border':'#D0CCC0','--link':'#B89650','--link-hover':'#A08040','--info':'#4A6A8A','--info-bg':'#EDF0F5','--info-border':'#B8C8D8','--success':'#4A7A5A','--success-bg':'#EDF2EE','--success-border':'#B0D0B8','--warning':'#8A7A30','--warning-bg':'#F5F2E0','--warning-border':'#D8D098','--danger':'#8A3A3A','--danger-bg':'#F5EDED','--danger-border':'#D8B0B0','--note':'#5A4A80','--note-bg':'#F0EDF5','--note-border':'#C0B0D8','--card-green':'#A0B8A0','--card-amber':'#D0C870','--card-red':'#C8A8A0','--card-violet':'#B0A0C0','--card-cyan':'#90B0B0','--card-blue':'#90A0C0'},
+      dark: {'--bg':'#0A0F1E','--bg-secondary':'#101828','--bg-tertiary':'#182030','--text':'#E0DCD0','--text-secondary':'#A8A498','--text-muted':'#6A7588','--text-faint':'#4A5568','--border':'#2A3448','--border-light':'#1E2838','--accent':'#D4AA60','--accent-hover':'#E0BA70','--accent-soft':'#1A1E10','--accent-light':'#1A1E10','--code-bg':'#101828','--code-border':'#2A3448','--link':'#D4AA60','--link-hover':'#E0BA70','--info':'#6A8AA0','--info-bg':'#101820','--info-border':'#2A3A48','--success':'#6A9A6A','--success-bg':'#101A18','--success-border':'#2A3A2A','--warning':'#A09040','--warning-bg':'#1A1A10','--warning-border':'#3A3828','--danger':'#A06060','--danger-bg':'#1A1010','--danger-border':'#3A2A2A','--note':'#7A6A9A','--note-bg':'#14101E','--note-border':'#2A2040','--card-green':'#587858','--card-amber':'#808040','--card-red':'#806860','--card-violet':'#685878','--card-cyan':'#506868','--card-blue':'#506080'}
+    }
+  };
+  function loadFont(f, w) { if (loadedFonts.has(f)) return; loadedFonts.add(f); var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(f) + ':' + w + '&display=swap'; document.head.appendChild(l); }
+  function loadSkinFonts(s) { loadFont(s.displayFont.replace(/"/g, ''), 'wght@400;500;600'); loadFont(s.bodyFont.replace(/"/g, ''), 'wght@300;400;500;600'); loadFont(s.monoFont.replace(/"/g, ''), 'wght@400;500'); loadFont('Noto Sans SC', 'wght@300;400;500;600'); loadFont('Noto Serif SC', 'wght@400;500;600'); }
+  function applyVars(v) { var r = document.documentElement; Object.keys(v).forEach(function(k) { r.style.setProperty(k, v[k]); }); }
+  function applySkinProps(s) { var r = document.documentElement; r.style.setProperty('--font-display', s.displayFont + ', "Noto Serif SC", serif'); r.style.setProperty('--font-sans', s.bodyFont + ', "Noto Sans SC", system-ui, sans-serif'); r.style.setProperty('--font-mono', s.monoFont + ', Consolas, "Courier New", monospace'); r.style.setProperty('--radius', s.radius); r.style.setProperty('--radius-lg', s.radiusLg); r.style.setProperty('--radius-sm', s.radiusSm); r.style.setProperty('--shadow-sm', s.shadowSm); r.style.setProperty('--shadow-md', s.shadowMd); r.style.setProperty('--shadow-lg', s.shadowLg); r.style.setProperty('--heading-border', s.headingBorder); r.style.setProperty('--heading-style', s.headingStyle); r.style.setProperty('--heading-tracking', s.letterSpacing); r.style.setProperty('--heading-transform', s.textTransform); }
+  function getTheme() { var a = document.documentElement.getAttribute('data-theme'); if (a) return a; return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+  function applySkin(id) { var s = SKINS[id]; if (!s) return; loadSkinFonts(s); var r = document.documentElement; r.setAttribute('data-skin', id); applySkinProps(s); applyVars(getTheme() === 'dark' ? s.dark : s.light); try { localStorage.setItem(STORAGE_KEY, id); } catch(e) {} document.querySelectorAll('.skin-opt').forEach(function(el) { el.classList.toggle('active', el.getAttribute('data-skin-id') === id); }); }
+  function injectCSS() { var css = '.skin-switch{position:relative;display:inline-flex;align-items:center}.skin-btn{display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:var(--radius-sm,6px);background:var(--bg-secondary);color:var(--text-secondary);font:13px/1.2 var(--font-sans,sans-serif);cursor:pointer;transition:all .2s ease;user-select:none}.skin-btn:hover{border-color:var(--accent);color:var(--text)}.skin-btn .skin-icon{font-size:15px;line-height:1}.skin-btn .skin-arrow{font-size:10px;opacity:.5;margin-left:2px;transition:transform .2s ease}.skin-switch.open .skin-btn .skin-arrow{transform:rotate(180deg)}.skin-drop{position:absolute;top:calc(100% + 6px);right:0;z-index:1000;min-width:220px;padding:6px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius,10px);box-shadow:var(--shadow-md);opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .2s ease}.skin-switch.open .skin-drop{opacity:1;visibility:visible;transform:translateY(0)}.skin-opt{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm,6px);cursor:pointer;transition:background .15s ease;font:13px/1.3 var(--font-sans,sans-serif);color:var(--text-secondary)}.skin-opt:hover{background:var(--bg-secondary);color:var(--text)}.skin-opt.active{background:var(--accent-soft);color:var(--accent)}.skin-opt-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}.skin-opt-info{flex:1;min-width:0}.skin-opt-name{font-weight:600;font-size:13px}.skin-opt-desc{font-size:11px;opacity:.7;margin-top:1px}.skin-opt-check{font-size:12px;opacity:0;color:var(--accent);flex-shrink:0}.skin-opt.active .skin-opt-check{opacity:1}[data-skin] h1,[data-skin] h2,[data-skin] h3,[data-skin] h4{font-family:var(--font-display);font-style:var(--heading-style,normal);letter-spacing:var(--heading-tracking,-.01em);text-transform:var(--heading-transform,none)}[data-skin] body{font-family:var(--font-sans)}[data-skin] code,[data-skin] pre{font-family:var(--font-mono)}[data-skin] h2{border-bottom:var(--heading-border,2px solid var(--border-light))}[data-skin] .scope-block,[data-skin] .callout,[data-skin] .relevant-sources,[data-skin] details>summary{border-radius:var(--radius)}[data-skin] .card,[data-skin] .tab-panel,[data-skin] .code-block pre{border-radius:var(--radius-sm)}'; var s = document.createElement('style'); s.id = 'skin-switcher-css'; s.textContent = css; document.head.appendChild(s); }
+  function createSwitcher(anchor) { injectCSS(); var sw = document.createElement('div'); sw.className = 'skin-switch'; var cur = (function() { try { return localStorage.getItem(STORAGE_KEY); } catch(e) { return null; } })() || DEFAULT_SKIN; var cs = SKINS[cur] || SKINS[DEFAULT_SKIN]; var btn = document.createElement('button'); btn.className = 'skin-btn'; btn.innerHTML = '<span class="skin-icon">' + cs.icon + '</span><span>Skin</span><span class="skin-arrow">&#9662;</span>'; btn.setAttribute('aria-label', '切换皮肤'); btn.setAttribute('aria-expanded', 'false'); var drop = document.createElement('div'); drop.className = 'skin-drop'; Object.keys(SKINS).forEach(function(id) { var s = SKINS[id]; var opt = document.createElement('div'); opt.className = 'skin-opt' + (id === cur ? ' active' : ''); opt.setAttribute('data-skin-id', id); opt.innerHTML = '<span class="skin-opt-icon">' + s.icon + '</span><div class="skin-opt-info"><div class="skin-opt-name">' + s.name + '</div><div class="skin-opt-desc">' + s.desc + '</div></div><span class="skin-opt-check">&#10003;</span>'; opt.addEventListener('click', function() { applySkin(id); btn.querySelector('.skin-icon').innerHTML = s.icon; sw.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); }); drop.appendChild(opt); }); btn.addEventListener('click', function(e) { e.stopPropagation(); var isOpen = sw.classList.toggle('open'); btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false'); }); document.addEventListener('click', function(e) { if (!sw.contains(e.target)) { sw.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); } }); sw.appendChild(btn); sw.appendChild(drop); if (anchor) anchor.appendChild(sw); return sw; }
+  function watchTheme() { new MutationObserver(function() { var sid = document.documentElement.getAttribute('data-skin') || DEFAULT_SKIN; var skin = SKINS[sid]; if (skin) applyVars(getTheme() === 'dark' ? skin.dark : skin.light); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); }
+  function init() { var anchor = document.querySelector('.topbar-actions') || document.querySelector('.topbar'); if (!anchor) return; var saved = (function() { try { return localStorage.getItem(STORAGE_KEY); } catch(e) { return null; } })(); if (saved && SKINS[saved]) applySkin(saved); createSwitcher(anchor); watchTheme(); }
+  window.SkinSwitcher = { skins: SKINS, apply: applySkin, create: createSwitcher, init: init, current: function() { return document.documentElement.getAttribute('data-skin') || DEFAULT_SKIN; } };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else setTimeout(init, 10);
+})();
+/* @sync:skin-switcher.js:end */
+</script>
 </body>
 </html>
