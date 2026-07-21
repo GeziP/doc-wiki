@@ -526,6 +526,15 @@ function mdBodyToHtml(body, needsMermaid) {
 
     if (inCode) { codeLines.push(line); continue; }
 
+    // Raw HTML block: line is a standalone HTML tag like '<div ...>', '</div>',
+    // '<details>', '<summary>...</summary>', '<p>...</p>'.
+    // CommonMark 规范允许 markdown 中嵌入 raw HTML 块——直通不转义。
+    if (/^<\/?[a-z][a-z0-9-]*\b[^>]*>(.*)$/i.test(line.trim()) && !line.trim().startsWith('<!--')) {
+      flushList(); flushOl(); flushTable(); flushBlockquote();
+      out.push(line);
+      continue;
+    }
+
     // Blockquote lines: > ...
     if (/^>\s?/.test(line)) {
       flushList(); flushOl(); flushTable();
