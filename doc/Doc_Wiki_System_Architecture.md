@@ -3,15 +3,15 @@
 ## 文档信息
 | 文档版本 | V2.0 |
 | 编写日期 | 2026-06-16 |
-| 更新日期 | 2026-06-16 |
+| 更新日期 | 2026-08-24 |
 | 目标读者 | Claude Code Skill 开发者、文档工具贡献者 |
-| 源码规模 | 48 文件，~17,000 行代码，5 个子系统 |
+| 源码规模 | 53 文件，~5,400 行核心代码（SKILL + scripts + references），5 个子系统 |
 
 ## 1. 概述
 
 > **Scope**：本文覆盖 Doc-Wiki 的整体架构、五层子系统设计、模板引擎机制、校验流水线、全力模式工作流和设计系统。不覆盖单个模板的 HTML 细节（见 `references/html-components.md`）和校验脚本的逐函数实现。
 
-Doc-Wiki 是一个 **Claude Code Skill**，将真实源码转成可验证的、离线可用的技术文档。它解决的核心问题是：AI 生成的技术文档普遍存在编造代码引用、视觉风格不一致、缺乏可验证性三大问题。Doc-Wiki 通过 **8 条铁律**（先读后写、不许编造、颜色锁死、零装饰、零外链、每图必说、引用溯源、全力模式独立审核）和 **17 类自动化校验** 系统性地解决了这些问题。
+Doc-Wiki 是一个 **Claude Code Skill**，将真实源码转成可验证的、离线可用的技术文档。它解决的核心问题是：AI 生成的技术文档普遍存在编造代码引用、视觉风格不一致、缺乏可验证性三大问题。Doc-Wiki 通过 **8 条铁律**（先读后写、不许编造、颜色锁死、零装饰、零外链、每图必说、引用溯源、全力模式独立审核）和 **18 类自动化校验** 系统性地解决了这些问题。
 
 ### 1.1 项目定位
 
@@ -25,7 +25,7 @@ Doc-Wiki 诞生于实际工程需求——需要一个能自动从源码生成�
 |------|---------|---------|--------|
 | **三种文档类型** | Module（API 参考）、System（架构全景）、Guide（端到端教程），每种有独立工作流和模板 | `SKILL.md` + `references/` | Stable |
 | **全力模式** | 不区分类型，自动分析项目生成完整文档体系：系统架构 + 核心模块 + Guide + 索引页 | `SKILL.md` §全力模式 | Beta |
-| **17 类自动化校验** | Mermaid 语法、标题 ID、代码块、表格、内联 MD、折叠章节、TOC、HTML 骨架、源码引用、术语表、Scope、视觉约束、SVG 护栏、图说、空章节、重复内容、内容密度 | `scripts/validate-doc.js` | Stable |
+| **18 类自动化校验** | Mermaid 语法、标题 ID、代码块、表格、内联 MD、折叠章节、TOC、HTML 骨架、**HTML 转义回归**、源码引用、术语表、Scope、视觉约束、SVG 护栏、图说、空章节、重复内容、内容密度 | `scripts/validate-doc.js` | Stable |
 | **6 套视觉皮肤** | Teal/Editorial/Vellum/Mono/Carto/Signal，支持暗色模式 + OS 偏好检测 | `scripts/skin-switcher.js` | Stable |
 | **@sync 同步机制** | CSS/JS 修改后一条命令同步到所有模板，解决"改了 CSS 忘了同步"的一致性问题 | `scripts/inline-shared.js` | Stable |
 | **渐进式披露** | 三层结构：Summary（始终可见）→ Details（默认展开）→ Deep Dive（默认折叠），对齐 DeepWiki/ZRead | `templates/sections/` + `templates/fullpower/` | Stable |
@@ -40,7 +40,7 @@ Doc-Wiki 诞生于实际工程需求——需要一个能自动从源码生成�
 | 设计系统 | CSS 变量 | — | 颜色、字号、间距 | 暗色模式自动切换，皮肤系统通过覆盖变量实现 |
 | 图表 | Mermaid + 内联 SVG | 10.9.0 | 架构图、状态图、流程图 | Mermaid 适合复杂图，SVG 适合精细控制 |
 | 代码高亮 | highlight.js | 11.9.0 | 代码块语法高亮 | CDN 加载，离线回退到手动 span |
-| 校验 | Node.js 脚本 | — | 17 类自动化检查 | 快速、可扩展、支持 --fix 自动修复 |
+| 校验 | Node.js 脚本 | — | 18 类自动化检查 | 快速、可扩展、支持 --fix 自动修复 |
 
 ### 1.4 适用场景
 
@@ -61,7 +61,7 @@ Doc-Wiki 诞生于实际工程需求——需要一个能自动从源码生成�
 | 源码文件数 | 48 | 不含 doc/ 输出 |
 | 代码行数 | ~17,000 | 含注释，不含空行 |
 | 子系统数 | 5 | 路由、工作流、模板、工具链、样本 |
-| 校验项 | 17 类 | 含交互测试 7 项 |
+| 校验项 | 18 类 | 含交互测试 7 项 |
 | 皮肤数 | 6 | Teal/Editorial/Vellum/Mono/Carto/Signal |
 | Git 提交 | 19 | 2026-05-16 ~ 2026-06-16 |
 | 公开 API | 5 | validate-doc.js, md-to-html.js, inline-shared.js, doc-shell.js, skin-switcher.js |
@@ -143,8 +143,8 @@ doc-writer/
 │       ├── 14-glossary.html          #     术语表
 │       └── 15-flowchart.html         #     流程图
 ├── scripts/                          # L4: 工具链
-│   ├── validate-doc.js               #   17 类校验 + 交互测试（1004 行）
-│   ├── md-to-html.js                 #   MD→HTML 转换（849 行）
+│   ├── validate-doc.js               #   18 类校验 + 交互测试（1032 行）
+│   ├── md-to-html.js                 #   MD→HTML 转换（858 行）
 │   ├── inline-shared.js              #   CSS/JS 模板同步（301 行）
 │   ├── doc-shell.css                 #   设计系统（692 行）
 │   ├── doc-shell.js                  #   运行时功能（414 行）
@@ -255,7 +255,30 @@ SKILL.md（1003 行）是整个系统的入口，包含文档类型路由、执�
 | 端到端 Guide | 沿数据流叙事、配置指南、故障排查 | 01+04+07+12+13+14+15 | `doc/<Project>_Guide.html` |
 | 索引页 | 所有文档的导航入口 | — | `doc/index.html` |
 
-### 3.6 自迭代循环
+### 3.6 维护工作流（增量更新，2026-08-24 新增）
+
+生成是冷启动，维护是常态——真实项目 90% 的文档工作是"代码改了，文档跟上"。
+维护工作流（[`references/maintenance-workflow.md`](../references/maintenance-workflow.md)）与生成共用 subagent 机制与审核循环，差异在于**只修漂移部分**且必须做基线对比：
+
+| 阶段 | 动作 | 关键产出 |
+|------|------|---------|
+| M0 drift 扫描 | git 对比 doc/code 最后提交日期 | 漂移文档清单（含预期漂移类型推断） |
+| M1 核对分析 | 并行派 analyzer（核对型 prompt：先给已知线索，要求全文核对） | 漂移清单表（🔴🟠🟡 分级）+ 新机制说明素材 |
+| M2 最小修订 | 只修漂移部分；元数据/变更历史同步 | 修订后文档 |
+| M3 基线防回归 | 修订前后 validate 错误集合 diff | BASELINE-EQUAL 或回归定位 |
+| M4 聚焦审核 | reviewer 只审修订章节；修订后重跑 M3 | 审核评分 + 修订清单 |
+
+**基线防回归的硬指标是"不新增错误"，不是"零错误"**——存量文档有历史欠账
+（旧格式警告等），维护交付的唯一硬约束是错误集合不扩大。归因警告：对比期间
+不要用不同版本的 md-to-html.js 重刷未修订文档——脚本版本差异（如中文
+heading id 支持）会污染 diff。
+
+**Subagent 环境适配**（2026-08-24）：headless 环境（`claude -p`）无 Task 工具时，
+用 `claude --agents` 内联注入 agent 定义（JSON），主 agent 以 Bash 子进程并行派发；
+reviewer 长任务用 `--bg` 后台 + sidecar 文件（.pid/.exit）跟踪。详见 SKILL.md
+阶段 1「Subagent 执行机制」。
+
+### 3.7 自迭代循环
 
 校验不是一次性检查，而是闭环迭代。agent 生成文档后，必须运行校验、修复问题、再校验，直到所有检查通过：
 
@@ -276,7 +299,7 @@ SKILL.md（1003 行）是整个系统的入口，包含文档类型路由、执�
 
 **终止条件：** 所有校验通过 / 连续两轮无提升 / 3 轮上限。
 
-### 3.7 相关源文件
+### 3.8 相关源文件
 - `SKILL.md:1-12` — Skill 头部定义
 - `SKILL.md:75-87` — 铁律
 - `SKILL.md:107-155` — 全力模式工作流
@@ -388,7 +411,7 @@ node scripts/md-to-html.js --type module --index "ProjectName" "description"
 
 ## 5. 校验流水线
 
-`validate-doc.js`（1004 行）实现 17 类自动化校验，覆盖内容质量、视觉约束、交互功能三个维度。`--fix` 可自动修复部分问题，`--test-interactive` 启用全力模式交互测试。
+`validate-doc.js`（1032 行）实现 18 类自动化校验，覆盖内容质量、视觉约束、交互功能三个维度。`--fix` 可自动修复部分问题，`--test-interactive` 启用全力模式交互测试。
 
 ### 5.1 校验架构
 
@@ -399,7 +422,7 @@ function validateFile(filePath, fix) {
   let html = fs.readFileSync(filePath, 'utf-8');
   const report = new Report(path.basename(filePath));
 
-  // 17 类校验
+  // 18 类校验
   html = checkMermaid(html, report, fix);        // 1. Mermaid 语法
   html = checkHeadingIds(html, report, fix);      // 2. 标题 ID
   html = checkCodeBlocks(html, report, fix);      // 3. 代码块
@@ -408,15 +431,16 @@ function validateFile(filePath, fix) {
   checkCollapsibleSections(html, report);          // 6. 折叠章节
   html = checkTOC(html, report, fix);             // 7. TOC 完整性
   checkHtmlSkeleton(html, report);                 // 8. HTML 骨架
-  checkSourceRefs(html, report);                   // 9. 源码引用
-  checkGlossary(html, report);                     // 10. 术语表
-  checkScopeBlock(html, report);                   // 11. Scope 声明
-  checkVisualConstraints(html, report);            // 12. 视觉约束
-  checkSvgGuardrails(html, report);                // 13. SVG 护栏
-  checkFigCaptions(html, report, isNewDoc);        // 14. 图说完整性
-  checkEmptySections(html, report);                // 15. 空章节
-  checkDuplicateContent(html, report);             // 16. 重复内容
-  checkContentDensity(html, report);               // 17. 内容密度
+  checkEscapedHtml(html, report);                  // 9. HTML 转义回归
+  checkSourceRefs(html, report);                   // 10. 源码引用
+  checkGlossary(html, report);                     // 11. 术语表
+  checkScopeBlock(html, report);                   // 12. Scope 声明
+  checkVisualConstraints(html, report);            // 13. 视觉约束
+  checkSvgGuardrails(html, report);                // 14. SVG 护栏
+  checkFigCaptions(html, report, isNewDoc);        // 15. 图说完整性
+  checkEmptySections(html, report);                // 16. 空章节
+  checkDuplicateContent(html, report);             // 17. 重复内容
+  checkContentDensity(html, report);               // 18. 内容密度
 
   // 交互测试（全力模式）
   if (testInteractive) {
@@ -681,7 +705,7 @@ Doc-Wiki 的数据流沿两个方向流动：正向（源码→文档）和反�
   → Phase 0: 读源码（记录 file:line）
   → Phase 1: 结构设计（选章节框架）
   → Phase 2: 内容生成（填入模板 {{SECTIONS}}）
-  → Phase 3: 校验交付（validate-doc.js 17 类检查）
+  → Phase 3: 校验交付（validate-doc.js 18 类检查 + 基线对比防回归）
 ```text
 
 关键设计：agent 生成的内容是**HTML 片段**（填入 `{{SECTIONS}}`），而非完整 HTML 文件。骨架（CSS/JS/sidebar/TOC）由模板提供，确保视觉一致性。

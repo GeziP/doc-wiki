@@ -12,6 +12,38 @@
 
 核心原则：先读后写、不许编造、颜色锁死、零装饰、零外链、每图必说、引用溯源。
 
+## Showcase — 实际效果
+
+> Doc-Wiki 给自己生成的文档（[doc/Doc_Wiki_System_Architecture.md](doc/Doc_Wiki_System_Architecture.md)，
+> 857 行 Markdown → 单文件 HTML，18 类校验全过）。**所有截图都是 skill 真实产出，不是设计稿。**
+
+### 系统架构文档（system 类型）
+
+[![文档顶部：元信息 + Scope 声明 + 侧边栏 TOC](docs/screenshots/self-doc-top.png)](doc/Doc_Wiki_System_Architecture.html)
+
+*顶部：文档元信息（版本/日期/源码规模）、Scope 声明块、左侧自动生成 TOC（ScrollSpy 高亮）、
+右侧正文渐进式披露结构。*
+
+[![校验流水线章节：代码块 + 表格](docs/screenshots/self-doc-validation.png)](doc/Doc_Wiki_System_Architecture.html)
+
+*中部：18 类校验流水线的代码块（语法高亮 + 复制按钮）与校验项表格。每个代码引用带 `file:line` 溯源。*
+
+[![维护工作流章节：M0-M4 表格 + callout](docs/screenshots/self-doc-maintenance.png)](doc/Doc_Wiki_System_Architecture.html)
+
+*维护工作流章节：增量更新的 M0-M4 阶段表、设计决策 callout（WHY 不是 WHAT）。*
+
+### 三种文档类型的黄金样本
+
+| 类型 | 内容样本（纯 HTML 片段，无骨架） | 说明 |
+|------|-------------------------------|------|
+| module | [examples/module-content-example.html](examples/module-content-example.html) | TaskScheduler API 参考：Scope + 源码引用 + SVG 图表 + Tabs |
+| system | [examples/system-content-example.html](examples/system-content-example.html) | Layer Stack 组件 + Mermaid 架构图 + 五维模块表 |
+| guide | [examples/guide-content-example.html](examples/guide-content-example.html) | Badge 标注 + 步骤指示器 + flow 组件 + FAQ |
+| fullpower | [examples/fullpower-content-example.html](examples/fullpower-content-example.html) | 全力模式三层渐进式披露的深度内容 |
+
+> 样本是"写对了长什么样"的黄金参考——只含填入 `{{SECTIONS}}` 的内容片段，骨架（CSS/JS/TOC/暗色模式）由模板提供。
+> 完整效果请打开 [doc/Doc_Wiki_System_Architecture.html](doc/Doc_Wiki_System_Architecture.html)（浏览器直接打开，零依赖，试试右上角皮肤切换器和暗色模式）。
+
 ## Guide — 上手指南
 
 ### 安装
@@ -71,7 +103,7 @@ doc-writer/
 │   ├── doc-shell.js              # 运行时功能（TOC/ScrollSpy/高亮/缩放）
 │   ├── skin-switcher.js          # 6 套皮肤切换
 │   ├── md-to-html.js             # MD → HTML 转换
-│   ├── validate-doc.js           # 文档校验（16 类检查）
+│   ├── validate-doc.js           # 文档校验（18 类检查）
 │   └── inline-shared.js          # CSS/JS → 模板同步
 └── examples/
     ├── guide-content-example.html
@@ -88,7 +120,7 @@ Phase 1: 结构设计（按类型选章节框架）
     ↓
 Phase 2: 内容生成（MD + HTML 双格式 / 仅 HTML）
     ↓
-Phase 3: 校验交付（validate-doc.js 16 类检查 + 视觉自审）
+Phase 3: 校验交付（validate-doc.js 18 类检查 + 视觉自审 + 基线防回归）
 ```
 
 ### 共享运行时
@@ -128,13 +160,13 @@ node scripts/md-to-html.js --type module --index "ProjectName" "description"
 
 ### validate-doc.js — 校验器
 
-16 类自动化检查，`--fix` 可自动修复部分问题：
+18 类自动化检查（含 HTML 转义回归守卫），`--fix` 可自动修复部分问题：
 
 ```bash
 node scripts/validate-doc.js --type module --new-doc doc/tech-docs/Task_Design.html
 ```
 
-校验项：Mermaid 语法、章节 ID 唯一性、代码块标签、表格结构、TOC 完整性、源码引用格式、术语表、Scope 声明、视觉约束（无渐变/大阴影/外链图片/硬编码色）、SVG 护栏、图说完整性、空章节、重复内容、内容密度。
+校验项：Mermaid 语法、章节 ID 唯一性、代码块标签、表格结构、TOC 完整性、HTML 转义回归（结构性标签被转义成文本）、源码引用格式、术语表、Scope 声明、视觉约束（无渐变/大阴影/外链图片/硬编码色）、SVG 护栏、图说完整性、空章节、重复内容、内容密度。
 
 ### SKILL.md — 路由与规则
 
