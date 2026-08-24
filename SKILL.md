@@ -25,6 +25,7 @@ tags: ["技术文档", "设计文档", "架构", "guide", "deepwiki", "API文档
 | system | 整个系统的架构全景图 | "系统设计"、"架构设计"、"整体设计"、"仓库结构分析"、"架构图"、"系统图" | `doc/<Name>_Design.md + .html` | [system-workflow.md](references/system-workflow.md) |
 | guide | 新人端到端上手教程 | "项目指南"、"上手指南"、"guide"、"指导文档"、"项目文档" | `guide.html` | [guide-workflow.md](references/guide-workflow.md) |
 | batch | 批量生成多个模块文档 | "分模块写文档"、"批量生成"、"全部模块文档" | 多个 `doc/tech-docs/*.md + .html` | 循环复用 module 流程 |
+| **maintain** | **更新已有文档（代码改了文档跟上）** | "更新文档"、"文档对齐"、"同步文档"、"文档漂移"、"再来一轮文档更新" | 原地修订受影响文档 | [maintenance-workflow.md](references/maintenance-workflow.md) |
 
 **确定类型后，立即读取对应 reference 文件 + [html-components.md](references/html-components.md)。**
 
@@ -107,6 +108,12 @@ AskQuestion([{
 ## 全力模式工作流程
 
 > 用户选择"🔥 全力模式"后，跳转到此章节。全力模式**不区分文档类型**，自动分析项目并生成**完整文档体系**。用 subagent 并行换时间，用迭代自审换质量，用外部参考换视野。一次性不计代价把文档写到"可以拿去做 code review 参考资料"的级别。
+
+> **维护场景**（文档已存在、代码演进了）：全力模式的 M0-M4 阶段走
+> [maintenance-workflow.md](references/maintenance-workflow.md)——drift 扫描 →
+> 核对分析 → 最小修订 → 基线防回归 → 聚焦审核。生成与维护共用 subagent 机制
+> 与审核循环，差异在于维护**只修漂移部分**且必须做**修订前后校验基线对比**
+> （存量文档有历史欠账，唯一硬指标是"不新增错误"，不是"零错误"）。
 
 用户选择全力模式后，显示激活提示：
 
@@ -366,6 +373,48 @@ Task({
 2. **每个 subagent 必须返回上述格式的结构化输出**，不得返回散文式描述
 3. **主 agent 汇总时必须逐项核对** subagent 返回的结果，发现矛盾时补派 subagent 验证
 4. **汇总输出**：将所有 subagent 结果合并为一份知识图谱，包含：文件清单、API 表、状态变量表、调用关系、设计模式、错误路径、测试覆盖、配置参数、依赖图、数据流、线程模型
+
+#### Subagent 执行机制（环境适配）
+
+> 本节解决"SKILL.md 写 Task({...}) 但当前环境没有 Task 工具"的执行落差。
+> 来源：2026-08-24 hdsa-maco 实战——CLI headless 环境（`claude -p`）无 Task 工具，
+> 必须走子进程方案。
+
+**优先级 1：交互式 Claude Code 会话（有 Task 工具）** — 直接按上文模板调 `Task({description, prompt})`。
+
+**优先级 2：headless / 无 Task 工具环境** — 用 `claude --agents` 内联注入子代理定义，
+主 agent 以 Bash 子进程方式并行派发：
+
+```bash
+# ① 把 agent 定义（前置元数据 + 正文）转成 JSON（一次性）
+node -e '
+const fs = require("fs");
+function mk(name, path) {
+  const body = fs.readFileSync(path, "utf8");
+  const desc = body.match(/description:\s*(.+)/)[1].trim();
+  const tools = body.match(/^tools:\s*(.+)$/m)[1].trim();
+  const idx = body.indexOf("---", body.indexOf("---") + 3);
+  return [name, { description: desc, tools: tools.split(",").map(t=>t.trim()),
+                  prompt: body.slice(idx + 3).trim() }];
+}
+fs.writeFileSync("agents.json", JSON.stringify(Object.fromEntries([
+  mk("source-analyzer", "<agents>/source-analyzer.md"),
+  mk("doc-reviewer", "<agents>/doc-reviewer.md"),
+])));'
+
+# ② 并行派发（Bash & + wait）
+claude --agents "$(<agents.json)" --agent source-analyzer -p "<分析 prompt>" > out-a1.md 2>/dev/null &
+claude --agents "$(<agents.json)" --agent source-analyzer -p "<分析 prompt>" > out-a2.md 2>/dev/null &
+wait
+
+# ③ 长任务（reviewer 审大文档 10min+）用 --bg 后台模式，输出落 sidecar 文件
+```
+
+**实测要点**：
+- analyzer 并行 3 个为一批；每批 `wait` 后检查产出文件非空
+- reviewer 审 5000+ 行文档耗时 15-20 分钟，务必后台 + sidecar（.pid/.exit）跟踪
+- 偶发僵死（子进程活着但 30min 无输出）：kill 后重派同一任务即可
+- 超时预算：单批 analyzer ≤ 10min；reviewer ≤ 25min，超时用后台轮询代替阻塞等待
 
 ### 阶段 2：深度研究
 
@@ -661,6 +710,8 @@ Task({
 - 抽取 3 个 API 签名，与源码上下文对比是否一致
 - 检查架构图节点是否对应真实模块
 - 检查代码示例中的 API 调用是否正确
+- **参数映射表逐行验源**：表格中"参数名/绑定状态"类断言（如 `✅ 直接读`、`fVolume`）必须 grep 源码验证消费点真实存在——实战曾发现 UI 字段下游零消费却标"已绑定"、float 参数名用在 int 接口上（来源 2026-08-24 实战，reviewer 抓出 3 处系统性 P1）
+- **同名字段跨接口比对**：同一参数名在不同 MC/服务接口的类型可能不同（如 int32 vs float），不能从 A 接口推断 B 接口
 
 ### 2. 完整性（10 分）
 - 检查是否覆盖了源码上下文中所有核心模块
@@ -744,9 +795,10 @@ Task({
 **执行者**：主 agent
 
 1. 运行校验脚本（同普通模式 Phase 3 的自迭代循环）
-2. 视觉自审（同普通模式）
-3. 运行交互测试（`--test-interactive`）
-4. 输出质量报告：
+2. **基线对比防回归（存量文档必做）**：见下节
+3. 视觉自审（同普通模式）
+4. 运行交互测试（`--test-interactive`）
+5. 输出质量报告：
 
 ```
 🔥 全力模式完成
@@ -756,7 +808,27 @@ Task({
 - subagent 调用：9 次（并行分析 3 + 深度研究 2 + 审核 4）
 - 修订项：12 个（全部完成）
 - 外部参考：采纳了 React 文档的 API 参数表格式和 Django 的故障排查结构
+- 校验基线：修订前后错误集合一致（无新增回归）/ 净改善 N 项
 ```
+
+#### 基线对比防回归（新增文档可跳过；存量文档必须）
+
+> 存量文档体系有历史欠账（TOC 空、旧格式警告等），校验错误不可能一次清零。
+> 修订交付的硬指标是**不新增错误**，不是零错误。
+
+```bash
+# 修订前
+node "$SKILL_ROOT/scripts/validate-doc.js" --all > /tmp/val-before.txt 2>&1
+# 修订后
+node "$SKILL_ROOT/scripts/validate-doc.js" --all > /tmp/val-after.txt 2>&1
+# 只比错误行（✗），忽略 warning
+diff <(grep '✗' /tmp/val-before.txt) <(grep '✗' /tmp/val-after.txt) && echo "BASELINE-EQUAL ✅"
+```
+
+diff 出现 `>`（新错误行）= 回归，必须修复后重比。出现 `<`（错误消失）= 净改善，记录进质量报告。
+
+**归因警告**：对比期间不要用不同版本的 md-to-html.js 重刷**未修订**的文档——
+脚本版本差异（如中文 heading id 支持）会污染 diff，无法归因是修订引入还是工具引入。
 
 ### 交互系统闭环调试（Interaction System Testing）
 
