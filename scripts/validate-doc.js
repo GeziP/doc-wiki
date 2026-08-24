@@ -230,22 +230,22 @@ function checkHeadingIds(html, report, fix) {
 /** 3. 代码块校验 */
 function checkCodeBlocks(html, report, fix) {
   const cat = '代码块';
-  const re = /<div class="code-block"([^>]*)>([\s\S]*?)<\/div>/g;
+  const re = /<(figure|div) class="code-block"([^>]*)>([\s\S]*?)<\/\1>/g;
   let m, count = 0, missingLang = 0, unescaped = 0;
   let fixedHtml = html;
 
   while ((m = re.exec(html)) !== null) {
     count++;
-    const attrs = m[1];
-    const content = m[2];
+    const attrs = m[2];
+    const content = m[3];
     if (!/data-lang=/.test(attrs) || /data-lang=""/.test(attrs)) missingLang++;
     const codeContent = content.replace(/<[^>]+>/g, '');
     if (/[<>]/.test(codeContent) && !/&lt;|&gt;/.test(content)) unescaped++;
   }
 
   // Strip code-block wrappers before counting bare <pre><code>
-  const htmlWithoutFigures = html.replace(/<div class="code-block"[\s\S]*?<\/div>/g, '');
-  const bareCodeRe = /<pre><code>([\s\S]*?)<\/code><\/pre>/g;
+  const htmlWithoutFigures = html.replace(/<(figure|div) class="code-block"[\s\S]*?<\/\1>/g, '');
+  const bareCodeRe = /<pre[^>]*>\s*<code[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/g;
   let bareCount = 0;
   while ((m = bareCodeRe.exec(htmlWithoutFigures)) !== null) bareCount++;
 
@@ -256,7 +256,7 @@ function checkCodeBlocks(html, report, fix) {
     if (unescaped > 0) report.warn(cat, `${unescaped} code block(s) with unescaped < >`);
     if (bareCount > 0) {
       if (fix) {
-        fixedHtml = fixedHtml.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g, (match, inner) => {
+        fixedHtml = fixedHtml.replace(/<pre[^>]*>\s*<code[^>]*>([\s\S]*?)\/code>\s*\/pre>/g, (match, inner) => {
           report.fixed(cat, `Wrapped bare <pre><code> in <div class="code-block">`);
           return `<div class="code-block"><pre><code>${inner}</code></pre></div>`;
         });
@@ -296,8 +296,8 @@ function checkInlineMarkdown(html, report) {
 
   while ((m = bodyRe.exec(html)) !== null) {
     const stripped = m[1]
-      .replace(/<pre><code>[\s\S]*?<\/code><\/pre>/g, '')
-      .replace(/<code>[\s\S]*?<\/code>/g, '');
+      .replace(CODE_BLOCK_STRIP_RE, '')
+      .replace(/<code[^>]*>[\s\S]*?<\/code>/g, '');
     const links = stripped.match(/\[[^\]]+\]\([^)]+\)/g);
     if (links) rawLinks += links.length;
     const bold = stripped.match(/\*\*[^*]+\*\*/g);
@@ -897,6 +897,33 @@ function checkInteractionFeatures(html, report) {
 
 // ============================================================
 // Main
+// 剥离代码块内容的通用正则：兼容两种 wrapper（figure/div class="code-block"）
+// 与 <code> 带属性形态（<code class="language-cpp">）——只匹配 /<pre><code>/
+// 会漏掉带属性的 code，导致 C++ 模板参数 vector<pair<>> 的合法转义
+// 被 checkEscapedHtml 误报为"结构性标签被转义"。
+const CODE_BLOCK_STRIP_RE = /<(?:figure|div) class="code-block"[^>]*>[\s\S]*?\/(?:figure|div)>|<pre[^>]*>\s*<code[^>]*>[\s\S]*?\/code>\s*\/pre>/g;
+
+/** HTML 转义回归：结构性标签被转成文本（&lt;div&gt; 显示为字面量） */
+function checkEscapedHtml(html, report) {
+  const cat = 'HTML 转义回归';
+  // 剥掉代码块内容（C++ 模板 <T>, <int64_t> 等保留转义是合法的）
+  const stripped = html
+    .replace(CODE_BLOCK_STRIP_RE, '')
+    .replace(/<code[^>]*>[\s\S]*?\/code>/g, '');
+
+  const tags = ['div', '/div', 'details', '/details', 'summary', '/summary', 'p', '/p'];
+  let total = 0;
+  const detail = [];
+  for (const t of tags) {
+    const re = new RegExp('&lt;' + t.replace('/', '\\/'), 'g');
+    const n = (stripped.match(re) || []).length;
+    if (n > 0) { detail.push(t + ':' + n); total += n; }
+  }
+
+  if (total === 0) report.pass(cat, '无错误转义的结构性 HTML 标签');
+  else report.fail(cat, total + ' 处结构性标签被转义为文本 (' + detail.join(', ') + ')');
+}
+
 // ============================================================
 
 function validateFile(filePath, fix) {
@@ -913,6 +940,7 @@ function validateFile(filePath, fix) {
   checkCollapsibleSections(html, report);
   html = checkTOC(html, report, fix);
   checkHtmlSkeleton(html, report);
+  checkEscapedHtml(html, report);
 
   // New checks (Phase 2-4)
   checkSourceRefs(html, report);
