@@ -88,7 +88,9 @@ doc-writer/
 │   ├── guide-workflow.md         # Guide 类型详细流程
 │   ├── system-workflow.md        # System 类型详细流程
 │   ├── module-workflow.md        # Module 类型详细流程
-│   └── html-components.md        # 共享 HTML 组件规范 + 设计 Token
+│   ├── html-components.md        # 共享 HTML 组件规范 + 设计 Token
+│   ├── maintenance-workflow.md    # 增量维护 M0-M4（drift 扫描/基线防回归）
+│   └── tooling-notes.md           # 改 skill 脚本的实战坑（CRLF/pipefail/headless）
 ├── templates/
 │   ├── guide.html                # Guide HTML 骨架
 │   ├── system-design.html        # System HTML 骨架

@@ -97,6 +97,8 @@ AskQuestion([{
 |------|------|------|
 | L1: 路由层 | `SKILL.md` | 文档类型路由、执行模式选择、铁律、工作流编排 |
 | L2: 工作流层 | `references/` | 每种文档类型的详细 Phase 0→1→2→3 流程 |
+
+> references/ 另有两份实战沉淀：[maintenance-workflow.md](references/maintenance-workflow.md)（增量维护 M0-M4）与 [tooling-notes.md](references/tooling-notes.md)（改 skill 脚本时的环境坑：CRLF heredoc / pipefail grep / headless 截图 / 转换器自测协议）。**修改本 skill 的脚本或模板前必读 tooling-notes.md**。
 | L3: 模板层 | `templates/` | HTML 骨架（CSS/JS 内嵌）、章节模板 |
 | L4: 工具链层 | `scripts/` | 校验、转换、同步、皮肤切换、设计系统 |
 | L5: 样本层 | `examples/` | 各文档类型的黄金样本，对照参考 |
@@ -1393,9 +1395,12 @@ HTML 输出必须满足：
 | 复杂依赖网 | 侧重直接依赖，深层依赖用 dep-tree 展示 |
 | 源码 < 50 行 | 考虑是否真需要独立文档，可能 inline 注释足够 |
 | 用户给的是产品需求而非代码 | 切换到 system 类型或询问确认 |
+| 图表产物是 HTML 文件想用 `<img>` 嵌入 | 提取内联 SVG 存 `.svg` 再引用——`<img src=*.html>` 必然 onerror（见 html-components.md） |
+| mermaid 节点标签需要多行 | 源码写 `<br/>`（转换器自动实体化）；不要用空格硬凑 |
+| 文档里出现手写的统计数字（规模/用例数） | 改为脚本生成（如 project_stats.sh），手写数字必过期——实测曾漂移 145 个用例 |
 
 **绝对禁止（出现 = 立刻不合格）：**
-不读源码猜测功能、不理解就画图、跳过必须章节、使用"详见代码"敷衍、生成空章节或占位内容、编造不存在的数据/指标/模块/配置、在 HTML 中使用渐变/大阴影/外链图片/硬编码颜色。
+不读源码猜测功能、不理解就画图、跳过必须章节、使用"详见代码"敷衍、生成空章节或占位内容、编造不存在的数据/指标/模块/配置、在 HTML 中使用渐变/大阴影/外链图片/硬编码颜色、`<img>` 指向 .html 文件。
 
 ---
 

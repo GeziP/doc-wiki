@@ -68,6 +68,7 @@ done
 3. 行号引用全量刷新（漂移清单里的 file:line 是新坐标）
 4. 文档头部元数据同步：版本号 +1（小修 x.y+1，叙事级重写 x+1.0）、行数、"最后更新"、变更历史表加行
 5. 每份改完：`node $SKILL_ROOT/scripts/md-to-html.js --type module --force <file>.md`
+6. **双副本工具链纪律**：目标项目若 vendored 了本 skill 的脚本（doc/skills/shared-docs/），修复 skill 侧 bug 时**必须同步 vendored 副本**（或反向）。实战中两副本曾漂移三处能力（brand 项目名/中文 heading id/br 实体化），导致同一份 md 用不同脚本产物不同、且品牌名错乱。判断标准：vendored 脚本生成的 HTML 顶层品牌名应是目标项目名（如 HDSA-MACO），不是 "Module Docs"
 
 ## 基线对比防回归（阶段 M3）
 
@@ -105,4 +106,7 @@ diff <(grep '✗' /tmp/before.txt) <(grep '✗' /tmp/after.txt) && echo "BASELIN
 |------|------|------|
 | 2026-08-24 | hdsa-maco 第一轮（arch 文档） | reviewer 抓出 3 个 P1：参数名系统性错误（fVolume vs volume int32）、"✅直接读"实际下游零消费、ADR 计数过期。**教训：表格里"绑定状态"列必须经源码 grep 验证，不能沿用旧行** |
 | 2026-08-24 | hdsa-maco 第二轮（tech-docs） | analyzer 附带发现远超预期线索：McActionBindingTable 文档叙事级失效（2 参签名/fromCycle 已全部改 3 参/trace.param）、HdsApp 典型用法示例调用不存在的 API。**教训：drift 扫描要对比 doc/code 提交日期，不能只看用户点名的文档** |
+| 2026-08-25 | hdsa-maco 第三轮（转义回归） | 校验器自身的剥离正则 `/<pre><code>/` 匹配不到带 class 的 code，C++ 模板参数合法转义被误报。**教训：修检测器先自测 4 场景（假阳性/真错误/合法例外/legacy 兼容），一个正则改三处共用点要一起改** |
+| 2026-08-25 | hdsa-maco 图表修复 | `<img src=*.html>` 嵌图必然 onerror（浏览器不渲染 HTML 为图片）；mermaid 源内 `<br/>` 被浏览器解析吃掉导致节点换行丢失（长期存在）。**教训：嵌入图表产物必须提取 .svg；mermaid 换行用实体 `&lt;br/&gt;`（见 html-components.md 图表规范）** |
+| 2026-08-25 | hdsa-maco 统计脚本化 | 架构文档手工测试数 1135 实测 1280（漂移 145）。**教训：文档里一切"数字"（规模/计数/百分比）都应脚本化生成（project_stats.sh --md），手写数字必过期；set -o pipefail 下 grep 无匹配返回 1 会静默杀脚本，统计管道加 `|| true`** |
 

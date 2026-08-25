@@ -88,6 +88,7 @@ CJK 字体优先，拉丁回退到 system-ui。禁止使用需要网络加载的
 | `rgba()` 作为背景色 | 不可预测，打印/导出兼容差 | 使用 solid hex |
 | 多色 accent 混用 | 彩虹般的语义色 = 没有设计系统 | 主 accent 只有 teal，语义色只用于 callout |
 | 外链图片 `<img src="http...">` | 离线不可用，依赖外部 | 用 CSS/SVG 内联绘制 |
+| `<img src="*.html">` 嵌图表 | 浏览器无法把 HTML 当图片渲染，必然 onerror | 提取内联 SVG 存 `.svg` 文件再引用（见"图片资产规范"） |
 | `emoji` 作为 icon | 平台渲染不一致 | 用文字或 SVG |
 
 ### 禁止的布局模式
@@ -132,6 +133,27 @@ CJK 字体优先，拉丁回退到 system-ui。禁止使用需要网络加载的
 - Flow 组件只适合线性流程（无分支），有分支/合并时用 SVG 或 Mermaid
 - 单图信息过载时，拆为多图 + 文字解释，不要把一张图画得过于复杂
 - 所有图表必须有 `<figcaption>` 图说（见下方"图说规范"）
+
+### Mermaid 图源规范（实战回灌 2026-08-25）
+
+**`<br/>` 换行标记必须实体化**——转换器（fixMermaidContent）已自动处理，但手写 HTML 片段时必须遵守：
+
+| 写法 | 后果 |
+|------|------|
+| `标签第一行<br/>第二行`（原样） | 浏览器把 `<br/>` 当真标签解析，mermaid.run 读 textContent 时换行标记消失 → 多行标签挤成一行 |
+| `标签第一行&lt;br/&gt;第二行`（实体） | DOM textContent 解码回 `<br/>` 字面量，mermaid 正常渲染两行 |
+
+校验器（checkMermaid）已放行 `&lt;br/&gt;` 实体；其余实体（`&gt;` 箭头等）仍禁止。
+
+### 图片资产规范：img 永不指向 .html
+
+`<img src="*.html">` **必然加载失败**——浏览器不会把 HTML 文件当图片渲染，触发 onerror
+降级（图消失）。嵌入外部图表工具（diagram-design 等）产物的正确做法：
+
+1. 从工具产出的自包含 HTML 中**提取内联 `<svg>`**，存为独立 `.svg` 文件
+2. `<img src="assets/diagrams/<slug>.svg">` 嵌入；`.html` 原件作为"交互版"链接放 figcaption
+3. 不要依赖 onerror 降级文本——那等于没有图
+
 
 ## 可折叠章节
 
