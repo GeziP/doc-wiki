@@ -126,7 +126,10 @@ function checkMermaid(html, report, fix) {
     const block = m[1];
     const blockIssues = [];
 
-    if (/&gt;|&lt;|&amp;/.test(block)) blockIssues.push('contains HTML entities');
+    // &lt;br/&gt; 是合法的——转换器有意实体化换行标记（防浏览器解析吃掉 br），
+    // 其余实体（&gt; 箭头等）仍不允许。
+    const entitiesWithoutBr = block.replace(/&lt;\s*br\s*\/?\s*&gt;/gi, '');
+    if (/&gt;|&lt;|&amp;/.test(entitiesWithoutBr)) blockIssues.push('contains HTML entities');
     if (/-\.\>(?!-)/.test(block)) blockIssues.push('dotted arrow should be -.-> not -.>');
     if (/\["[^"]*\{[^}]*\}[^"]*"\]/.test(block)) blockIssues.push('curly braces in labels');
     if (/sequenceDiagram/.test(block)) {
