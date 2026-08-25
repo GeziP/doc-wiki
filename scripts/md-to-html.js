@@ -414,6 +414,10 @@ function fixMermaidContent(content) {
       return '["' + inner.replace(/\{/g, '【').replace(/\}/g, '】') + '"]';
     });
   } while (content !== prev);
+  // <br/> 必须以 HTML 实体写入 —— 若原样输出，浏览器把它当真标签解析，
+  // mermaid.run 读 textContent 时 <br/> 消失（节点标签换行丢失）。
+  // 实体在 DOM textContent 里解码回字面量，mermaid 正常解析换行。
+  content = content.replace(/<(\s*br\s*\/?\s*)>/gi, '&lt;$1&gt;');
   return content;
 }
 
