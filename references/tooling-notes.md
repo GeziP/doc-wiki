@@ -50,6 +50,7 @@ n=$(grep -hoE "^[[:space:]]*TEST\(" tests/*.cpp 2>/dev/null | wc -l || true)
 | S2 | 修复针对的反例（真实错误样本） | 仍能抓到 |
 | S3 | 合法例外（如行内 code 内的转义标签） | 不误伤 |
 | S4 | legacy 产物（旧模板 figure wrapper） | 兼容不崩 |
+| S5 | 审计/分析报告的断言（尤其方向性：谁走哪条路径） | 回源码验证 if/else 结构后才能执行修订——报告自身会错（见 §7） |
 
 再跑一遍存量文档校验，错误集合 diff 为空（基线法，见 maintenance-workflow.md M3）。
 
@@ -58,3 +59,27 @@ n=$(grep -hoE "^[[:space:]]*TEST\(" tests/*.cpp 2>/dev/null | wc -l || true)
 HTML/渲染问题必须用真实浏览器验证（headless dump-dom / screenshot），不要靠读源码推断
 "应该没问题"。实例：mermaid `<br/>` 丢失问题在 HTML 源码层面完全正常（br 就在那里），
 只有渲染后检查 SVG foreignObject 里的实际 label 才能发现换行消失。
+
+## 6. 统计源码必须排除注释行
+
+正则统计（binding 数/调用点数/任何"数行"）对注释掉的代码毫无防御。实例：
+统计绑定表 `,\s*\d+,\s*\w+Handler` 得 79/40——其中 1 条是 `// {"进样配件_...",
+ 2000, sampleInputFeedHandler}` **注释行**（待固件保留），活跃行实际 78/39。
+刚写进文档的"权威单点数字"立即可疑。修法：
+
+```js
+const active = lines.filter(l => !l.trim().startsWith('//')).join('\n');
+```
+
+或统计前 `grep -v '^\s*//'`。对多行注释语言（/* */）还需处理块注释状态机。
+
+## 7. 审计报告的断言不能直接照抄执行
+
+Analyzer subagent 报告本身会有错。实例：报告断言"0x4001 在正式路径仅剩 Location
+一处"——实码恰好相反（正式路径 Location 返回 kInvalidParam，0x4001 全在 demo 路径）。
+照抄执行会把方向写反进文档。执行修订前的最低验证：
+
+- **方向性结论**（谁走哪条路径/谁先谁后）→ 必须回源码看 if/else 分支结构
+- **file:line 引用** → 打开看该行内容是否支持断言（抽查即可，但方向性结论 100% 验）
+- 修订完成后 **grep 旧措辞残留**——改了权威定义处，散布的复述处容易漏（"修复
+  不一致"的提交自己制造新的不一致是最讽刺的失败模式）
