@@ -131,12 +131,16 @@ function checkMermaid(html, report, fix) {
     const entitiesWithoutBr = block.replace(/&lt;\s*br\s*\/?\s*&gt;/gi, '');
     if (/&gt;|&lt;|&amp;/.test(entitiesWithoutBr)) blockIssues.push('contains HTML entities');
     if (/-\.\>(?!-)/.test(block)) blockIssues.push('dotted arrow should be -.-> not -.>');
-    if (/\["[^"]*\{[^}]*\}[^"]*"\]/.test(block)) blockIssues.push('curly braces in labels');
+    // 2026-09-16 放宽：{"..."} 引号菱形是合法语法（mermaid 10 支持）——仅禁未加引号的 {} 混进 [...] 文本
+    if (/\[[^"'\]]*\{[^}]*\}[^"'\]]*\]/.test(block)) blockIssues.push('curly braces in UNQUOTED labels');
     if (/sequenceDiagram/.test(block)) {
       const seqLines = block.split('\n').filter(l => {
         const t = l.trim();
         if (/^(graph|flowchart|sequenceDiagram|stateDiagram)/.test(t)) return false;
-        return /->(?!>)/.test(t);
+        // 2026-09-16 修正：->> 是 sequenceDiagram 标配箭头；冒号后是自由消息文本
+        // （如 handler->onSubmitOrder 合法）——只检冒号前的箭头段；且只拦真裸 ->（后无 > 前非 -）
+        const arrowPart = t.split(':')[0];
+        return /(?<!-)->(?!>)/.test(arrowPart);
       });
       if (seqLines.length > 0) blockIssues.push('bare -> in sequence diagram');
     }
@@ -918,7 +922,7 @@ function checkEscapedHtml(html, report) {
   let total = 0;
   const detail = [];
   for (const t of tags) {
-    const re = new RegExp('&lt;' + t.replace('/', '\\/'), 'g');
+    const re = new RegExp('&lt;' + t.replace('/', '\\/') + '(?=[ \s>])', 'g');  // 2026-09-16 精确标签名：<password> 等占位符是合法转义文本
     const n = (stripped.match(re) || []).length;
     if (n > 0) { detail.push(t + ':' + n); total += n; }
   }
@@ -929,6 +933,71 @@ function checkEscapedHtml(html, report) {
 
 // ============================================================
 
+// ============================================================
+// 2026-09-16 内网可移植 / 渲染防守四查（实战驱动：CDN 断网页面图全灭 +
+// 巨幅参考图撑破版面 + 类型误判导致本地资产 404）
+// ============================================================
+
+/** D1. 禁 CDN 资产：script/link/img 一律本地——离线/内网打开必须自足 */
+function checkNoCdnAssets(html, report) {
+  const cat = '内网可移植';
+  const cdnRefs = [...html.matchAll(/<(?:script|link|img)\b[^>]*?(?:src|href)="(https?:)?\/\/[^"]+"/g)];
+  if (cdnRefs.length === 0) { report.pass(cat, 'No CDN assets (offline-portable)'); return; }
+  report.fail(cat, `CDN assets found: ${cdnRefs.length} 处——HTML 离线/内网无法加载（mermaid 不渲染/高亮失效）。vendor 到本地（md-to-html.js 已内置 assets/vendor/ 机制）并重新生成`);
+}
+
+/** D2. mermaid 接线：.mermaid div 存在 ⇒ 本地渲染器引用且文件真实存在 */
+function checkMermaidWiring(html, report, filePath) {
+  const cat = 'mermaid 接线';
+  const hasDiv = /class="mermaid"/.test(html);
+  // 图源被退化为代码块 = needsMermaid 回归
+  const unwired = [...html.matchAll(/<figure class="code-block" data-lang="mermaid"/g)].length;
+  if (!hasDiv && unwired === 0) { report.pass(cat, 'No mermaid diagrams (skip)'); return; }
+  if (unwired > 0) { report.fail(cat, `${unwired} mermaid 块退化为纯代码文本（renderer 未接线——检查 md-to-html needsMermaid 配置）`); return; }
+  const m = html.match(/<script src="([^"]*mermaid[^"]*\.js)"><\/script>/);
+  if (!m) { report.fail(cat, 'mermaid div 存在但无 mermaid 脚本引用'); return; }
+  const src = m[1];
+  if (/^https?:/.test(src)) { report.fail(cat, 'mermaid 脚本走 CDN: ' + src); return; }
+  const abs = path.resolve(path.dirname(filePath), src);
+  if (!fs.existsSync(abs)) { report.fail(cat, 'mermaid 脚本缺失: ' + src); return; }
+  report.pass(cat, 'mermaid div + local runtime (' + src + ')');
+}
+
+/** D3. 图片约束：<img> 必须在受尺寸约束的 figure 内（巨幅图会撑破版面） */
+function checkImgConstraints(html, report) {
+  const cat = '图片尺寸约束';
+  const imgs = [...html.matchAll(/<img\b[^>]*>/g)].map(m => m[0]);
+  if (imgs.length === 0) { report.pass(cat, 'No images (skip)'); return; }
+  let bare = 0;
+  for (const tag of imgs) {
+    const idx = html.indexOf(tag);
+    const openFig = html.lastIndexOf('<figure', idx);
+    const closeFig = html.lastIndexOf('</figure>', idx);
+    const inFigure = openFig > closeFig;
+    const figCls = inFigure ? (html.slice(openFig, openFig + 60).match(/class="(screenshot|diagram|code-block)"/) || [])[1] : null;
+    const selfConstrained = /style="[^"]*max-(width|height)/.test(tag);
+    if ((!inFigure || !figCls || figCls === 'code-block') && !selfConstrained) bare++;
+  }
+  if (bare > 0) report.fail(cat, bare + ' 张 <img> 不在 figure.screenshot/diagram 约束内');
+  else report.pass(cat, imgs.length + ' 张图片全部受尺寸约束');
+}
+
+/** D4. 资产存在 + 巨幅预警：本地 src 全部可解析；>900KB 位图建议降采样 */
+function checkLocalAssets(html, report, filePath) {
+  const cat = '资产存在性';
+  const srcs = [...html.matchAll(/(?:src|href)="([^"#][^"]*)"/g)].map(m => m[1])
+    .filter(u => !/^(https?:|data:|mailto:|#|javascript:)/.test(u) && /\.(js|css|png|jpe?g|svg|gif|webp)$/i.test(u));
+  if (srcs.length === 0) { report.pass(cat, 'No local assets (skip)'); return; }
+  const dir = path.dirname(filePath);
+  let missing = 0, heavy = 0;
+  for (const u of srcs) {
+    const abs = path.resolve(dir, u);
+    if (!fs.existsSync(abs)) { missing++; report.fail(cat, '资产缺失: ' + u); continue; }
+    const size = fs.statSync(abs).size;
+    if (/\.(png|jpe?g|gif|webp)$/i.test(u) && size > 900 * 1024) { heavy++; report.warn(cat, `巨幅图片 ${u}（${(size / 1024 / 1024).toFixed(1)}MB > 900KB）——建议降采样`); }
+  }
+  if (missing === 0 && heavy === 0) report.pass(cat, srcs.length + ' 个本地资产全部存在');
+}
 function validateFile(filePath, fix) {
   let html = fs.readFileSync(filePath, 'utf-8');
   const report = new Report(path.basename(filePath));
@@ -944,6 +1013,12 @@ function validateFile(filePath, fix) {
   html = checkTOC(html, report, fix);
   checkHtmlSkeleton(html, report);
   checkEscapedHtml(html, report);
+
+  // 2026-09-16 防守四查
+  checkNoCdnAssets(html, report);
+  checkMermaidWiring(html, report, filePath);
+  checkImgConstraints(html, report);
+  checkLocalAssets(html, report, filePath);
 
   // New checks (Phase 2-4)
   checkSourceRefs(html, report);
@@ -990,7 +1065,7 @@ if (convertAll) {
         .map(f => path.join(dir, f)));
     } else if (t === 'system') {
       targets.push(...fs.readdirSync(dir)
-        .filter(f => f.endsWith('.html') && /Architecture|Design/.test(f) && !f.includes('index'))
+        .filter(f => f.endsWith('.html') && !f.includes('index'))  // 2026-09-16 全量扫：doc 根所有 HTML 必须过防守四查（旧 /Architecture|Design/ 过滤曾放过不匹配名的根文档坏引用）
         .map(f => path.join(dir, f)));
       // Also include tech-docs for system scans
       const techDir = path.join(dir, 'tech-docs');
