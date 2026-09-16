@@ -51,6 +51,7 @@ const TYPE_CONFIG = {
     generatorMeta: 'doc-writer module',
     brand: 'Module Docs',
     needsMermaid: true,
+    vendorRel: '../assets/vendor/',  // 内网可移植：JS/CSS 本地 vendor（checkNoCdnAssets 强制）
     sectionIdMap: {
       '1': 'sec-overview', '2': 'sec-goals', '3': 'sec-arch',
       '4': 'sec-concepts', '5': 'sec-state', '6': 'sec-flow',
@@ -136,6 +137,7 @@ const TYPE_CONFIG = {
     generatorMeta: 'doc-writer system',
     brand: 'System Docs',
     needsMermaid: true,
+    vendorRel: 'assets/vendor/',  // 内网可移植：JS/CSS 本地 vendor（checkNoCdnAssets 强制）
     sectionIdMap: {
       '1': 'sec-overview', '2': 'sec-arch', '3': 'sec-diagram',
       '4': 'sec-modules', '5': 'sec-dataflow', '6': 'sec-thread',
@@ -220,6 +222,7 @@ const TYPE_CONFIG = {
     generatorMeta: 'doc-writer guide',
     brand: 'Guide',
     needsMermaid: true,
+    vendorRel: 'assets/vendor/',  // 内网可移植：JS/CSS 本地 vendor（checkNoCdnAssets 强制）
     layout: 'section',
     sectionIdMap: {
       '1': 'sec-overview', '2': 'sec-quickstart', '3': 'sec-arch',
@@ -244,11 +247,32 @@ const TYPE_CONFIG = {
 };
 
 // Auto-detect type from file path
+// P1（Codex PR r2）：消费者仓库无人 stage vendor——生成器自动落位。
+// scripts/vendor 是随脚本分发的权威副本；按输出 HTML 的 vendorRel 解析目标目录，
+// 缺失即拷（幂等；已存在不覆盖；只读文件系统静默跳过——缺失由 checkLocalAssets 兜底报告）。
+function stageVendorAssets(htmlPath, vendorRel) {
+  const srcDir = path.join(__dirname, 'vendor');
+  if (!fs.existsSync(srcDir)) return;
+  const targetDir = path.resolve(path.dirname(htmlPath), vendorRel);
+  try {
+    fs.mkdirSync(targetDir, { recursive: true });
+    for (const f of fs.readdirSync(srcDir)) {
+      const to = path.join(targetDir, f);
+      if (!fs.existsSync(to)) fs.copyFileSync(path.join(srcDir, f), to);
+    }
+  } catch (e) { /* staging 尽力而为 */ }
+}
+
 function detectType(filePath) {
   const normalized = filePath.replace(/\\/g, '/');
-  if (/Guide\.md$/i.test(path.basename(filePath))) return 'guide';
-  if (/doc\/tech-docs\//.test(normalized) || /_Design\.md$/.test(normalized)) return 'module';
+  // 2026-09-16 二次勘误（Codex PR review）：目录判定必须先于名字判定——
+  // doc/tech-docs/Detailed_Design.md 这类"撞系统名"的模块文档会被名字规则抢走，
+  // 拿到 system 的 vendorRel（少一个 ../）→ 本地资产 404。正确优先级：
+  // ① Guide 名 ② tech-docs 目录 ③ Architecture/Detailed/Requirements 名 ④ _Design 后缀。
+if (/Guide\.md$/i.test(path.basename(filePath))) return 'guide';
+  if (/doc\/tech-docs\//.test(normalized)) return 'module';
   if (/Architecture|Detailed|Requirements/.test(path.basename(filePath))) return 'system';
+  if (/_Design\.md$/.test(normalized)) return 'module';
   return 'module'; // default
 }
 
@@ -620,10 +644,13 @@ function buildHtml(parsed, template, typeConfig) {
   const { title, meta, sections } = parsed;
   const brand = typeConfig.brand || 'Documentation';
   const lang = docLang || 'zh-CN';
-  const mermaidScript = typeConfig.needsMermaid
-    ? '\n  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>'
+  // 内网可移植契约：JS/CSS 一律本地 vendor（相对输出 HTML 的 doc 根）；禁 CDN——
+// validate-doc.js checkNoCdnAssets 在校验层拒绝回归。资产见 doc/assets/vendor/。
+const vendor = typeConfig.vendorRel || 'assets/vendor/';
+const mermaidScript = typeConfig.needsMermaid
+    ? `\n  <script src="${vendor}mermaid.min.js"></script>`
     : '';
-  const projectName = meta.projectName || title;
+const projectName = meta.projectName || title;
 
   // Guide layout uses <section> instead of <details>
   if (typeConfig.layout === 'section') {
@@ -649,8 +676,8 @@ ${bodyHtml}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="${typeConfig.generatorMeta}">
   <title>${escapeHtml(projectName)} — 技术指导文档</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="${vendor}hl-github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
+  <link rel="stylesheet" href="${vendor}hl-github-dark.min.css" media="(prefers-color-scheme: dark)">
   <style>${template.css}</style>
 </head>
 <body ${typeConfig.bodyAttr}>
@@ -680,7 +707,7 @@ ${sectionsHtml}
   <p>${escapeHtml(metaLine)}</p>
 </footer>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>${mermaidScript}
+  <script src="${vendor}highlight.min.js"></script>${mermaidScript}
   <script>${template.js}</script>
 </body>
 </html>`;
@@ -709,8 +736,8 @@ ${bodyHtml}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="${typeConfig.generatorMeta}">
   <title>${escapeHtml(title)}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="${vendor}hl-github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
+  <link rel="stylesheet" href="${vendor}hl-github-dark.min.css" media="(prefers-color-scheme: dark)">
   <style>${template.css}</style>
 </head>
 <body ${typeConfig.bodyAttr}>
@@ -745,7 +772,7 @@ ${sectionsHtml}
     </article>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>${mermaidScript}
+  <script src="${vendor}highlight.min.js"></script>${mermaidScript}
   <script>${template.js}</script>
 </body>
 </html>`;
@@ -779,6 +806,7 @@ function generateIndex(typeConfig, projectName, projectDesc) {
   if (dryRun) {
     console.log(`  DRY   index.html (${count} docs)`);
   } else {
+    stageVendorAssets(cfg.outputPath, TYPE_CONFIG.system.vendorRel);
     fs.writeFileSync(cfg.outputPath, html, 'utf-8');
     console.log(`  OK    index.html (${count} docs)`);
   }
@@ -852,6 +880,7 @@ if (shouldGenerateIndex) {
     if (dryRun) {
       console.log(`  DRY   ${path.basename(mdPath)} -> ${path.basename(htmlPath)} (${parsed.sections.length} sections)`);
     } else {
+      stageVendorAssets(htmlPath, typeConfig.vendorRel || 'assets/vendor/');
       fs.writeFileSync(htmlPath, html, 'utf-8');
       console.log(`  OK    ${path.basename(mdPath)} -> ${path.basename(htmlPath)} (${parsed.sections.length} sections)`);
     }

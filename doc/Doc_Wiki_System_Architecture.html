@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="doc-writer system">
   <title>Doc-Wiki 系统架构设计文档</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="assets/vendor/hl-github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
+  <link rel="stylesheet" href="assets/vendor/hl-github-dark.min.css" media="(prefers-color-scheme: dark)">
   <style>
 /* @sync:doc-shell.css:start */
 /* ===== doc-shell.css — Shared CSS for all doc types ===== */
@@ -429,6 +429,12 @@ code {
 
 /* ===== SVG Diagram (inline) ===== */
 .diagram figure { margin: 0; }
+/* 2026-09-16 巨幅参考图防守：截图/照片类 figure 的 img 双上限（宽 100%/高 640px）+居中；
+   点开灯箱（如有）滚轮缩放看细节；位图源 >900KB 建议降采样（checkLocalAssets WARN） */
+figure.screenshot img, .doc-figure img {
+  max-width: 100%; max-height: 640px; width: auto; height: auto;
+  display: block; margin: 0 auto; border-radius: 8px;
+}
 .diagram svg { max-width: 100%; height: auto; }
 figure.diagram {
   background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
@@ -1565,8 +1571,8 @@ features.forEach(function(f) {
     </article>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+  <script src="assets/vendor/highlight.min.js"></script>
+  <script src="assets/vendor/mermaid.min.js"></script>
   <script>
 /* @sync:doc-shell.js:start */
 /* ===== doc-shell.js — Shared JS for all doc types ===== */

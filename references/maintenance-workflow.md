@@ -110,3 +110,8 @@ diff <(grep '✗' /tmp/before.txt) <(grep '✗' /tmp/after.txt) && echo "BASELIN
 | 2026-08-25 | hdsa-maco 图表修复 | `<img src=*.html>` 嵌图必然 onerror（浏览器不渲染 HTML 为图片）；mermaid 源内 `<br/>` 被浏览器解析吃掉导致节点换行丢失（长期存在）。**教训：嵌入图表产物必须提取 .svg；mermaid 换行用实体 `&lt;br/&gt;`（见 html-components.md 图表规范）** |
 | 2026-08-25 | hdsa-maco 统计脚本化 | 架构文档手工测试数 1135 实测 1280（漂移 145）。**教训：文档里一切"数字"（规模/计数/百分比）都应脚本化生成（project_stats.sh --md），手写数字必过期；set -o pipefail 下 grep 无匹配返回 1 会静默杀脚本，统计管道加 `|| true`** |
 
+### 2026-09-16 回灌：离线可移植三连修 + 防守四查（第五批）
+
+- 触发：用户报障「流程图不渲染、参考图比例过大」——CDN 断网 + needsMermaid 分型遗漏 + 巨幅图无上限三连根因
+- 落地：vendor 本地化（doc/assets/vendor/ + 各类型 vendorRel 相对前缀）/ detectType 先目录后名字（Architecture_Design.md 后缀撞车）/ 校验器四查入门禁 / 全量扫替代按名过滤
+- 详见 tooling-notes.md §8-§12
