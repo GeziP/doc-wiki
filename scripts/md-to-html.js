@@ -51,6 +51,7 @@ const TYPE_CONFIG = {
     generatorMeta: 'doc-writer module',
     brand: 'Module Docs',
     needsMermaid: true,
+    vendorRel: '../assets/vendor/',  // 内网可移植：JS/CSS 本地 vendor（checkNoCdnAssets 强制）
     sectionIdMap: {
       '1': 'sec-overview', '2': 'sec-goals', '3': 'sec-arch',
       '4': 'sec-concepts', '5': 'sec-state', '6': 'sec-flow',
@@ -136,6 +137,7 @@ const TYPE_CONFIG = {
     generatorMeta: 'doc-writer system',
     brand: 'System Docs',
     needsMermaid: true,
+    vendorRel: 'assets/vendor/',  // 内网可移植：JS/CSS 本地 vendor（checkNoCdnAssets 强制）
     sectionIdMap: {
       '1': 'sec-overview', '2': 'sec-arch', '3': 'sec-diagram',
       '4': 'sec-modules', '5': 'sec-dataflow', '6': 'sec-thread',
@@ -220,6 +222,7 @@ const TYPE_CONFIG = {
     generatorMeta: 'doc-writer guide',
     brand: 'Guide',
     needsMermaid: true,
+    vendorRel: 'assets/vendor/',  // 内网可移植：JS/CSS 本地 vendor（checkNoCdnAssets 强制）
     layout: 'section',
     sectionIdMap: {
       '1': 'sec-overview', '2': 'sec-quickstart', '3': 'sec-arch',
@@ -247,8 +250,11 @@ const TYPE_CONFIG = {
 function detectType(filePath) {
   const normalized = filePath.replace(/\\/g, '/');
   if (/Guide\.md$/i.test(path.basename(filePath))) return 'guide';
-  if (/doc\/tech-docs\//.test(normalized) || /_Design\.md$/.test(normalized)) return 'module';
+  // 2026-09-16 勘误：system 名字检查必须先于 module 的 `_Design.md$` 后缀——
+  // Architecture_Design.md 同样以 _Design.md 结尾，旧顺序误判 module → vendorRel 差一个
+  // ../ 前缀 → 全部本地资产 404（checkLocalAssets 拦截此回归）。
   if (/Architecture|Detailed|Requirements/.test(path.basename(filePath))) return 'system';
+  if (/doc\/tech-docs\//.test(normalized) || /_Design\.md$/.test(normalized)) return 'module';
   return 'module'; // default
 }
 
@@ -620,10 +626,13 @@ function buildHtml(parsed, template, typeConfig) {
   const { title, meta, sections } = parsed;
   const brand = typeConfig.brand || 'Documentation';
   const lang = docLang || 'zh-CN';
-  const mermaidScript = typeConfig.needsMermaid
-    ? '\n  <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>'
+  // 内网可移植契约：JS/CSS 一律本地 vendor（相对输出 HTML 的 doc 根）；禁 CDN——
+// validate-doc.js checkNoCdnAssets 在校验层拒绝回归。资产见 doc/assets/vendor/。
+const vendor = typeConfig.vendorRel || 'assets/vendor/';
+const mermaidScript = typeConfig.needsMermaid
+    ? `\n  <script src="${vendor}mermaid.min.js"></script>`
     : '';
-  const projectName = meta.projectName || title;
+const projectName = meta.projectName || title;
 
   // Guide layout uses <section> instead of <details>
   if (typeConfig.layout === 'section') {
@@ -649,8 +658,8 @@ ${bodyHtml}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="${typeConfig.generatorMeta}">
   <title>${escapeHtml(projectName)} — 技术指导文档</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="${vendor}hl-github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
+  <link rel="stylesheet" href="${vendor}hl-github-dark.min.css" media="(prefers-color-scheme: dark)">
   <style>${template.css}</style>
 </head>
 <body ${typeConfig.bodyAttr}>
@@ -680,7 +689,7 @@ ${sectionsHtml}
   <p>${escapeHtml(metaLine)}</p>
 </footer>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>${mermaidScript}
+  <script src="${vendor}highlight.min.js"></script>${mermaidScript}
   <script>${template.js}</script>
 </body>
 </html>`;
@@ -709,8 +718,8 @@ ${bodyHtml}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="${typeConfig.generatorMeta}">
   <title>${escapeHtml(title)}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="${vendor}hl-github.min.css" media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)">
+  <link rel="stylesheet" href="${vendor}hl-github-dark.min.css" media="(prefers-color-scheme: dark)">
   <style>${template.css}</style>
 </head>
 <body ${typeConfig.bodyAttr}>
@@ -745,7 +754,7 @@ ${sectionsHtml}
     </article>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>${mermaidScript}
+  <script src="${vendor}highlight.min.js"></script>${mermaidScript}
   <script>${template.js}</script>
 </body>
 </html>`;
