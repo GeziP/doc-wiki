@@ -922,7 +922,7 @@ function checkEscapedHtml(html, report) {
   let total = 0;
   const detail = [];
   for (const t of tags) {
-    const re = new RegExp('&lt;' + t.replace('/', '\\/') + '(?=[ \s>])', 'g');  // 2026-09-16 精确标签名：<password> 等占位符是合法转义文本
+    const re = new RegExp('&lt;' + t.replace('/', '\\/') + '(?=[&\\s/])', 'g');  // Codex PR: 转义标签后随 '&'（&gt; 实体）非 '>'；(?=[&\s/]) 且 \s 需双写
     const n = (stripped.match(re) || []).length;
     if (n > 0) { detail.push(t + ':' + n); total += n; }
   }
@@ -951,7 +951,7 @@ function checkMermaidWiring(html, report, filePath) {
   const cat = 'mermaid 接线';
   const hasDiv = /class="mermaid"/.test(html);
   // 图源被退化为代码块 = needsMermaid 回归
-  const unwired = [...html.matchAll(/<figure class="code-block" data-lang="mermaid"/g)].length;
+  const unwired = [...html.matchAll(/<(?:figure|div)[^>]*class="code-block"[^>]*data-lang="mermaid"/g)].length;  // Codex PR: 转换器退化形态是 div 包装
   if (!hasDiv && unwired === 0) { report.pass(cat, 'No mermaid diagrams (skip)'); return; }
   if (unwired > 0) { report.fail(cat, `${unwired} mermaid 块退化为纯代码文本（renderer 未接线——检查 md-to-html needsMermaid 配置）`); return; }
   const m = html.match(/<script src="([^"]*mermaid[^"]*\.js)"><\/script>/);
@@ -969,8 +969,9 @@ function checkImgConstraints(html, report) {
   const imgs = [...html.matchAll(/<img\b[^>]*>/g)].map(m => m[0]);
   if (imgs.length === 0) { report.pass(cat, 'No images (skip)'); return; }
   let bare = 0;
-  for (const tag of imgs) {
-    const idx = html.indexOf(tag);
+  for (const m of [...html.matchAll(/<img\b[^>]*>/g)]) {  // Codex PR: 用 matchAll 的 m.index，重复同标签不再错配首个
+    const tag = m[0];
+    const idx = m.index;
     const openFig = html.lastIndexOf('<figure', idx);
     const closeFig = html.lastIndexOf('</figure>', idx);
     const inFigure = openFig > closeFig;

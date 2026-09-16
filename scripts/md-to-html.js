@@ -249,12 +249,14 @@ const TYPE_CONFIG = {
 // Auto-detect type from file path
 function detectType(filePath) {
   const normalized = filePath.replace(/\\/g, '/');
-  if (/Guide\.md$/i.test(path.basename(filePath))) return 'guide';
-  // 2026-09-16 勘误：system 名字检查必须先于 module 的 `_Design.md$` 后缀——
-  // Architecture_Design.md 同样以 _Design.md 结尾，旧顺序误判 module → vendorRel 差一个
-  // ../ 前缀 → 全部本地资产 404（checkLocalAssets 拦截此回归）。
+  // 2026-09-16 二次勘误（Codex PR review）：目录判定必须先于名字判定——
+  // doc/tech-docs/Detailed_Design.md 这类"撞系统名"的模块文档会被名字规则抢走，
+  // 拿到 system 的 vendorRel（少一个 ../）→ 本地资产 404。正确优先级：
+  // ① Guide 名 ② tech-docs 目录 ③ Architecture/Detailed/Requirements 名 ④ _Design 后缀。
+if (/Guide\.md$/i.test(path.basename(filePath))) return 'guide';
+  if (/doc\/tech-docs\//.test(normalized)) return 'module';
   if (/Architecture|Detailed|Requirements/.test(path.basename(filePath))) return 'system';
-  if (/doc\/tech-docs\//.test(normalized) || /_Design\.md$/.test(normalized)) return 'module';
+  if (/_Design\.md$/.test(normalized)) return 'module';
   return 'module'; // default
 }
 
