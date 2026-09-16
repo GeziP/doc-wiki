@@ -941,7 +941,7 @@ function checkEscapedHtml(html, report) {
 /** D1. 禁 CDN 资产：script/link/img 一律本地——离线/内网打开必须自足 */
 function checkNoCdnAssets(html, report) {
   const cat = '内网可移植';
-  const cdnRefs = [...html.matchAll(/<(?:script|link|img)\b[^>]*?(?:src|href)="(https?:)?\/\/[^"]+"/g)];
+    const cdnRefs = [...html.matchAll(/<(?:script|link|img)\b[^>]*?(?:src|href)=["']((?:https?:)?\/\/[^"']+)["']/g)];  // Codex PR r2: 双/单引号都认
   if (cdnRefs.length === 0) { report.pass(cat, 'No CDN assets (offline-portable)'); return; }
   report.fail(cat, `CDN assets found: ${cdnRefs.length} 处——HTML 离线/内网无法加载（mermaid 不渲染/高亮失效）。vendor 到本地（md-to-html.js 已内置 assets/vendor/ 机制）并重新生成`);
 }
@@ -986,7 +986,7 @@ function checkImgConstraints(html, report) {
 /** D4. 资产存在 + 巨幅预警：本地 src 全部可解析；>900KB 位图建议降采样 */
 function checkLocalAssets(html, report, filePath) {
   const cat = '资产存在性';
-  const srcs = [...html.matchAll(/(?:src|href)="([^"#][^"]*)"/g)].map(m => m[1])
+    const srcs = [...html.matchAll(/(?:src|href)=["']([^"#][^"']*)["']/g)].map(m => m[1])
     .filter(u => !/^(https?:|data:|mailto:|#|javascript:)/.test(u) && /\.(js|css|png|jpe?g|svg|gif|webp)$/i.test(u));
   if (srcs.length === 0) { report.pass(cat, 'No local assets (skip)'); return; }
   const dir = path.dirname(filePath);

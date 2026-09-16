@@ -247,6 +247,22 @@ const TYPE_CONFIG = {
 };
 
 // Auto-detect type from file path
+// P1（Codex PR r2）：消费者仓库无人 stage vendor——生成器自动落位。
+// scripts/vendor 是随脚本分发的权威副本；按输出 HTML 的 vendorRel 解析目标目录，
+// 缺失即拷（幂等；已存在不覆盖；只读文件系统静默跳过——缺失由 checkLocalAssets 兜底报告）。
+function stageVendorAssets(htmlPath, vendorRel) {
+  const srcDir = path.join(__dirname, 'vendor');
+  if (!fs.existsSync(srcDir)) return;
+  const targetDir = path.resolve(path.dirname(htmlPath), vendorRel);
+  try {
+    fs.mkdirSync(targetDir, { recursive: true });
+    for (const f of fs.readdirSync(srcDir)) {
+      const to = path.join(targetDir, f);
+      if (!fs.existsSync(to)) fs.copyFileSync(path.join(srcDir, f), to);
+    }
+  } catch (e) { /* staging 尽力而为 */ }
+}
+
 function detectType(filePath) {
   const normalized = filePath.replace(/\\/g, '/');
   // 2026-09-16 二次勘误（Codex PR review）：目录判定必须先于名字判定——
@@ -790,6 +806,7 @@ function generateIndex(typeConfig, projectName, projectDesc) {
   if (dryRun) {
     console.log(`  DRY   index.html (${count} docs)`);
   } else {
+    stageVendorAssets(cfg.outputPath, TYPE_CONFIG.system.vendorRel);
     fs.writeFileSync(cfg.outputPath, html, 'utf-8');
     console.log(`  OK    index.html (${count} docs)`);
   }
@@ -863,6 +880,7 @@ if (shouldGenerateIndex) {
     if (dryRun) {
       console.log(`  DRY   ${path.basename(mdPath)} -> ${path.basename(htmlPath)} (${parsed.sections.length} sections)`);
     } else {
+      stageVendorAssets(htmlPath, typeConfig.vendorRel || 'assets/vendor/');
       fs.writeFileSync(htmlPath, html, 'utf-8');
       console.log(`  OK    ${path.basename(mdPath)} -> ${path.basename(htmlPath)} (${parsed.sections.length} sections)`);
     }
