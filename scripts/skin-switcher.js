@@ -67,6 +67,10 @@
     }
   };
       /* 2026-09-16 离线可移植：动态外链字体停用——皮肤预览回退系统字体栈（皮肤定义的字体名仍作 CSS font-family，命中本机已装则生效） */
+  // 2026-09-16 离线可移植（Codex PR#2 review 修正）：动态 Google Fonts <link> 停用，
+  // 但 loadFont 保留 no-op 占位——loadSkinFonts/applySkin/init(localStorage) 链路依赖它，
+  // 整函数删除会导致换肤即 ReferenceError。皮肤字体名仍写 CSS font-family，本机已装则生效。
+  function loadFont(f, w) { /* no-op: was dynamic Google Fonts link */ }
   function loadSkinFonts(s) { loadFont(s.displayFont.replace(/"/g, ''), 'wght@400;500;600'); loadFont(s.bodyFont.replace(/"/g, ''), 'wght@300;400;500;600'); loadFont(s.monoFont.replace(/"/g, ''), 'wght@400;500'); loadFont('Noto Sans SC', 'wght@300;400;500;600'); loadFont('Noto Serif SC', 'wght@400;500;600'); }
   function applyVars(v) { var r = document.documentElement; Object.keys(v).forEach(function(k) { r.style.setProperty(k, v[k]); }); }
   function applySkinProps(s) { var r = document.documentElement; r.style.setProperty('--font-display', s.displayFont + ', "Noto Serif SC", serif'); r.style.setProperty('--font-sans', s.bodyFont + ', "Noto Sans SC", system-ui, sans-serif'); r.style.setProperty('--font-mono', s.monoFont + ', Consolas, "Courier New", monospace'); r.style.setProperty('--radius', s.radius); r.style.setProperty('--radius-lg', s.radiusLg); r.style.setProperty('--radius-sm', s.radiusSm); r.style.setProperty('--shadow-sm', s.shadowSm); r.style.setProperty('--shadow-md', s.shadowMd); r.style.setProperty('--shadow-lg', s.shadowLg); r.style.setProperty('--heading-border', s.headingBorder); r.style.setProperty('--heading-style', s.headingStyle); r.style.setProperty('--heading-tracking', s.letterSpacing); r.style.setProperty('--heading-transform', s.textTransform); }

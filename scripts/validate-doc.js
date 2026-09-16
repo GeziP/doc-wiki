@@ -950,7 +950,11 @@ function checkEscapedHtml(html, report) {
 /** D1. 禁 CDN 资产：script/link/img 一律本地——离线/内网打开必须自足 */
 function checkNoCdnAssets(html, report) {
   const cat = '内网可移植';
-  const remote = extractAssetUrls(html).filter(u => /^(https?:)?\/\//.test(u));
+  // Codex PR#2 review：只检资产元素（script/link/img/source/iframe/video/audio）——
+  // 纯导航 <a href> 外链不是运行时依赖，误判会拒绝正常文档外链；引号无关形态保留。
+  const remote = [...html.matchAll(/<(?:script|link|img|source|iframe|video|audio)\b[^>]*?(?:src|href)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)]
+    .map(m => (m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : m[3])).trim())
+    .filter(u => u && /^(https?:)?\/\//.test(u));
   if (remote.length === 0) { report.pass(cat, 'No CDN assets (offline-portable)'); return; }
   const hosts = [...new Set(remote.map(u => u.split('/').slice(0, 3).join('/')))];
   report.fail(cat, 'CDN assets found: ' + remote.length + ' 处（' + hosts.join(', ') + '）——离线/内网无法加载。vendor 到本地并重新生成');
