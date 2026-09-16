@@ -138,7 +138,7 @@ function checkMermaid(html, report, fix) {
         const t = l.trim();
         if (/^(graph|flowchart|sequenceDiagram|stateDiagram)/.test(t)) return false;
         // 2026-09-16 修正：->> 是 sequenceDiagram 标配箭头；冒号后是自由消息文本
-        // （如 handler->onSubmitOrder 合法）——只检冒号前的箭头段；且只拦真裸 ->（后无 > 前非 -）
+        // （如 handler->method 合法）——只检冒号前的箭头段；且只拦真裸 ->（后无 > 前非 -）
         const arrowPart = t.split(':')[0];
         return /(?<!-)->(?!>)/.test(arrowPart);
       });
