@@ -827,15 +827,25 @@ if (!convertAll && !shouldGenerateIndex && files.length === 0) {
   process.exit(0);
 }
 
-// Resolve type
-const resolvedType = docType || (files.length > 0 ? detectType(files[0]) : 'module');
+// Resolve type — per-file when batch-mixed (2026-09-24 fix)
+// Bug: previously the whole batch used files[0]'s type. Mixing tech-docs (module)
+// with a root-level Architecture doc (system) produced wrong vendorRel → ../assets/
+// → 404 → zero mermaid rendering. --type explicit keeps whole-batch same (back-compat).
+const resolveTypeFor = (f) => docType || detectType(f);
+const resolvedType = files.length > 0 ? resolveTypeFor(files[0]) : 'module';
 const typeConfig = TYPE_CONFIG[resolvedType];
 if (!typeConfig) {
   console.error(`  ERROR Unknown type: ${resolvedType}. Use 'module', 'system', or 'guide'.`);
   process.exit(1);
 }
 
-const template = readTemplate(typeConfig.templatePath);
+const templateCache = new Map();
+function templateFor(type) {
+  if (!templateCache.has(type))
+    templateCache.set(type, readTemplate(TYPE_CONFIG[type].templatePath));
+  return templateCache.get(type);
+}
+const template = templateFor(resolvedType);
 
 if (shouldGenerateIndex) {
   if (!typeConfig.indexConfig) {
@@ -874,13 +884,17 @@ if (shouldGenerateIndex) {
     }
 
     const md = fs.readFileSync(mdPath, 'utf-8');
-    const parsed = parseMarkdownSections(md, typeConfig);
-    const html = buildHtml(parsed, template, typeConfig);
+    // Per-file type (2026-09-24): when --type not explicitly set, each file
+    // gets its own detectType + template. Prevents batch-mixed type pollution.
+    const fileConfig = docType ? typeConfig : TYPE_CONFIG[resolveTypeFor(mdPath)];
+    const fileTemplate = docType ? template : templateFor(resolveTypeFor(mdPath));
+    const parsed = parseMarkdownSections(md, fileConfig);
+    const html = buildHtml(parsed, fileTemplate, fileConfig);
 
     if (dryRun) {
       console.log(`  DRY   ${path.basename(mdPath)} -> ${path.basename(htmlPath)} (${parsed.sections.length} sections)`);
     } else {
-      stageVendorAssets(htmlPath, typeConfig.vendorRel || 'assets/vendor/');
+      stageVendorAssets(htmlPath, (docType ? typeConfig : fileConfig).vendorRel || 'assets/vendor/');
       fs.writeFileSync(htmlPath, html, 'utf-8');
       console.log(`  OK    ${path.basename(mdPath)} -> ${path.basename(htmlPath)} (${parsed.sections.length} sections)`);
     }
