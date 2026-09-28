@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="deepwiki-html system">
-  <title>{{PROJECT_NAME}} 系统设计文档</title>
+  <title>Project 系统设计文档</title>
   <style>
     :root {
       --font-sans: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
@@ -215,7 +215,7 @@
 </head>
 <body>
   <nav class="topbar">
-    <span class="topbar-brand">{{PROJECT_NAME}}</span>
+    <span class="topbar-brand">Project</span>
     <span class="topbar-sep">/</span>
     <span class="topbar-title">系统设计文档</span>
     <div class="topbar-actions">
@@ -224,8 +224,8 @@
   </nav>
 
   <header class="hero">
-    <h1>{{PROJECT_NAME}} <span>系统设计文档</span></h1>
-    <p>{{PROJECT_DESC}}</p>
+    <h1>Project <span>系统设计文档</span></h1>
+    <p>系统设计文档集</p>
     <div class="search-wrap">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="search-input" type="text" id="searchInput" placeholder="搜索文档... (Ctrl+K)" autocomplete="off">
@@ -292,16 +292,16 @@ flowchart TD
 
   <div class="filter-bar" id="filterBar">
     <button class="filter-btn active" data-filter="all">全部</button>
-    {{FILTER_BUTTONS}}
+    
   </div>
 
   <main class="container" id="docGrid">
-    {{CARD_GROUPS}}
+    
     <div class="no-results" id="noResults">没有匹配的文档</div>
   </main>
 
   <footer>
-    {{PROJECT_NAME}} 系统设计文档 · 由 <a href="https://github.com/GeziP/deepwiki-system-skill">deepwiki-system-skill</a> 生成
+    Project 系统设计文档 · 由 <a href="https://github.com/GeziP/deepwiki-system-skill">deepwiki-system-skill</a> 生成
   </footer>
 
   <!-- 2026-09-16 Codex PR r3：index 预览图同样离线可移植——本地 vendor（生成器 --index 时已 stage 到 doc/assets/vendor/） -->

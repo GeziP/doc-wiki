@@ -54,6 +54,15 @@ if (!convertAll && files.length === 0) {
   process.exit(0);
 }
 
+// 2026-09-16 Codex PR r3：属性值提取统一 helper——双引号/单引号/无引号三种合法 HTML 形态都认
+function extractAssetUrls(html) {
+  const out = [];
+  for (const m of html.matchAll(/(?:src|href)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) {
+    const v = (m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : m[3])).trim();
+    if (v) out.push(v);
+  }
+  return out;
+}
 // ============================================================
 // Report collector
 // ============================================================
@@ -941,9 +950,14 @@ function checkEscapedHtml(html, report) {
 /** D1. 禁 CDN 资产：script/link/img 一律本地——离线/内网打开必须自足 */
 function checkNoCdnAssets(html, report) {
   const cat = '内网可移植';
-    const cdnRefs = [...html.matchAll(/<(?:script|link|img)\b[^>]*?(?:src|href)=["']((?:https?:)?\/\/[^"']+)["']/g)];  // Codex PR r2: 双/单引号都认
-  if (cdnRefs.length === 0) { report.pass(cat, 'No CDN assets (offline-portable)'); return; }
-  report.fail(cat, `CDN assets found: ${cdnRefs.length} 处——HTML 离线/内网无法加载（mermaid 不渲染/高亮失效）。vendor 到本地（md-to-html.js 已内置 assets/vendor/ 机制）并重新生成`);
+  // Codex PR#2 review：只检资产元素（script/link/img/source/iframe/video/audio）——
+  // 纯导航 <a href> 外链不是运行时依赖，误判会拒绝正常文档外链；引号无关形态保留。
+  const remote = [...html.matchAll(/<(?:script|link|img|source|iframe|video|audio)\b[^>]*?(?:src|href)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)]
+    .map(m => (m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : m[3])).trim())
+    .filter(u => u && /^(https?:)?\/\//.test(u));
+  if (remote.length === 0) { report.pass(cat, 'No CDN assets (offline-portable)'); return; }
+  const hosts = [...new Set(remote.map(u => u.split('/').slice(0, 3).join('/')))];
+  report.fail(cat, 'CDN assets found: ' + remote.length + ' 处（' + hosts.join(', ') + '）——离线/内网无法加载。vendor 到本地并重新生成');
 }
 
 /** D2. mermaid 接线：.mermaid div 存在 ⇒ 本地渲染器引用且文件真实存在 */
@@ -954,7 +968,7 @@ function checkMermaidWiring(html, report, filePath) {
   const unwired = [...html.matchAll(/<(?:figure|div)[^>]*class="code-block"[^>]*data-lang="mermaid"/g)].length;  // Codex PR: 转换器退化形态是 div 包装
   if (!hasDiv && unwired === 0) { report.pass(cat, 'No mermaid diagrams (skip)'); return; }
   if (unwired > 0) { report.fail(cat, `${unwired} mermaid 块退化为纯代码文本（renderer 未接线——检查 md-to-html needsMermaid 配置）`); return; }
-  const m = html.match(/<script src="([^"]*mermaid[^"]*\.js)"><\/script>/);
+  const m = html.match(/<script src=["']([^"']*mermaid[^"']*\.js)["']>/);
   if (!m) { report.fail(cat, 'mermaid div 存在但无 mermaid 脚本引用'); return; }
   const src = m[1];
   if (/^https?:/.test(src)) { report.fail(cat, 'mermaid 脚本走 CDN: ' + src); return; }
@@ -986,7 +1000,7 @@ function checkImgConstraints(html, report) {
 /** D4. 资产存在 + 巨幅预警：本地 src 全部可解析；>900KB 位图建议降采样 */
 function checkLocalAssets(html, report, filePath) {
   const cat = '资产存在性';
-    const srcs = [...html.matchAll(/(?:src|href)=["']([^"#][^"']*)["']/g)].map(m => m[1])
+      const srcs = extractAssetUrls(html)
     .filter(u => !/^(https?:|data:|mailto:|#|javascript:)/.test(u) && /\.(js|css|png|jpe?g|svg|gif|webp)$/i.test(u));
   if (srcs.length === 0) { report.pass(cat, 'No local assets (skip)'); return; }
   const dir = path.dirname(filePath);
