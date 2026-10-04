@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "terms": [
+    {
+      "canonical": "任务",
+      "definition": "示例：调度单元。使用前替换为目标项目的真实定义。",
+      "aliases": ["Task"],
+      "forbidden": ["作业"],
+      "identifiers": ["Task", "task_id"],
+      "source": "示例配置，不代表目标项目事实"
+    },
+    {
+      "canonical": "取消",
+      "definition": "示例：请求停止尚未完成的任务；与删除任务记录不同。",
+      "aliases": ["cancel"],
+      "forbidden": [],
+      "identifiers": ["cancel()"],
+      "source": "需要在目标项目源码中核对"
+    }
+  ]
+}

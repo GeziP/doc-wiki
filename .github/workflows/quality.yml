@@ -1,0 +1,21 @@
+name: Quality tools
+
+on:
+  push:
+    branches: [main, '2.0']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test tests
+      - run: node scripts/validate-doc.js --all
+      - run: node scripts/lint-doc-language.js --strict SKILL.md references/authoring-workflow.md references/fullpower-workflow.md references/maintenance-workflow.md

@@ -1,6 +1,27 @@
-# Doc Writer
+# Doc Writer 2.0
 
 > Claude Code skill，从真实源码生成可验证的、离线可用的技术文档。
+
+## 2.0 升级
+
+2.0 保留现有文档类型和 HTML 工具链，新增语义保留、事实/推断/未知分级、项目术语映射及中英文语言 lint。主入口精简为路由与共享契约，详细工作流按需加载。严重事实错误不能由审核总分抵消，章节数与 token 消耗不作为质量门槛。
+
+- [开发路线与验收计划](docs/plans/2.0-development-plan.md)
+- [写作质量规则](references/writing-quality.md)
+- [检查工具、JSON 与基线迁移](references/quality-tooling.md)
+- [全力模式](references/fullpower-workflow.md)
+
+```bash
+# Node.js 20+；不需要安装额外依赖
+node scripts/lint-doc-language.js --mode explain doc/Design.md
+node scripts/lint-doc-language.js --mode strict --terms doc/terms.json doc/API.md
+node scripts/validate-doc.js --json doc/Design.html
+node --test tests
+```
+
+语言检查独立于 HTML 校验；warning 默认不阻断，`--strict` 可将 warning 作为门禁。两工具都支持 JSON 与问题集合基线，不会用已修复的旧问题抵消新增问题。机械检查不能证明事实正确或改写语义等价。
+
+已有 `doc/Doc_Wiki_System_Architecture.*` 和截图保留为 **1.x 历史快照**，其中源码行号、流程和工具清单不代表 2.0；当前说明以 SKILL.md 与 references 为准。升级不要求重刷全部存量文档。已移除生成后的静默 star 操作。
 
 `技术文档` `设计文档` `架构` `guide` `deepwiki` `API文档` `模块文档` `系统设计` `HTML生成` `校验`
 
@@ -42,7 +63,7 @@
 | fullpower | [examples/fullpower-content-example.html](examples/fullpower-content-example.html) | 全力模式三层渐进式披露的深度内容 |
 
 > 样本是"写对了长什么样"的黄金参考——只含填入 `{{SECTIONS}}` 的内容片段，骨架（CSS/JS/TOC/暗色模式）由模板提供。
-> 完整效果请打开 [doc/Doc_Wiki_System_Architecture.html](doc/Doc_Wiki_System_Architecture.html)（浏览器直接打开，零依赖，试试右上角皮肤切换器和暗色模式）。
+> 完整效果请打开 [doc/Doc_Wiki_System_Architecture.html](doc/Doc_Wiki_System_Architecture.html)（连同本地 assets/vendor 交付后可离线打开，支持皮肤切换和暗色模式）。
 
 ## Guide — 上手指南
 
@@ -70,7 +91,7 @@ cp -r doc-wiki ~/.claude/skills/doc-writer
 
 | 类型 | 定位 | 输出 | 适用场景 |
 |------|------|------|---------|
-| **module** | API 参考手册 | `.md` + `.html`，12 章框架 | 单个模块/类的详细设计 |
+| **module** | API 参考手册 | `.md` + `.html`，按需选章节 | 单个模块/类的详细设计 |
 | **system** | 架构全景图 | `.md` + `.html`，Mermaid 架构图 | 整个系统的分层架构 |
 | **guide** | 端到端教程 | 单文件 `.html`，沿数据流叙事 | 新人上手、排障 |
 
@@ -85,6 +106,10 @@ cp -r doc-wiki ~/.claude/skills/doc-writer
 doc-writer/
 ├── SKILL.md                      # Skill 主入口，路由 + 铁律 + 工作流
 ├── references/
+│   ├── authoring-workflow.md     # 共享生成与审核流程
+│   ├── writing-quality.md        # 语义保留、证据等级、术语规则
+│   ├── quality-tooling.md        # JSON、基线与迁移说明
+│   ├── fullpower-workflow.md     # 全力模式与独立审核
 │   ├── guide-workflow.md         # Guide 类型详细流程
 │   ├── system-workflow.md        # System 类型详细流程
 │   ├── module-workflow.md        # Module 类型详细流程
@@ -105,7 +130,9 @@ doc-writer/
 │   ├── doc-shell.js              # 运行时功能（TOC/ScrollSpy/高亮/缩放）
 │   ├── skin-switcher.js          # 6 套皮肤切换
 │   ├── md-to-html.js             # MD → HTML 转换
-│   ├── validate-doc.js           # 文档校验（18 类检查）
+│   ├── validate-doc.js           # HTML 校验与 JSON 基线
+│   ├── lint-doc-language.js      # 中英文语言与术语检查
+│   ├── lib/                     # 共用报告与正文扫描工具
 │   └── inline-shared.js          # CSS/JS → 模板同步
 └── examples/
     ├── guide-content-example.html
@@ -122,7 +149,9 @@ Phase 1: 结构设计（按类型选章节框架）
     ↓
 Phase 2: 内容生成（MD + HTML 双格式 / 仅 HTML）
     ↓
-Phase 3: 校验交付（validate-doc.js 18 类检查 + 视觉自审 + 基线防回归）
+Phase 2.5 / 2.6: 语义审核与聚焦修订
+    ↓
+Phase 3: HTML 校验 + 语言检查 + 必要视觉检查 + 基线防回归
 ```
 
 ### 共享运行时
@@ -174,10 +203,10 @@ node scripts/validate-doc.js --type module --new-doc doc/tech-docs/Task_Design.h
 
 Skill 主入口，包含：
 
-- **文档类型路由**：根据触发词分发到 guide / system / module / batch
-- **7 条铁律**：先读后写、不许编造、颜色锁死、零装饰、零外链、每图必说、引用溯源
+- **文档类型路由**：分发到 guide / system / module / batch / maintain
+- **共享契约**：先读后写、证据分级、语义保留、术语一致、引用溯源、内容驱动深度、视觉与离线、审核门禁
 - **内容驱动深度**：章节取舍判据是源码复杂度，不是模板框架
-- **先问后做原则**：不确定时必须用 AskQuestion 询问
+- **澄清边界**：先查证源码；仅关键缺口或范围歧义需要询问
 
 ### templates/ — HTML 骨架
 

@@ -19,6 +19,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { digest, relativeFile, issue, makeReport, gate } = require('./lib/quality-report');
 
 const args = process.argv.slice(2);
 const doFix = args.includes('--fix');
@@ -26,10 +27,27 @@ const convertAll = args.includes('--all');
 const strict = args.includes('--strict');
 const isNewDoc = args.includes('--new-doc');
 const testInteractive = args.includes('--test-interactive');
+const jsonOutput = args.includes('--json');
+const baselineIdx = args.indexOf('--baseline');
+const baselinePath = baselineIdx !== -1 ? args[baselineIdx + 1] : undefined;
 const typeIdx = args.indexOf('--type');
 const rootIdx = args.indexOf('--root');
 const docType = typeIdx !== -1 ? args[typeIdx + 1] : null;
-const files = args.filter((a, i) => !a.startsWith('--') && (typeIdx === -1 || i !== typeIdx + 1) && (rootIdx === -1 || i !== rootIdx + 1));
+const valueFlags = ['--type', '--root', '--baseline'];
+const knownFlags = [...valueFlags, '--fix', '--all', '--strict', '--new-doc', '--test-interactive', '--json', '--help'];
+function fatal(message) {
+  if (jsonOutput) console.log(JSON.stringify({ schemaVersion: 1, tool: 'doc-html', fatal: message }));
+  else console.error(message);
+  process.exit(1);
+}
+for (let i = 0; i < args.length; i++) {
+  if (valueFlags.includes(args[i])) {
+    if (!args[i + 1] || args[i + 1].startsWith('--')) fatal(`Missing value for ${args[i]}`);
+    i++;
+  } else if (args[i].startsWith('--') && !knownFlags.includes(args[i])) fatal(`Unknown option: ${args[i]}`);
+}
+if (docType && !['module', 'system', 'guide'].includes(docType)) fatal('Type must be module, system or guide');
+const files = args.filter((a, i) => !a.startsWith('--') && !valueFlags.includes(args[i - 1]));
 
 // Resolve project root: --root flag > CWD > fallback
 const PROJECT_ROOT = rootIdx !== -1
@@ -42,7 +60,11 @@ const DIRS = {
   guide: PROJECT_ROOT, // guide.html in project root
 };
 
-if (!convertAll && files.length === 0) {
+if (args.includes('--help') || (!convertAll && files.length === 0)) {
+  if (jsonOutput) {
+    console.log(JSON.stringify({ usage: 'node validate-doc.js [--all] [--type module|system|guide] [--root dir] [--new-doc] [--strict] [--fix] [--json] [--baseline report.json] file.html ...' }));
+    process.exit(0);
+  }
   console.log('Usage: node validate-doc.js [--fix] [--strict] [--new-doc] [--root <dir>] [--type module|system|guide] [file.html ...]');
   console.log('  --fix      Auto-fix issues and write back');
   console.log('  --all      Validate all doc HTML (all types)');
@@ -51,6 +73,8 @@ if (!convertAll && files.length === 0) {
   console.log('  --strict   Treat warnings as errors');
   console.log('  --new-doc  Require source refs, glossary, scope (for newly generated docs)');
   console.log('  --test-interactive  Test interaction features (progressive disclosure, dark mode, etc.)');
+  console.log('  --json     Print a structured quality report (no ANSI text)');
+  console.log('  --baseline Compare against a JSON report with the same targets and configuration');
   process.exit(0);
 }
 
@@ -1013,6 +1037,28 @@ function checkLocalAssets(html, report, filePath) {
   }
   if (missing === 0 && heavy === 0) report.pass(cat, srcs.length + ' 个本地资产全部存在');
 }
+// Legacy checks sometimes report aggregate counts. Bind those findings to the relevant
+// structures so replacing one defect with another cannot pass simply because counts match.
+// This is deliberately conservative: changing a valid structure in that category may
+// also require review. It is not semantic verification of the HTML.
+function categoryEvidence(category, html) {
+  const patterns = {
+    '章节标题 ID': /<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/gi,
+    '代码块': /<pre\b[^>]*>[\s\S]*?<\/pre>/gi,
+    '表格': /<table\b[^>]*>[\s\S]*?<\/table>/gi,
+    '源码引用': /<a\b[^>]*>[\s\S]*?<\/a>/gi,
+    'Mermaid 块': /<div\b[^>]*class=["'][^"']*mermaid[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
+    'SVG Guardrails': /<svg\b[^>]*>[\s\S]*?<\/svg>/gi,
+    'Figure Captions': /<(?:figure|svg)\b[^>]*>[\s\S]*?<\/(?:figure|svg)>/gi,
+    '图片尺寸约束': /<(?:figure|img)\b[^>]*>/gi,
+    'Empty Sections': /<div\b[^>]*class=["']section-body["'][^>]*>[\s\S]*?<\/div>/gi,
+    'Duplicate Content': /<(?:p|div)\b[^>]*>[\s\S]*?<\/(?:p|div)>/gi,
+    'Content Density': /<(?:p|pre|table|ul|ol|section|details)\b[^>]*>/gi,
+  };
+  const pattern = patterns[category];
+  if (!pattern) return null;
+  return digest([...html.matchAll(pattern)].map(m => m[0].replace(/\s+/g, ' ').trim()).sort());
+}
 function validateFile(filePath, fix) {
   let html = fs.readFileSync(filePath, 'utf-8');
   const report = new Report(path.basename(filePath));
@@ -1058,13 +1104,17 @@ function validateFile(filePath, fix) {
     checkInteractionFeatures(html, report);
   }
 
-  const result = report.print();
+  const result = jsonOutput ? {
+    fail: report.checks.filter(c => c.status === 'fail').length,
+    warn: report.checks.filter(c => c.status === 'warn').length,
+  } : report.print();
 
   if (fix && html !== originalHtml) {
     fs.writeFileSync(filePath, html, 'utf-8');
-    console.log(`  \x1b[36m[written]\x1b[0m ${filePath}`);
+    if (!jsonOutput) console.log(`  \x1b[36m[written]\x1b[0m ${filePath}`);
   }
-  return result;
+  return { ...result, checks: report.checks.map(c => ({ ...c,
+    ...(['fail', 'warn'].includes(c.status) ? { evidence: categoryEvidence(c.category, html) } : {}) })) };
 }
 
 // Collect targets
@@ -1099,17 +1149,40 @@ if (convertAll) {
 }
 
 let totalFail = 0, totalWarn = 0;
+targets = [...new Set(targets.map(f => path.resolve(f)))];
+const issues = [];
+const fileReports = [];
 
 for (const filePath of targets) {
-  if (!fs.existsSync(filePath)) {
-    console.log(`  SKIP  ${filePath} (not found)`);
-    continue;
+  const file = relativeFile(filePath, PROJECT_ROOT);
+  try {
+    const result = validateFile(filePath, doFix);
+    totalFail += result.fail;
+    totalWarn += result.warn;
+    fileReports.push({ file, checks: result.checks });
+    for (const c of result.checks) {
+      if (c.status === 'fail' || c.status === 'warn') issues.push(issue({ file,
+        rule: `html/${c.category}`, severity: c.status === 'fail' ? 'error' : 'warning', message: c.message,
+        key: { message: c.message, evidence: c.evidence } }));
+    }
+  } catch (error) {
+    issues.push(issue({ file, rule: 'input/read', severity: 'error', message: error.message }));
+    totalFail++;
+    if (!jsonOutput) console.error(`  ERROR ${file}: ${error.message}`);
   }
-  const result = validateFile(filePath, doFix);
-  totalFail += result.fail;
-  totalWarn += result.warn;
 }
 
+if (!targets.length) fatal('No document targets found');
+const quality = makeReport('doc-html', targets.map(f => relativeFile(f, PROJECT_ROOT)),
+  { engine: 1, type: docType, newDoc: isNewDoc, interactive: testInteractive, strict, fix: doFix }, issues, { files: fileReports });
+let exitCode;
+try { exitCode = gate(quality, { baseline: baselinePath, strict }); }
+catch (error) { fatal(error.message); }
+if (jsonOutput) {
+  console.log(JSON.stringify(quality, null, 2));
+  process.exit(exitCode);
+}
+if (quality.baseline) console.log(`Baseline: ${quality.baseline.added.length} added, ${quality.baseline.resolved.length} resolved`);
 console.log(`\n${'='.repeat(60)}`);
 if (totalFail === 0 && totalWarn === 0) {
   console.log(`  \x1b[32mALL PASSED\x1b[0m — ${targets.length} file(s) validated`);
@@ -1120,6 +1193,4 @@ if (totalFail === 0 && totalWarn === 0) {
   console.log(`  ${parts.join(', ')} across ${targets.length} file(s)`);
 }
 
-if (totalFail > 0) process.exit(1);
-if (strict && totalWarn > 0) process.exit(2);
-process.exit(0);
+process.exit(exitCode);
