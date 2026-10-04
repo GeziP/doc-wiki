@@ -18,4 +18,6 @@ jobs:
           node-version: '20'
       - run: node --test tests
       - run: node scripts/validate-doc.js --all
+      - run: node scripts/validate-doc.js --new-doc --strict doc/tech-docs/Lint_Doc_Language_Design.html
+      - run: node scripts/lint-doc-language.js --strict doc/tech-docs/Lint_Doc_Language_Design.md doc/tech-docs/Lint_Doc_Language_Design.html
       - run: node scripts/lint-doc-language.js --strict SKILL.md references/authoring-workflow.md references/fullpower-workflow.md references/maintenance-workflow.md

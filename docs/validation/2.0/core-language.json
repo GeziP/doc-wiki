@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "tool": "doc-language",
+  "targets": [
+    "SKILL.md",
+    "references/authoring-workflow.md",
+    "references/fullpower-workflow.md",
+    "references/maintenance-workflow.md"
+  ],
+  "profile": {
+    "disabled": [],
+    "engine": 2,
+    "mode": "explain",
+    "strict": true,
+    "terms": "d5be93d386d53d7ba376d79267fdf9ebc315b26d5cd928a5cb0c47c932513eac"
+  },
+  "issues": [],
+  "summary": {
+    "files": 4,
+    "errors": 0,
+    "warnings": 0
+  }
+}

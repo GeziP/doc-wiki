@@ -7,6 +7,8 @@
 2.0 保留现有文档类型和 HTML 工具链，新增语义保留、事实/推断/未知分级、项目术语映射及中英文语言 lint。主入口精简为路由与共享契约，详细工作流按需加载。严重事实错误不能由审核总分抵消，章节数与 token 消耗不作为质量门槛。
 
 - [开发路线与验收计划](docs/plans/2.0-development-plan.md)
+- [2.0 实际 skill 验收与复现步骤](docs/validation/2.0/README.md)
+- [由 skill 实际生成的语言检查器模块文档](doc/tech-docs/Lint_Doc_Language_Design.md) · [HTML](doc/tech-docs/Lint_Doc_Language_Design.html)
 - [写作质量规则](references/writing-quality.md)
 - [检查工具、JSON 与基线迁移](references/quality-tooling.md)
 - [全力模式](references/fullpower-workflow.md)

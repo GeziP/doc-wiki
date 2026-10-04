@@ -26,6 +26,7 @@ HTML 内容填入模板 `{{SECTIONS}}`，保留共享设计系统。
 ### 引用与证据
 
 关键行为/API 附 `file:line`，每章提供 Sources。跨接口同名字段分别核对，不能从 A 接口推断 B 接口。
+Markdown 可用 `{{../../scripts/example.js:10-20}}` 源码引用标记，路径按生成 HTML 所在目录计算；转换器会生成 `source-ref` 链接。也可直接使用带 commit 的在线源码链接。标记中行号从 1 开始且范围有序，文件和结论仍需实际核对。
 在线源码链接指向仓库和 commit；本地相对链接按输出目录计算。本地文件的 `#L45` 不保证浏览器支持行号导航，应说明阅读方式。
 区分事实/推断/未知；数字记录统计命令、范围、快照或真实记录来源。
 
@@ -68,6 +69,8 @@ node "$SKILL_ROOT/scripts/lint-doc-language.js" --mode explain <source.md>
 交付文件、源码快照、覆盖范围、实际检查结果、未确认项和未运行示例。
 
 ## 工具与输出
+
+Markdown 正文中的源码链接使用引用简写或 Markdown 链接。不要将带正文前缀的行内 raw anchor 当作转换器已支持的 HTML；生成后确认页面中存在可点击链接，而不只检查 HTML 文件里的 class 字符串。
 
 - 转换：`node "$SKILL_ROOT/scripts/md-to-html.js" --type module|system|guide <input.md>`。
 - 索引：`node "$SKILL_ROOT/scripts/md-to-html.js" --type module --index "项目名" "描述"`；可用 `doc-meta.json` 沿用项目品牌与链接。

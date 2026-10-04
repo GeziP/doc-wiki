@@ -1,0 +1,140 @@
+TAP version 13
+# Subtest: language CLI exits 0 for warnings, 2 for strict warnings, 1 for errors
+ok 1 - language CLI exits 0 for warnings, 2 for strict warnings, 1 for errors
+  ---
+  duration_ms: 714.0124
+  ...
+# Subtest: language CLI baseline compares new findings, fixes, duplicates and configuration
+ok 2 - language CLI baseline compares new findings, fixes, duplicates and configuration
+  ---
+  duration_ms: 642.2528
+  ...
+# Subtest: HTML validator preserves legacy output and clean JSON; all deduplicates targets
+ok 3 - HTML validator preserves legacy output and clean JSON; all deduplicates targets
+  ---
+  duration_ms: 184.2209
+  ...
+# Subtest: source references require rendered tags and accept reordered attributes
+ok 4 - source references require rendered tags and accept reordered attributes
+  ---
+  duration_ms: 445.4919
+  ...
+# Subtest: HTML --fix stays machine-readable and baseline detects new content regressions
+ok 5 - HTML --fix stays machine-readable and baseline detects new content regressions
+  ---
+  duration_ms: 358.0425
+  ...
+# Subtest: missing inputs, empty scans and unknown options cannot silently pass
+ok 6 - missing inputs, empty scans and unknown options cannot silently pass
+  ---
+  duration_ms: 485.4548
+  ...
+# Subtest: term CLI validates actual files, accepts BOM, and does not modify input
+ok 7 - term CLI validates actual files, accepts BOM, and does not modify input
+  ---
+  duration_ms: 169.4479
+  ...
+# Subtest: strict warning baselines, schema BOM and rule configuration remain coherent
+ok 8 - strict warning baselines, schema BOM and rule configuration remain coherent
+  ---
+  duration_ms: 350.0471
+  ...
+# Subtest: same-count HTML defects cannot hide a replacement structure
+ok 9 - same-count HTML defects cannot hide a replacement structure
+  ---
+  duration_ms: 279.9793
+  ...
+# Subtest: legacy validator handles escaped code, real escaped markup and legal exceptions
+ok 10 - legacy validator handles escaped code, real escaped markup and legal exceptions
+  ---
+  duration_ms: 371.1905
+  ...
+# Subtest: actual source references survive language lint -> conversion -> HTML validation
+ok 11 - actual source references survive language lint -> conversion -> HTML validation
+  ---
+  duration_ms: 324.3314
+  ...
+# Subtest: Chinese/English warnings are advisory; hedges and conditions are preserved
+ok 12 - Chinese/English warnings are advisory; hedges and conditions are preserved
+  ---
+  duration_ms: 3.2738
+  ...
+# Subtest: unresolved placeholders fail only in prose, including visible table cells
+ok 13 - unresolved placeholders fail only in prose, including visible table cells
+  ---
+  duration_ms: 0.655
+  ...
+# Subtest: converter source shorthand is resolved syntax, not an unfinished template
+ok 14 - converter source shorthand is resolved syntax, not an unfinished template
+  ---
+  duration_ms: 0.3045
+  ...
+# Subtest: Markdown fences, inline code, URLs, images and frontmatter do not produce findings
+ok 15 - Markdown fences, inline code, URLs, images and frontmatter do not produce findings
+  ---
+  duration_ms: 0.4668
+  ...
+# Subtest: visible link labels remain prose; destination and identifier code do not
+ok 16 - visible link labels remain prose; destination and identifier code do not
+  ---
+  duration_ms: 0.708
+  ...
+# Subtest: HTML excludes code/runtime/SVG/Mermaid but checks visible prose and entities
+ok 17 - HTML excludes code/runtime/SVG/Mermaid but checks visible prose and entities
+  ---
+  duration_ms: 0.5106
+  ...
+# Subtest: explicit terms respect English identifier boundaries, permitted aliases and Chinese terms
+ok 18 - explicit terms respect English identifier boundaries, permitted aliases and Chinese terms
+  ---
+  duration_ms: 1.2822
+  ...
+# Subtest: sentence length is a configurable-mode advisory, not a reason to drop precision
+ok 19 - sentence length is a configurable-mode advisory, not a reason to drop precision
+  ---
+  duration_ms: 0.5418
+  ...
+# Subtest: baseline identity distinguishes directories and remains stable when lines move
+ok 20 - baseline identity distinguishes directories and remains stable when lines move
+  ---
+  duration_ms: 1.9087
+  ...
+# Subtest: fixing an old finding cannot pay for a different new finding
+ok 21 - fixing an old finding cannot pay for a different new finding
+  ---
+  duration_ms: 0.1956
+  ...
+# Subtest: additional occurrences fail even with an existing identity; deletions are improvements
+ok 22 - additional occurrences fail even with an existing identity; deletions are improvements
+  ---
+  duration_ms: 0.7891
+  ...
+# Subtest: mismatched scope, tool, configuration and malformed baselines are rejected
+ok 23 - mismatched scope, tool, configuration and malformed baselines are rejected
+  ---
+  duration_ms: 0.4217
+  ...
+# Subtest: actual skill document CLI examples reproduce described findings
+ok 24 - actual skill document CLI examples reproduce described findings
+  ---
+  duration_ms: 386.4264
+  ...
+# Subtest: actual skill Markdown converts reproducibly with real references and local assets
+ok 25 - actual skill Markdown converts reproducibly with real references and local assets
+  ---
+  duration_ms: 208.8725
+  ...
+# Subtest: actual skill document baseline blocks injected regression and accepts repair
+ok 26 - actual skill document baseline blocks injected regression and accepts repair
+  ---
+  duration_ms: 301.1115
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 26
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4112.3062

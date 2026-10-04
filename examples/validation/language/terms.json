@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "terms": [
+    {
+      "canonical": "任务",
+      "aliases": [
+        "Task"
+      ],
+      "identifiers": [
+        "task_id"
+      ],
+      "forbidden": [
+        "作业"
+      ],
+      "definition": "仅为演示的任务名称",
+      "source": "演示配置，不是项目定义"
+    }
+  ]
+}

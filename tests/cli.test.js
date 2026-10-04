@@ -64,14 +64,32 @@ test('HTML validator preserves legacy output and clean JSON; all deduplicates ta
   const file = path.join(root, 'doc', 'Doc_Wiki_System_Architecture.html');
   const legacy = run('validate-doc.js', [file]);
   assert.equal(legacy.status, 0);
-  assert(legacy.stdout.includes('ALL PASSED'));
+  assert(legacy.stdout.includes('No source references found'));
   const structured = run('validate-doc.js', ['--all', '--json']);
   assert.equal(structured.status, 0);
   const report = json(structured);
-  assert.equal(report.summary.files, 1);
+  assert.equal(report.summary.files, report.targets.length);
+  assert.equal(new Set(report.targets).size, report.targets.length);
+  assert(report.targets.includes('doc/Doc_Wiki_System_Architecture.html'));
   assert.equal(report.summary.errors, 0);
-  assert.equal(report.summary.warnings, 0);
+  assert.equal(report.summary.warnings, 1);
+  assert.equal(report.issues[0].rule, 'html/源码引用');
   assert(report.files[0].checks.length > 10);
+});
+
+test('source references require rendered tags and accept reordered attributes', t => {
+  const dir = workspace(t), file = path.join(dir, 'doc.html');
+  for (const [body, expected] of [
+    ['<p>&lt;a class="source-ref" href="file.js#L1"&gt;example&lt;/a&gt;</p>', false],
+    ['<pre><code>&lt;a class="source-ref"&gt;</code></pre>', false],
+    ['<!-- <a class="source-ref" href="file.js#L1"> -->', false],
+    ["<a href='file.js#L1-L3' class='extra source-ref'>file</a>", true],
+    ['<div class="sources-block">Sources</div>', true],
+  ]) {
+    fs.writeFileSync(file, `<html><head><title>Test</title></head><body>${body}</body></html>`);
+    const r = json(run('validate-doc.js', ['--new-doc', '--json', file], dir));
+    assert.equal(r.issues.some(i => i.rule === 'html/源码引用' && i.severity === 'error'), !expected);
+  }
 });
 
 test('HTML --fix stays machine-readable and baseline detects new content regressions', t => {

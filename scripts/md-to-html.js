@@ -20,6 +20,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { parseSourceReference } = require('./lib/source-reference');
 
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
@@ -412,13 +413,9 @@ function inlineMarkdown(text) {
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
   // {{file:line}} source references
   out = out.replace(/\{\{([^}]+?)\}\}/g, (_, ref) => {
-    const parts = ref.match(/^(.+?):(\d+)(?:-(\d+))?$/);
-    if (parts) {
-      const file = parts[1];
-      const start = parts[2];
-      const end = parts[3] ? `-${parts[3]}` : '';
-      const href = `${file}#L${start}${end ? '-L' + end : ''}`;
-      return `<a class="source-ref" href="${href}"><code>${file}:${start}${end}</code></a>`;
+    const source = parseSourceReference(ref);
+    if (source) {
+      return `<a class="source-ref" href="${source.href}"><code>${source.label}</code></a>`;
     }
     return `<code>${escapeHtml(ref)}</code>`;
   });

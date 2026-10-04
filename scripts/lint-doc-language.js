@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { digest, relativeFile, issue, makeReport, gate, readJson } = require('./lib/quality-report');
 const { proseSegments, location } = require('./lib/prose');
+const { parseSourceReference } = require('./lib/source-reference');
 
 const RULES = ['placeholder', 'forbidden-term', 'long-sentence', 'marketing', 'vague-reference', 'multi-action'];
 function validateTerms(config) {
@@ -51,7 +52,9 @@ function lint(source, { file = '<stdin>', format = 'markdown', mode = 'explain',
       if (!disabled.includes(rule)) findings.push(issue({ file, rule, severity, message,
         ...location(source, segment.offset + (segment.offsets[index] ?? index)), context: text.replace(/\s+/g, ' ').trim(), key }));
     };
-    for (const m of text.matchAll(/\{\{[^{}\n]+\}\}/g)) add('placeholder', 'error', `Unresolved placeholder: ${m[0]}`, m.index, `${text}|${m[0]}`);
+    for (const m of text.matchAll(/\{\{([^{}\n]+)\}\}/g)) {
+      if (!parseSourceReference(m[1])) add('placeholder', 'error', `Unresolved placeholder: ${m[0]}`, m.index, `${text}|${m[0]}`);
+    }
     for (const term of terms.terms) {
       for (const alias of term.forbidden || []) {
         for (const index of termMatches(text, alias)) add('forbidden-term', 'error', `Use "${term.canonical}" instead of forbidden alias "${alias}"`, index, `${text}|${term.canonical}|${alias}`);
@@ -116,7 +119,7 @@ function main(args) {
       } catch (error) { return [issue({ file, rule: 'input/read', severity: 'error', message: error.message })]; }
     });
     const report = makeReport('doc-language', targets.map(f => relativeFile(f, opts.root)),
-      { engine: 1, mode: opts.mode, terms: digest(terms), disabled: [...new Set(opts.disabled)].sort(), strict: !!opts.strict }, issues);
+      { engine: 2, mode: opts.mode, terms: digest(terms), disabled: [...new Set(opts.disabled)].sort(), strict: !!opts.strict }, issues);
     const code = gate(report, opts);
     if (opts.json) console.log(JSON.stringify(report, null, 2));
     else {

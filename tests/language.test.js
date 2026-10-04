@@ -22,6 +22,13 @@ test('unresolved placeholders fail only in prose, including visible table cells'
   assert.deepEqual(problems.map(i => i.line), [1, 4]);
 });
 
+test('converter source shorthand is resolved syntax, not an unfinished template', () => {
+  assert.deepEqual(lint('对应实现 {{scripts/lib/quality-report.js:22-28}}。单行 {{SKILL.md:1}}。'), []);
+  const invalid = lint('未完成 {{MODULE_NAME}}。错误范围 {{scripts/lib/prose.js:28-22}}。零行 {{scripts/lib/prose.js:0}}。');
+  assert.equal(invalid.length, 3);
+  assert(invalid.every(i => i.rule === 'placeholder'));
+});
+
 test('Markdown fences, inline code, URLs, images and frontmatter do not produce findings', () => {
   const source = [
     '---', 'title: seamless {{TITLE}}', '---',

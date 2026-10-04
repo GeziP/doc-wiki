@@ -13,7 +13,7 @@ node scripts/lint-doc-language.js --disable long-sentence,marketing doc/Architec
 
 | 规则 ID | 级别 | 能力 |
 |---|---|---|
-| placeholder | error | 可见正文中未替换的 `{{NAME}}` |
+| placeholder | error | 可见正文中未替换的 `{{NAME}}`；有效的源码引用标记除外 |
 | forbidden-term | error | 项目配置中明确禁用的名称，不推测近义词 |
 | long-sentence | warning | strict：英文 >20 词/中文 >50 字；explain：>25 词/>70 字 |
 | marketing | warning | 短词表中的质量宣传用语，应补证据或具体描述 |
@@ -22,6 +22,9 @@ node scripts/lint-doc-language.js --disable long-sentence,marketing doc/Architec
 
 阈值是项目启发式，不是中文受控语言标准。`--mode strict` 改变检查范围与句长提示；`--strict` 决定 warning 是否阻断，两者不同。
 不检测或删减“可能/may/might/could”等置信度表达，不修改文件。通过不证明意义或事实正确。
+
+转换器的 `{{路径:起始行-结束行}}` 和 `{{路径:行号}}` 是源码引用语法，不是待替换变量。行号从 1 开始，结束行不能小于起始行；语言 lint 与转换器共用语法解析器。通过语法检查不证明文件存在或引用支持结论。
+语言引擎 profile 已从 1 升至 2；旧 JSON 基线必须用新版本工具在修订前后重跑，不跨引擎版本直接比较。
 
 ### 扫描范围与位置
 
@@ -91,6 +94,8 @@ PowerShell 5 保存 JSON 请使用 UTF-8（如管道 `Set-Content -Encoding UTF8
 工具版本变化需在同一新版本上重跑修订前后。基线不替代事实与语义审核。
 
 ## 测试与升级
+
+实际试跑后的 HTML 检查使用 profile engine=2：源码引用必须是实际标签，转义的代码示例不算引用。语言检查也使用 engine=2，排除合法源码引用语法。两工具的旧基线均应在新工具下重跑修订前后。1.x 自文档因此显露一条缺少实际源码引用的历史 warning，不能沿用旧漏检结果称全过。
 
 ```bash
 node --test tests

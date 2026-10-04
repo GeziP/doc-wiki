@@ -463,9 +463,17 @@ function checkHtmlSkeleton(html, report) {
 /** 9. 源码引用校验 (Phase 2) */
 function checkSourceRefs(html, report) {
   const cat = '源码引用';
-  const hasSourceRef = /class="source-ref"/.test(html);
-  const hasSourcesBlock = /class="sources-block"/.test(html);
-  const hasRelevantSources = /class="relevant-sources"/.test(html);
+  // Escaped examples and class text in code are not rendered source links.
+  const rendered = html.replace(/<!--[\s\S]*?-->|<(pre|code|script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
+  const tags = rendered.match(/<[a-z][^>]*>/gi) || [];
+  const hasClass = (tag, name) => {
+    const classes = tag.match(/\bclass\s*=\s*(["'])(.*?)\1/i);
+    return classes && classes[2].split(/\s+/).includes(name);
+  };
+  const sourceLinks = tags.filter(tag => /^<a\b/i.test(tag) && hasClass(tag, 'source-ref'));
+  const hasSourceRef = sourceLinks.length > 0;
+  const hasSourcesBlock = tags.some(tag => hasClass(tag, 'sources-block'));
+  const hasRelevantSources = tags.some(tag => hasClass(tag, 'relevant-sources'));
 
   if (!hasSourceRef && !hasSourcesBlock && !hasRelevantSources) {
     const msg = 'No source references found (source-ref, sources-block, relevant-sources)';
@@ -480,10 +488,9 @@ function checkSourceRefs(html, report) {
   // Only require line numbers for code files, not .md/.html/.css/.json
   const NO_LINE_REQUIRED = /\.(md|html|htm|css|json|yaml|yml|toml|xml|svg|txt|csv|sql|sh|bat|ps1)(\b|$)/i;
   if (hasSourceRef) {
-    const refRe = /<a[^>]*class="source-ref"[^>]*href="([^"]*)"[^>]*>/g;
-    let refM, emptyRefs = 0, noLineRefs = 0;
-    while ((refM = refRe.exec(html)) !== null) {
-      const href = refM[1];
+    let emptyRefs = 0, noLineRefs = 0;
+    for (const tag of sourceLinks) {
+      const href = tag.match(/\bhref\s*=\s*(["'])(.*?)\1/i)?.[2];
       if (!href || href.trim() === '') { emptyRefs++; continue; }
       // Skip line number check for non-code files
       if (NO_LINE_REQUIRED.test(href)) continue;
@@ -1174,7 +1181,7 @@ for (const filePath of targets) {
 
 if (!targets.length) fatal('No document targets found');
 const quality = makeReport('doc-html', targets.map(f => relativeFile(f, PROJECT_ROOT)),
-  { engine: 1, type: docType, newDoc: isNewDoc, interactive: testInteractive, strict, fix: doFix }, issues, { files: fileReports });
+  { engine: 2, type: docType, newDoc: isNewDoc, interactive: testInteractive, strict, fix: doFix }, issues, { files: fileReports });
 let exitCode;
 try { exitCode = gate(quality, { baseline: baselinePath, strict }); }
 catch (error) { fatal(error.message); }

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "tool": "doc-language",
+  "targets": [
+    "doc/tech-docs/Lint_Doc_Language_Design.html",
+    "doc/tech-docs/Lint_Doc_Language_Design.md"
+  ],
+  "profile": {
+    "disabled": [],
+    "engine": 2,
+    "mode": "explain",
+    "strict": true,
+    "terms": "d5be93d386d53d7ba376d79267fdf9ebc315b26d5cd928a5cb0c47c932513eac"
+  },
+  "issues": [],
+  "summary": {
+    "files": 2,
+    "errors": 0,
+    "warnings": 0
+  }
+}
