@@ -1,4 +1,7 @@
-# Preserve third-party bytes, generated HTML and raw execution snapshots.
+# Auto detect text files and perform LF normalization.
+* text=auto
+
+# Preserve whitespace in third-party, generated and raw execution artifacts.
 **/vendor/** -whitespace
 doc/**/*.html -whitespace
 guide.html -whitespace
