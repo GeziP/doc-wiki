@@ -1,0 +1,7 @@
+{
+  "baseCommit": "eae95fedda3578aca9858764a29ef6a116c37504",
+  "file": "scripts/lint-doc-language.js",
+  "old": "mode === 'strict' ? 50 : 70",
+  "new": "mode === 'strict' ? 55 : 70",
+  "scope": "controlled maintenance trial; production code unchanged"
+}

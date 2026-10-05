@@ -1,0 +1,6 @@
+  OK    Lint_Doc_Language_Design.md -> Lint_Doc_Language_Design.html (8 sections)
+  OK    Prose_Design.md -> Prose_Design.html (6 sections)
+  OK    Quality_Report_Design.md -> Quality_Report_Design.html (7 sections)
+
+Done: 3 converted, 0 skipped
+

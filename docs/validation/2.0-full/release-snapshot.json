@@ -1,0 +1,172 @@
+{
+  "date": "2026-10-05T11:33:29.396Z",
+  "node": "v20.20.2",
+  "baseCommit": "eae95fedda3578aca9858764a29ef6a116c37504",
+  "note": "Final working-tree content before release commit; raw Windows bytes",
+  "files": [
+    {
+      "file": "README.md",
+      "sha256": "1ef798678896ae6590c4dfac6214d32414e09601486ddbc4fba59638698a8384"
+    },
+    {
+      "file": "SKILL.md",
+      "sha256": "0d3a6c6cb63f559b3fca5cabd92ee3be54564effe5b16bad3baf554c89f366cd"
+    },
+    {
+      "file": "doc/Quality_Tooling_System.html",
+      "sha256": "646f8f93b0687712758c9e45afc98e652ed0992b4c4104433d46eb0cf8394946"
+    },
+    {
+      "file": "doc/Quality_Tooling_System.md",
+      "sha256": "cc627621dbe76c18516af6b1089319dd26537a4a964491a55314cfa33ca4e44d"
+    },
+    {
+      "file": "doc/doc-meta.json",
+      "sha256": "9d6ea8d71bbb24d3a6881ab32764638192580fd056281b810399ce9c4a227c7a"
+    },
+    {
+      "file": "doc/index.html",
+      "sha256": "73a1a18d6c0a465c1576915fab29d53f39e44c06a554ee2bac0ceb15bd7c0a4f"
+    },
+    {
+      "file": "doc/tech-docs/Lint_Doc_Language_Design.html",
+      "sha256": "60244c12e64179451ca7ae686773f16f16bf85aea13a5b025f39cf68d4e3b8e1"
+    },
+    {
+      "file": "doc/tech-docs/Lint_Doc_Language_Design.md",
+      "sha256": "b2504c2c5f3d24a8b522dc154a79b8ba9751f75a628d210aa4859c4c5e0f825f"
+    },
+    {
+      "file": "doc/tech-docs/Prose_Design.html",
+      "sha256": "84c2257b5609af02a4626a38fd4fb07c256f1e66ac6e1b142d4acdd0024994ba"
+    },
+    {
+      "file": "doc/tech-docs/Prose_Design.md",
+      "sha256": "235f7c1db6eb8a423156e88fa5706a54475a99824a8b2460ad3e14ec3340a9dd"
+    },
+    {
+      "file": "doc/tech-docs/Quality_Report_Design.html",
+      "sha256": "e30dd9a193a3e69d879e33eea565418e0597cb600d5d64045f2e0d6b258012e4"
+    },
+    {
+      "file": "doc/tech-docs/Quality_Report_Design.md",
+      "sha256": "5c2bb5ad22d58d3bb0b5ba79ff2bbdf64c7b8ea07a823c1e89e9ddd1514342fe"
+    },
+    {
+      "file": "doc/tech-docs/doc-meta.json",
+      "sha256": "3975f2ce6ef4c297a69d4141e4c409a9e11971c4dc1b23ee250c729d6cc9cd85"
+    },
+    {
+      "file": "doc/tech-docs/index.html",
+      "sha256": "92e04bc8e7d12c3e97c2ee77678d37783422f44d97c52e490fd43d5d0965fa4c"
+    },
+    {
+      "file": "examples/full-validation/check-docs.js",
+      "sha256": "5787bf10c5544498fc024c57861d338fdc7a2d05baae3d112b8b5597c5dc7a1e"
+    },
+    {
+      "file": "examples/full-validation/create-example.js",
+      "sha256": "24f4e5b9472fdf7eb5102852a5b3673fa6c57e20c2d0e8c17db873fa8074abb1"
+    },
+    {
+      "file": "examples/full-validation/module-api.js",
+      "sha256": "a4c006a9127552ed61d9cbb503ed4e3d3b584bb112ecdc0d51ddae79f034e613"
+    },
+    {
+      "file": "examples/full-validation/run-e2e.js",
+      "sha256": "2eb5f5eddf916d0226c1f95e5fd64103463bdf69a0efb312b6d1688bb7f128c0"
+    },
+    {
+      "file": "guide.html",
+      "sha256": "c0e9f45b959b69f032e0a7578cdca7948a4242b65cf77cc08425affcc8528eec"
+    },
+    {
+      "file": "guide.md",
+      "sha256": "b9c4bd0fd589966423079091c026f20b79eac882d05b11c4fa674e67cbb9793f"
+    },
+    {
+      "file": "scripts/doc-shell.css",
+      "sha256": "f842c833c11f5185dda48d13dada84e79aabea983868aaca230e3e51bed9ea4b"
+    },
+    {
+      "file": "scripts/doc-shell.js",
+      "sha256": "35528d7efe9219e39cde6560319f7881ab82b314bc564ad0be2f4b2aa5fb78a8"
+    },
+    {
+      "file": "scripts/inline-shared.js",
+      "sha256": "08eb535d4e8eb0919c52a178dae1c7ca0e8201eac6e5fa0ae8c359acdb2edb65"
+    },
+    {
+      "file": "scripts/lib/prose.js",
+      "sha256": "8d2d7b3e4b956f13a9d117141c55085e0d80bdf6761c36788911423e90b05711"
+    },
+    {
+      "file": "scripts/lib/quality-report.js",
+      "sha256": "27fd857d2c15e4656e790ac4349cbc5d5b49af0751cfd0876e76d9edbff8291c"
+    },
+    {
+      "file": "scripts/lib/source-reference.js",
+      "sha256": "76d28098b5d7bc9a5b07deba869d8c4c7daa4c976698cba181865c7dfffe7724"
+    },
+    {
+      "file": "scripts/lint-doc-language.js",
+      "sha256": "489e42f748983fc8ecc14b472849437cbc167f8c6cf72e4f2b48080e37001b9b"
+    },
+    {
+      "file": "scripts/md-to-html.js",
+      "sha256": "f5307912a846a3d619641d1a7d5c82eff03e0e1578581280f3824a4885fde28d"
+    },
+    {
+      "file": "scripts/skin-switcher.js",
+      "sha256": "eef30f3b9e3eb0b4295dbc6269c6ee6b252105d91a96d3d73477a6727b0c2752"
+    },
+    {
+      "file": "scripts/validate-doc.js",
+      "sha256": "3b2c98ca04a5f743d2a71f54e747d76ae8c52cb238e68217a1d50eb7302df579"
+    },
+    {
+      "file": "templates/guide.html",
+      "sha256": "4121def844d84f5d61fb0ec8996a8329cdd6f96b9366c9a8a126d5f3ad59aedf"
+    },
+    {
+      "file": "templates/module-design.html",
+      "sha256": "74664c94c8de58f4141ffbd9f6c141ce9fb4ea293f737b30d1cdd63e5cb7a06e"
+    },
+    {
+      "file": "templates/module-index.html",
+      "sha256": "d7cfdfee8337b53b428f2a25ec4a6ea04d4f625092c9cef8183a2457811c2b7e"
+    },
+    {
+      "file": "templates/system-design.html",
+      "sha256": "0e61ddc244e71a18775f16fb1b63dbcc3e2bcf08096efaa760f1cbf092ca25dc"
+    },
+    {
+      "file": "templates/system-index.html",
+      "sha256": "f46abad4123737fb8e04a6d57f73949701deae1293a8f877cde6fe5972311aad"
+    },
+    {
+      "file": "tests/cli.test.js",
+      "sha256": "cc2136a78ae6c0ac0597d2db0075c7e1406ddcaf8a055f810ed61710e236c128"
+    },
+    {
+      "file": "tests/conversion.test.js",
+      "sha256": "11259def4eb472373ac318a17ffdaadd9b421cc8b4ae1b2161c3979a0079746c"
+    },
+    {
+      "file": "tests/language.test.js",
+      "sha256": "004421bccae50edc9c06d1127b11026c5cb739fefa3f30a53349f68e092b2cc1"
+    },
+    {
+      "file": "tests/pipeline.test.js",
+      "sha256": "e1bf65afca20907733c1e4f46c00856f70ac76682a8845d098cf90fbf2b2eb8a"
+    },
+    {
+      "file": "tests/quality-report.test.js",
+      "sha256": "1bde0aeb09fccbdae090156ef7becfd75316b4aedb589bb6c303707e7aedd4bd"
+    },
+    {
+      "file": "tests/skill-e2e.test.js",
+      "sha256": "1025234366b1b0d2edeecfe80129bd1a2f2c21605e0380e00099c38a0feb46d8"
+    }
+  ]
+}

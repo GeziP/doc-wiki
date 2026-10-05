@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "tool": "doc-html",
+  "targets": [
+    "doc/tech-docs/Lint_Doc_Language_Design.html"
+  ],
+  "profile": {
+    "engine": 2,
+    "fix": false,
+    "interactive": false,
+    "newDoc": true,
+    "strict": false,
+    "type": null
+  },
+  "issues": [],
+  "summary": {
+    "files": 1,
+    "errors": 0,
+    "warnings": 0
+  },
+  "files": [
+    {
+      "file": "doc/tech-docs/Lint_Doc_Language_Design.html",
+      "checks": [
+        {
+          "category": "Mermaid 块",
+          "status": "pass",
+          "message": "No Mermaid blocks found"
+        },
+        {
+          "category": "章节标题 ID",
+          "status": "pass",
+          "message": "16 headings with unique IDs"
+        },
+        {
+          "category": "代码块",
+          "status": "pass",
+          "message": "5 code blocks all have language tags"
+        },
+        {
+          "category": "表格",
+          "status": "pass",
+          "message": "9 tables properly structured"
+        },
+        {
+          "category": "内联 Markdown",
+          "status": "pass",
+          "message": "Inline markdown properly converted"
+        },
+        {
+          "category": "可折叠章节",
+          "status": "pass",
+          "message": "8 sections (8 open, 0 collapsed)"
+        },
+        {
+          "category": "TOC 完整性",
+          "status": "pass",
+          "message": "TOC is empty in static HTML (JS buildTOC will populate at runtime)"
+        },
+        {
+          "category": "HTML 骨架",
+          "status": "pass",
+          "message": "All 5 skeleton elements present"
+        },
+        {
+          "category": "HTML 转义回归",
+          "status": "pass",
+          "message": "无错误转义的结构性 HTML 标签"
+        },
+        {
+          "category": "内网可移植",
+          "status": "pass",
+          "message": "No CDN assets (offline-portable)"
+        },
+        {
+          "category": "mermaid 接线",
+          "status": "pass",
+          "message": "No mermaid diagrams (skip)"
+        },
+        {
+          "category": "图片尺寸约束",
+          "status": "pass",
+          "message": "No images (skip)"
+        },
+        {
+          "category": "资产存在性",
+          "status": "pass",
+          "message": "4 个本地资产全部存在"
+        },
+        {
+          "category": "源码引用",
+          "status": "pass",
+          "message": "Source reference links found"
+        },
+        {
+          "category": "术语表",
+          "status": "pass",
+          "message": "Glossary section found"
+        },
+        {
+          "category": "Scope 声明",
+          "status": "pass",
+          "message": "Scope block found"
+        },
+        {
+          "category": "视觉约束",
+          "status": "pass",
+          "message": "No anti-slop violations found"
+        },
+        {
+          "category": "SVG Guardrails",
+          "status": "pass",
+          "message": "1 SVG diagram(s) passed guardrails"
+        },
+        {
+          "category": "Figure Captions",
+          "status": "pass",
+          "message": "1 diagram(s) have proper captions"
+        },
+        {
+          "category": "Empty Sections",
+          "status": "pass",
+          "message": "No empty sections"
+        },
+        {
+          "category": "Duplicate Content",
+          "status": "pass",
+          "message": "No duplicate content detected"
+        },
+        {
+          "category": "Content Density",
+          "status": "pass",
+          "message": "8 sections, 54 paragraphs, 5 code blocks — density OK"
+        }
+      ]
+    }
+  ],
+  "baseline": {
+    "added": [],
+    "resolved": [],
+    "unchanged": 0
+  }
+}

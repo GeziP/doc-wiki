@@ -1,0 +1,30 @@
+{
+  "total": 141,
+  "bad": [
+    {
+      "document": "doc/Quality_Tooling_System.md",
+      "path": "../tests/skill-e2e.test.js",
+      "start": 23,
+      "end": 85,
+      "exists": true,
+      "inRange": false
+    },
+    {
+      "document": "guide.md",
+      "path": "references/fullpower-workflow.md",
+      "start": 49,
+      "end": 85,
+      "exists": true,
+      "inRange": false
+    },
+    {
+      "document": "guide.md",
+      "path": "references/writing-quality.md",
+      "start": 69,
+      "end": 94,
+      "exists": true,
+      "inRange": false
+    }
+  ],
+  "note": "存在及行范围不证明支持结论"
+}

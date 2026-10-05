@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "tool": "doc-html",
+  "targets": [
+    "doc/Quality_Tooling_System.html"
+  ],
+  "profile": {
+    "engine": 2,
+    "fix": false,
+    "interactive": false,
+    "newDoc": true,
+    "strict": false,
+    "type": null
+  },
+  "issues": [
+    {
+      "id": "d2948ebe0396509c7950d33370505cb651f57bb5a02fe3003fe61c46a8d1ffa6",
+      "file": "doc/Quality_Tooling_System.html",
+      "rule": "html/Content Density",
+      "severity": "warning",
+      "message": "Low code density: 1 code blocks across 7 sections (ratio 0.1, expect ≥0.5)"
+    }
+  ],
+  "summary": {
+    "files": 1,
+    "errors": 0,
+    "warnings": 1
+  },
+  "files": [
+    {
+      "file": "doc/Quality_Tooling_System.html",
+      "checks": [
+        {
+          "category": "Mermaid 块",
+          "status": "pass",
+          "message": "1/1 blocks valid"
+        },
+        {
+          "category": "章节标题 ID",
+          "status": "pass",
+          "message": "11 headings with unique IDs"
+        },
+        {
+          "category": "代码块",
+          "status": "pass",
+          "message": "No code blocks found"
+        },
+        {
+          "category": "表格",
+          "status": "pass",
+          "message": "2 tables properly structured"
+        },
+        {
+          "category": "内联 Markdown",
+          "status": "pass",
+          "message": "Inline markdown properly converted"
+        },
+        {
+          "category": "可折叠章节",
+          "status": "pass",
+          "message": "7 sections (4 open, 3 collapsed)"
+        },
+        {
+          "category": "TOC 完整性",
+          "status": "pass",
+          "message": "TOC is empty in static HTML (JS buildTOC will populate at runtime)"
+        },
+        {
+          "category": "HTML 骨架",
+          "status": "pass",
+          "message": "All 5 skeleton elements present"
+        },
+        {
+          "category": "HTML 转义回归",
+          "status": "pass",
+          "message": "无错误转义的结构性 HTML 标签"
+        },
+        {
+          "category": "内网可移植",
+          "status": "pass",
+          "message": "No CDN assets (offline-portable)"
+        },
+        {
+          "category": "mermaid 接线",
+          "status": "pass",
+          "message": "mermaid div + local runtime (assets/vendor/mermaid.min.js)"
+        },
+        {
+          "category": "图片尺寸约束",
+          "status": "pass",
+          "message": "No images (skip)"
+        },
+        {
+          "category": "资产存在性",
+          "status": "pass",
+          "message": "4 个本地资产全部存在"
+        },
+        {
+          "category": "源码引用",
+          "status": "pass",
+          "message": "Source reference links found"
+        },
+        {
+          "category": "术语表",
+          "status": "pass",
+          "message": "Glossary section found"
+        },
+        {
+          "category": "Scope 声明",
+          "status": "pass",
+          "message": "Scope block found"
+        },
+        {
+          "category": "视觉约束",
+          "status": "pass",
+          "message": "No anti-slop violations found"
+        },
+        {
+          "category": "SVG Guardrails",
+          "status": "pass",
+          "message": "No SVG diagrams found"
+        },
+        {
+          "category": "Figure Captions",
+          "status": "pass",
+          "message": "1 diagram(s) have proper captions"
+        },
+        {
+          "category": "Empty Sections",
+          "status": "pass",
+          "message": "No empty sections"
+        },
+        {
+          "category": "Duplicate Content",
+          "status": "pass",
+          "message": "No duplicate content detected"
+        },
+        {
+          "category": "Content Density",
+          "status": "warn",
+          "message": "Low code density: 1 code blocks across 7 sections (ratio 0.1, expect ≥0.5)",
+          "evidence": "f9de90f2c7951394eeb88064fd647971a050aba5036fcd1d8d9ebd5d995d3124"
+        }
+      ]
+    }
+  ]
+}
+

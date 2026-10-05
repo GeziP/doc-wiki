@@ -1,0 +1,32 @@
+diff --git a/.tmp/full-validation/maintenance/checks/before.html b/.tmp/full-validation/maintenance/doc/tech-docs/Lint_Doc_Language_Design.html
+index 9d9b448..c1213ce 100644
+--- a/.tmp/full-validation/maintenance/checks/before.html
++++ b/.tmp/full-validation/maintenance/doc/tech-docs/Lint_Doc_Language_Design.html
+@@ -763,7 +763,7 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
+       <details open id="sec-overview">
+         <summary><h2 id="sec-overview-h">1. 概述与模块关系</h2></summary>
+         <div class="section-body">
+-<div class="scope-block"><strong>Scope</strong>：覆盖 lint-doc-language 的 CLI、全部导出 API、实际依赖和当前测试。输入扫描是启发式；不提供事实校验、自动改写或标准合规认证。</div>
++<div class="scope-block"><strong>Scope</strong>：本页是隔离维护实测，不代表生产实现。覆盖 lint-doc-language 的 CLI、全部导出 API、实际依赖和当前测试。输入扫描是启发式；不提供事实校验、自动改写或标准合规认证。</div>
+ <p>本模块对 Markdown 和 HTML 的可见正文做启发式语言检查，返回显式术语违规、未替换占位符和写作提示。它不改写输入、不校验源码事实，也不宣称符合 ASD-STE100。CLI 读取文件并输出人类文本或 JSON；维护者可直接导入 CommonJS API。</p>
+ <figure class="diagram">
+ <svg viewBox="0 0 640 280" role="img" aria-label="lint、正文扫描、源码引用及质量报告之间的调用关系" preserveAspectRatio="xMidYMid meet">
+@@ -857,15 +857,16 @@ node scripts/lint-doc-language.js --terms examples/validation/language/terms.jso
+ <tbody>
+ <tr><td><code>placeholder</code></td><td>error</td><td>双花括号之间至少一个字符，不含花括号或换行；合法源码引用语法除外；每次匹配一项</td></tr>
+ <tr><td><code>forbidden-term</code></td><td>error</td><td>只检查 <code>terms[].forbidden</code>，每个别名每次匹配一项</td></tr>
+-<tr><td><code>long-sentence</code></td><td>warning</td><td>strict：中文计数 &gt;50 或英文词数 &gt;20；explain：&gt;70 或 &gt;25</td></tr>
++<tr><td><code>long-sentence</code></td><td>warning</td><td>strict：中文计数 &gt;55 或英文词数 &gt;20；explain：&gt;70 或 &gt;25</td></tr>
+ <tr><td><code>marketing</code></td><td>warning</td><td>英文 <code>seamless/seamlessly</code>、<code>effortless/effortlessly</code>、<code>blazing-fast</code>、<code>world-class</code>、<code>cutting-edge</code>；中文 <code>无缝</code>、<code>极致</code>、<code>业界领先</code>、<code>完美无缺</code></td></tr>
+ <tr><td><code>vague-reference</code></td><td>warning</td><td>只在 strict：必要时、适当处理、相关操作、视情况而定、as needed/as appropriate</td></tr>
+ <tr><td><code>multi-action</code></td><td>warning</td><td>只在 strict：然后、接着、随后、and then/then；每个段最多一项</td></tr>
+ </tbody></table></div>
+ <p>长句按中文句号/问叹号及英文 <code>. ! ?</code> 分隔，不跨行拼接。中文计数仅含 <code>U+3400..U+9FFF</code>；英文词使用字母及内部撇号/连字符，不是分词器。两种计数任一超阈值就提示；中文字符数不是全部字符长度。</p>
++<p>在本隔离快照的 strict 模式中，51 至 55 个计入范围的中文字符不再单独触发句长 warning；56 个仍会触发。英文词数超过 20 仍独立触发；explain 阈值保持中文 70、英文 25。<code>--strict</code> 只决定 warning 是否阻断。</p>
+ <p>禁用词匹配使用原始文字串上的不区分大小写字面量匹配，不改变原文字串。词首或词尾为 ASCII <code>\w</code> 时，对应边界旁不能也是 <code>\w</code>。例如 <code>erase</code> 匹配 <code>Erase</code>，不匹配 <code>eraser</code> 或 <code>erase_id</code>；中文别名按子串匹配。每次搜索从本次匹配末尾继续，不匹配重叠副本。</p>
+ <p>规则不提示“可能”、may、might、could。提示应保留条件、否定和不确定性。英文宣传词的词边界与禁用词标识边界并非同一个实现，维护时不能假定二者完全一致。</p>
+-<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L10"><code>../../scripts/lint-doc-language.js:10</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L34"><code>../../scripts/lint-doc-language.js:34</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L47"><code>../../scripts/lint-doc-language.js:47</code></a>。</p>
++<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L10"><code>../../scripts/lint-doc-language.js:10</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L34"><code>../../scripts/lint-doc-language.js:34</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L47"><code>../../scripts/lint-doc-language.js:47</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L73-L80"><code>../../scripts/lint-doc-language.js:73-80</code></a>。</p>
+         </div>
+       </details>
+ 

@@ -23,6 +23,20 @@ const path = require('path');
 const { parseSourceReference } = require('./lib/source-reference');
 
 const args = process.argv.slice(2);
+const valueFlags = ['--type', '--root', '--lang'];
+const switchFlags = ['--all', '--force', '--index', '--dry-run', '--help'];
+for (let i = 0; i < args.length; i++) {
+  if (valueFlags.includes(args[i])) {
+    if (!args[i + 1] || args[i + 1].startsWith('--')) {
+      console.error(`ERROR Missing value for ${args[i]}`);
+      process.exit(1);
+    }
+    i++;
+  } else if (args[i].startsWith('--') && !switchFlags.includes(args[i])) {
+    console.error(`ERROR Unknown option: ${args[i]}`);
+    process.exit(1);
+  }
+}
 const dryRun = args.includes('--dry-run');
 const convertAll = args.includes('--all');
 const force = args.includes('--force');
@@ -47,7 +61,7 @@ const TYPE_CONFIG = {
   module: {
     scanDir: path.join(PROJECT_ROOT, 'doc', 'tech-docs'),
     templatePath: path.resolve(__dirname, '..', 'templates', 'module-design.html'),
-    filePattern: f => f.endsWith('_Design.md'),
+    filePattern: f => /_Design\.md$/i.test(f),
     bodyAttr: 'data-doctype="tech-design"',
     generatorMeta: 'doc-writer module',
     brand: 'Module Docs',
@@ -133,7 +147,7 @@ const TYPE_CONFIG = {
   system: {
     scanDir: path.join(PROJECT_ROOT, 'doc'),
     templatePath: path.resolve(__dirname, '..', 'templates', 'system-design.html'),
-    filePattern: f => /Architecture_Design\.md$|Detailed_Design.*\.md$|Requirements.*\.md$/.test(f),
+    filePattern: f => /\.md$/i.test(f) && !/Guide\.md$/i.test(f),
     bodyAttr: 'data-doctype="system-design"',
     generatorMeta: 'doc-writer system',
     brand: 'System Docs',
@@ -217,6 +231,7 @@ const TYPE_CONFIG = {
   },
   guide: {
     scanDir: path.join(PROJECT_ROOT, 'doc'),
+    additionalScanDirs: [PROJECT_ROOT],
     templatePath: path.resolve(__dirname, '..', 'templates', 'guide.html'),
     filePattern: f => /Guide\.md$/i.test(f),
     bodyAttr: 'data-doctype="guide"',
@@ -269,10 +284,10 @@ function detectType(filePath) {
   // 2026-09-16 二次勘误（Codex PR review）：目录判定必须先于名字判定——
   // doc/tech-docs/Detailed_Design.md 这类"撞系统名"的模块文档会被名字规则抢走，
   // 拿到 system 的 vendorRel（少一个 ../）→ 本地资产 404。正确优先级：
-  // ① Guide 名 ② tech-docs 目录 ③ Architecture/Detailed/Requirements 名 ④ _Design 后缀。
+  // ① Guide 名 ② tech-docs 目录 ③ doc 根目录或系统名 ④ _Design 后缀。
 if (/Guide\.md$/i.test(path.basename(filePath))) return 'guide';
   if (/doc\/tech-docs\//.test(normalized)) return 'module';
-  if (/Architecture|Detailed|Requirements/.test(path.basename(filePath))) return 'system';
+  if (/(?:^|\/)doc\/[^/]+$/i.test(normalized) || /Architecture|Detailed|Requirements/.test(path.basename(filePath))) return 'system';
   if (/_Design\.md$/.test(normalized)) return 'module';
   return 'module'; // default
 }
@@ -655,8 +670,8 @@ const projectName = meta.projectName || title;
       const id = sectionId(s.heading, typeConfig);
       const bodyHtml = mdBodyToHtml(s.body, typeConfig.needsMermaid);
       return `
-      <section class="doc-section" id="${id}">
-        <h2 id="${id}-h">${s.heading}</h2>
+      <section class="section doc-section" id="${id}">
+        <h2 class="section-title" id="${id}-h">${s.heading}</h2>
 ${bodyHtml}
       </section>`;
     }).join('\n');
@@ -680,6 +695,7 @@ ${bodyHtml}
 <body ${typeConfig.bodyAttr}>
 
 <div class="topbar">
+  <button class="btn-icon sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar" title="目录">&#9776;</button>
   <span class="topbar-brand">${escapeHtml(projectName)}</span>
   <span class="topbar-sep">/</span>
   <span class="topbar-title">技术指导文档</span>
@@ -803,7 +819,7 @@ function generateIndex(typeConfig, projectName, projectDesc) {
   if (dryRun) {
     console.log(`  DRY   index.html (${count} docs)`);
   } else {
-    stageVendorAssets(cfg.outputPath, TYPE_CONFIG.system.vendorRel);
+    if (tpl.includes('src="assets/vendor/')) stageVendorAssets(cfg.outputPath, TYPE_CONFIG.system.vendorRel);
     fs.writeFileSync(cfg.outputPath, html, 'utf-8');
     console.log(`  OK    index.html (${count} docs)`);
   }
@@ -813,7 +829,7 @@ function generateIndex(typeConfig, projectName, projectDesc) {
 // Main
 // ============================================================
 
-if (!convertAll && !shouldGenerateIndex && files.length === 0) {
+if (args.includes('--help') || (!convertAll && !shouldGenerateIndex && files.length === 0)) {
   console.log('Usage: node md-to-html.js [--type module|system|guide] [--all] [--index] [--force] [--dry-run] [file.md ...]');
   console.log('  --type     Specify doc type (auto-detected from path if omitted)');
   console.log('  --all      Convert all matching .md files');
@@ -829,7 +845,7 @@ if (!convertAll && !shouldGenerateIndex && files.length === 0) {
 // with a root-level Architecture doc (system) produced wrong vendorRel → ../assets/
 // → 404 → zero mermaid rendering. --type explicit keeps whole-batch same (back-compat).
 const resolveTypeFor = (f) => docType || detectType(f);
-const resolvedType = files.length > 0 ? resolveTypeFor(files[0]) : 'module';
+const resolvedType = docType || (files.length > 0 ? resolveTypeFor(files[0]) : 'module');
 const typeConfig = TYPE_CONFIG[resolvedType];
 if (!typeConfig) {
   console.error(`  ERROR Unknown type: ${resolvedType}. Use 'module', 'system', or 'guide'.`);
@@ -855,25 +871,37 @@ if (shouldGenerateIndex) {
 } else {
   let targets = [];
   if (convertAll) {
-    const scanDir = typeConfig.scanDir;
-    targets = fs.readdirSync(scanDir)
-      .filter(f => f.endsWith('.md') && typeConfig.filePattern(f))
-      .map(f => path.join(scanDir, f));
+    const scanDirs = [typeConfig.scanDir, ...(typeConfig.additionalScanDirs || [])];
+    targets = scanDirs.filter(dir => fs.existsSync(dir) && fs.statSync(dir).isDirectory())
+      .flatMap(dir => fs.readdirSync(dir)
+        .filter(f => /\.md$/i.test(f) && typeConfig.filePattern(f))
+        .map(f => path.join(dir, f)));
   } else {
     targets = files.map(f => path.resolve(f));
   }
 
   let converted = 0;
   let skipped = 0;
+  let failed = 0;
+
+  if (targets.length === 0) {
+    console.error('ERROR No Markdown inputs found');
+    process.exit(1);
+  }
 
   for (const mdPath of targets) {
     if (!fs.existsSync(mdPath)) {
-      console.log(`  SKIP  ${mdPath} (not found)`);
-      skipped++;
+      console.error(`  ERROR ${mdPath} (not found)`);
+      failed++;
       continue;
     }
 
-    const htmlPath = mdPath.replace(/\.md$/, '.html');
+    if (!/\.md$/i.test(mdPath) || !fs.statSync(mdPath).isFile()) {
+      console.error(`  ERROR ${mdPath} (expected a Markdown file)`);
+      failed++;
+      continue;
+    }
+    const htmlPath = mdPath.replace(/\.md$/i, '.html');
     if (fs.existsSync(htmlPath) && !force) {
       console.log(`  SKIP  ${path.basename(mdPath)} (HTML already exists)`);
       skipped++;
@@ -898,5 +926,6 @@ if (shouldGenerateIndex) {
     converted++;
   }
 
-  console.log(`\nDone: ${converted} converted, ${skipped} skipped${dryRun ? ' (dry run)' : ''}`);
+  console.log(`\nDone: ${converted} converted, ${skipped} skipped${failed ? `, ${failed} failed` : ''}${dryRun ? ' (dry run)' : ''}`);
+  if (failed) process.exitCode = 1;
 }

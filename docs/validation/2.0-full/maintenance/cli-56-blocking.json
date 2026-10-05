@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "tool": "doc-language",
+  "targets": [
+    "checks/boundary-56.md"
+  ],
+  "profile": {
+    "disabled": [],
+    "engine": 3,
+    "mode": "strict",
+    "strict": true,
+    "terms": "d5be93d386d53d7ba376d79267fdf9ebc315b26d5cd928a5cb0c47c932513eac"
+  },
+  "issues": [
+    {
+      "id": "8a992929f138dd1599214b8a18fa34debf5f70ef5c4f533dec94f918fe8b588a",
+      "file": "checks/boundary-56.md",
+      "rule": "long-sentence",
+      "severity": "warning",
+      "message": "Review sentence length (56 CJK characters, 0 English words); preserve conditions and modality",
+      "line": 1,
+      "column": 1,
+      "context": "中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中。"
+    }
+  ],
+  "summary": {
+    "files": 1,
+    "errors": 0,
+    "warnings": 1
+  }
+}

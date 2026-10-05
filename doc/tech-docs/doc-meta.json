@@ -1,0 +1,9 @@
+{
+  "groups": { "language": "语言检查", "core": "共享库" },
+  "groupOrder": ["language", "core"],
+  "modules": {
+    "Lint_Doc_Language": { "group": "language", "desc": "正文规则、术语配置、CLI 与语义边界" },
+    "Prose": { "group": "core", "desc": "正文掩码、实体解码与原文位置映射" },
+    "Quality_Report": { "group": "core", "desc": "问题身份、多重集合基线与退出码门禁" }
+  }
+}

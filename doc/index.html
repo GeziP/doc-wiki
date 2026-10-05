@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="deepwiki-html system">
-  <title>Project 系统设计文档</title>
+  <title>质量工具链 系统设计文档</title>
   <style>
     :root {
       --font-sans: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
@@ -215,7 +215,7 @@
 </head>
 <body>
   <nav class="topbar">
-    <span class="topbar-brand">Project</span>
+    <span class="topbar-brand">质量工具链</span>
     <span class="topbar-sep">/</span>
     <span class="topbar-title">系统设计文档</span>
     <div class="topbar-actions">
@@ -224,8 +224,8 @@
   </nav>
 
   <header class="hero">
-    <h1>Project <span>系统设计文档</span></h1>
-    <p>系统设计文档集</p>
+    <h1>质量工具链 <span>系统设计文档</span></h1>
+    <p>当前架构与历史文档导航</p>
     <div class="search-wrap">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input class="search-input" type="text" id="searchInput" placeholder="搜索文档... (Ctrl+K)" autocomplete="off">
@@ -241,7 +241,7 @@
     <div class="feature-card">
       <span class="feature-icon">{ }</span>
       <div class="feature-title">代码语法高亮</div>
-      <div class="feature-desc">C++ / JSON / Bash<br>highlight.js 自动识别</div>
+      <div class="feature-desc">文档内代码块<br>支持的语言使用本地高亮</div>
     </div>
     <div class="feature-card">
       <span class="feature-icon">&#9680;</span>
@@ -255,53 +255,36 @@
     </div>
   </section>
 
-  <section class="demo-section">
-    <div class="demo-block">
-      <div class="demo-bar">
-        <span class="demo-dot r"></span><span class="demo-dot y"></span><span class="demo-dot g"></span>
-        <span>architecture.mmd — Mermaid 图表预览</span>
-      </div>
-      <div class="demo-mermaid">
-        <div class="mermaid">
-flowchart TD
-  subgraph Interface["接口层"]
-    CFG[JSON 配置]
-    API[TaskConfigLoader]
-  end
-  subgraph Scheduling["调度层"]
-    CS[CycleScheduler]
-    TMS[TaskManagementSystem]
-    MG[Module + Worker]
-  end
-  subgraph Infra["基础设施"]
-    SB[SignalManager]
-    FG[FaultBus]
-    EC[ErrorCode]
-  end
-  CFG --> API
-  API --> TMS
-  CS --> TMS
-  TMS --> MG
-  MG --> SB
-  MG --> FG
-  FG --> EC
-        </div>
-      </div>
-    </div>
-  </section>
-
   <div class="filter-bar" id="filterBar">
     <button class="filter-btn active" data-filter="all">全部</button>
-    
+    <button class="filter-btn" data-filter="历史快照">历史快照</button>
+    <button class="filter-btn" data-filter="当前工具链">当前工具链</button>
   </div>
 
   <main class="container" id="docGrid">
     
+    <div class="group-label" data-group="当前工具链">当前工具链</div>
+    <div class="card-grid" data-group="当前工具链">
+      <a class="card" href="Quality_Tooling_System.html" data-group="当前工具链" data-keywords="quality_tooling_system">
+        <div class="card-name">Quality_Tooling_System</div>
+        <div class="card-desc">当前 JavaScript 转换、质量报告与文档门禁</div>
+        <span class="card-tag">当前工具链</span>
+      </a>
+    </div>
+
+    <div class="group-label" data-group="历史快照">历史快照</div>
+    <div class="card-grid" data-group="历史快照">
+      <a class="card" href="Doc_Wiki_System_Architecture.html" data-group="历史快照" data-keywords="doc_wiki_system_architecture">
+        <div class="card-name">Doc_Wiki_System_Architecture</div>
+        <div class="card-desc">1.x 历史自文档；当前行为请阅读工具链架构与教程</div>
+        <span class="card-tag">历史快照</span>
+      </a>
+    </div>
     <div class="no-results" id="noResults">没有匹配的文档</div>
   </main>
 
   <footer>
-    Project 系统设计文档 · 由 <a href="https://github.com/GeziP/deepwiki-system-skill">deepwiki-system-skill</a> 生成
+    质量工具链 系统设计文档 · 由 <a href="https://github.com/GeziP/doc-wiki">doc-writer</a> 生成
   </footer>
 
   <!-- 2026-09-16 Codex PR r3：index 预览图同样离线可移植——本地 vendor（生成器 --index 时已 stage 到 doc/assets/vendor/） -->

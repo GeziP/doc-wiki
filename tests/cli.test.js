@@ -72,8 +72,10 @@ test('HTML validator preserves legacy output and clean JSON; all deduplicates ta
   assert.equal(new Set(report.targets).size, report.targets.length);
   assert(report.targets.includes('doc/Doc_Wiki_System_Architecture.html'));
   assert.equal(report.summary.errors, 0);
-  assert.equal(report.summary.warnings, 1);
-  assert.equal(report.issues[0].rule, 'html/源码引用');
+  assert(report.issues.some(i => i.file === 'doc/Doc_Wiki_System_Architecture.html' && i.rule === 'html/源码引用'));
+  assert(report.issues.every(i => i.severity === 'warning' &&
+    (i.rule === 'html/Content Density' ||
+     (i.file === 'doc/Doc_Wiki_System_Architecture.html' && i.rule === 'html/源码引用'))));
   assert(report.files[0].checks.length > 10);
 });
 

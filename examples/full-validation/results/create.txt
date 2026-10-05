@@ -1,0 +1,2 @@
+Created examples/full-validation/doc/tech-docs/Example_Design.md and terms.json
+

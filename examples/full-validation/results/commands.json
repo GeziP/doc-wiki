@@ -1,0 +1,89 @@
+[
+  {
+    "name": "create",
+    "args": [
+      "examples/full-validation/create-example.js"
+    ],
+    "cwd": "E:\\gezi\\doc-wiki",
+    "status": 0,
+    "expected": 0
+  },
+  {
+    "name": "language",
+    "args": [
+      "scripts/lint-doc-language.js",
+      "--mode",
+      "strict",
+      "--strict",
+      "--terms",
+      "examples/full-validation/terms.json",
+      "--json",
+      "examples/full-validation/doc/tech-docs/Example_Design.md"
+    ],
+    "cwd": "E:\\gezi\\doc-wiki",
+    "status": 0,
+    "expected": 0
+  },
+  {
+    "name": "conversion",
+    "args": [
+      "scripts/md-to-html.js",
+      "--type",
+      "module",
+      "--force",
+      "examples/full-validation/doc/tech-docs/Example_Design.md"
+    ],
+    "cwd": "E:\\gezi\\doc-wiki",
+    "status": 0,
+    "expected": 0
+  },
+  {
+    "name": "html",
+    "args": [
+      "scripts/validate-doc.js",
+      "--new-doc",
+      "--strict",
+      "--json",
+      "examples/full-validation/doc/tech-docs/Example_Design.html"
+    ],
+    "cwd": "E:\\gezi\\doc-wiki",
+    "status": 0,
+    "expected": 0
+  },
+  {
+    "name": "injected",
+    "args": [
+      "scripts/lint-doc-language.js",
+      "--mode",
+      "strict",
+      "--strict",
+      "--terms",
+      "examples/full-validation/terms.json",
+      "--json",
+      "examples/full-validation/doc/tech-docs/Example_Design.md",
+      "--baseline",
+      "examples/full-validation/results/before-language.json"
+    ],
+    "cwd": "E:\\gezi\\doc-wiki",
+    "status": 1,
+    "expected": 1
+  },
+  {
+    "name": "repaired",
+    "args": [
+      "scripts/lint-doc-language.js",
+      "--mode",
+      "strict",
+      "--strict",
+      "--terms",
+      "examples/full-validation/terms.json",
+      "--json",
+      "examples/full-validation/doc/tech-docs/Example_Design.md",
+      "--baseline",
+      "examples/full-validation/results/before-language.json"
+    ],
+    "cwd": "E:\\gezi\\doc-wiki",
+    "status": 0,
+    "expected": 0
+  }
+]

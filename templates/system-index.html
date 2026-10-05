@@ -241,7 +241,7 @@
     <div class="feature-card">
       <span class="feature-icon">{ }</span>
       <div class="feature-title">代码语法高亮</div>
-      <div class="feature-desc">C++ / JSON / Bash<br>highlight.js 自动识别</div>
+      <div class="feature-desc">文档内代码块<br>支持的语言使用本地高亮</div>
     </div>
     <div class="feature-card">
       <span class="feature-icon">&#9680;</span>
@@ -252,41 +252,6 @@
       <span class="feature-icon">&#9662;</span>
       <div class="feature-title">模块折叠面板</div>
       <div class="feature-desc">模块详情按需展开<br>快速定位关键信息</div>
-    </div>
-  </section>
-
-  <section class="demo-section">
-    <div class="demo-block">
-      <div class="demo-bar">
-        <span class="demo-dot r"></span><span class="demo-dot y"></span><span class="demo-dot g"></span>
-        <span>architecture.mmd — Mermaid 图表预览</span>
-      </div>
-      <div class="demo-mermaid">
-        <div class="mermaid">
-flowchart TD
-  subgraph Interface["接口层"]
-    CFG[JSON 配置]
-    API[TaskConfigLoader]
-  end
-  subgraph Scheduling["调度层"]
-    CS[CycleScheduler]
-    TMS[TaskManagementSystem]
-    MG[Module + Worker]
-  end
-  subgraph Infra["基础设施"]
-    SB[SignalManager]
-    FG[FaultBus]
-    EC[ErrorCode]
-  end
-  CFG --> API
-  API --> TMS
-  CS --> TMS
-  TMS --> MG
-  MG --> SB
-  MG --> FG
-  FG --> EC
-        </div>
-      </div>
     </div>
   </section>
 
@@ -301,7 +266,7 @@ flowchart TD
   </main>
 
   <footer>
-    {{PROJECT_NAME}} 系统设计文档 · 由 <a href="https://github.com/GeziP/deepwiki-system-skill">deepwiki-system-skill</a> 生成
+    {{PROJECT_NAME}} 系统设计文档 · 由 <a href="https://github.com/GeziP/doc-wiki">doc-writer</a> 生成
   </footer>
 
   <!-- 2026-09-16 Codex PR r3：index 预览图同样离线可移植——本地 vendor（生成器 --index 时已 stage 到 doc/assets/vendor/） -->

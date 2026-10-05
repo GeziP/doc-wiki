@@ -1,0 +1,40 @@
+{
+  "node": "v20.20.2",
+  "results": [
+    {
+      "args": [
+        "scripts/validate-doc.js",
+        "--new-doc",
+        "--json",
+        "doc/tech-docs/Lint_Doc_Language_Design.html"
+      ],
+      "exit": 0,
+      "stderr": ""
+    },
+    {
+      "args": [
+        "scripts/lint-doc-language.js",
+        "--mode",
+        "explain",
+        "--json",
+        "doc/tech-docs/Lint_Doc_Language_Design.md"
+      ],
+      "exit": 0,
+      "stderr": ""
+    }
+  ],
+  "tools": [
+    {
+      "file": "scripts/validate-doc.js",
+      "sha256": "3b2c98ca04a5f743d2a71f54e747d76ae8c52cb238e68217a1d50eb7302df579"
+    },
+    {
+      "file": "scripts/lint-doc-language.js",
+      "sha256": "c671485427c77fe14da8ea4a147d5a868491a21874074eacd3584358aa77551a"
+    },
+    {
+      "file": "scripts/md-to-html.js",
+      "sha256": "d68372a2c653b64bd81b1bf92c7384a5b6ee305821022e657888bb3f07ceec95"
+    }
+  ]
+}

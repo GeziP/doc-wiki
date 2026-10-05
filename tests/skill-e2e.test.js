@@ -18,6 +18,19 @@ function sandbox(t) {
   t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   return dir;
 }
+
+test('actual guide example resolves source references and blocks then repairs a regression', t => {
+  const dir=sandbox(t);
+  for(const folder of ['scripts','templates','examples/full-validation'])
+    fs.cpSync(path.join(root,folder),path.join(dir,folder),{recursive:true,filter:p=>!p.includes(path.sep+'results')&&!p.includes(path.sep+'doc'+path.sep)});
+  const result=spawnSync(process.execPath,['examples/full-validation/run-e2e.js'],{cwd:dir,encoding:'utf8'});
+  assert.ifError(result.error);
+  assert.equal(result.status,0,result.stdout+result.stderr);
+  const commands=JSON.parse(fs.readFileSync(path.join(dir,'examples/full-validation/results/commands.json'),'utf8'));
+  assert.equal(commands.find(c=>c.name==='injected').status,1);
+  assert.equal(commands.find(c=>c.name==='repaired').status,0);
+  assert(!fs.readFileSync(path.join(dir,'examples/full-validation/doc/tech-docs/Example_Design.md'),'utf8').includes('UNRESOLVED'));
+});
 test('actual skill document CLI examples reproduce described findings', () => {
   const commands = [...md.matchAll(/^node scripts\/lint-doc-language\.js[^\r\n]*$/gm)]
     .map(m=>m[0]).filter(s=>!s.includes('baseline') && !s.endsWith('|'));

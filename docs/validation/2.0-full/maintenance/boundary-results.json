@@ -1,0 +1,162 @@
+{
+  "baseCommit": "eae95fedda3578aca9858764a29ef6a116c37504",
+  "oldSourceSha256": "489e42f748983fc8ecc14b472849437cbc167f8c6cf72e4f2b48080e37001b9b",
+  "currentSourceSha256": "c671485427c77fe14da8ea4a147d5a868491a21874074eacd3584358aa77551a",
+  "rows": [
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 50,
+      "mode": "strict",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 50,
+      "mode": "explain",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 51,
+      "mode": "strict",
+      "old": 1,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 51,
+      "mode": "explain",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 54,
+      "mode": "strict",
+      "old": 1,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 54,
+      "mode": "explain",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 55,
+      "mode": "strict",
+      "old": 1,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 55,
+      "mode": "explain",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 56,
+      "mode": "strict",
+      "old": 1,
+      "new": 1
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 56,
+      "mode": "explain",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 70,
+      "mode": "strict",
+      "old": 1,
+      "new": 1
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 70,
+      "mode": "explain",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 71,
+      "mode": "strict",
+      "old": 1,
+      "new": 1
+    },
+    {
+      "unit": "U+3400..U+9FFF characters",
+      "n": 71,
+      "mode": "explain",
+      "old": 1,
+      "new": 1
+    },
+    {
+      "unit": "English words",
+      "n": 20,
+      "mode": "strict",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "English words",
+      "n": 20,
+      "mode": "explain",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "English words",
+      "n": 21,
+      "mode": "strict",
+      "old": 1,
+      "new": 1
+    },
+    {
+      "unit": "English words",
+      "n": 21,
+      "mode": "explain",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "English words",
+      "n": 25,
+      "mode": "strict",
+      "old": 1,
+      "new": 1
+    },
+    {
+      "unit": "English words",
+      "n": 25,
+      "mode": "explain",
+      "old": 0,
+      "new": 0
+    },
+    {
+      "unit": "English words",
+      "n": 26,
+      "mode": "strict",
+      "old": 1,
+      "new": 1
+    },
+    {
+      "unit": "English words",
+      "n": 26,
+      "mode": "explain",
+      "old": 1,
+      "new": 1
+    }
+  ],
+  "extraCases": "mixed English OR, excluded non-CJK, disabled rule, physical-line split, HTML 55/56, CLI --mode versus --strict all passed"
+}

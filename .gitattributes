@@ -1,2 +1,7 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Preserve third-party bytes, generated HTML and raw execution snapshots.
+**/vendor/** -whitespace
+doc/**/*.html -whitespace
+guide.html -whitespace
+examples/full-validation/doc/**/*.html -whitespace
+examples/full-validation/results/** -whitespace
+docs/validation/** -whitespace

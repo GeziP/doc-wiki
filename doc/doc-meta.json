@@ -1,0 +1,6 @@
+{
+  "categories": {
+    "Quality_Tooling_System": { "label": "当前工具链", "desc": "当前 JavaScript 转换、质量报告与文档门禁" },
+    "Doc_Wiki_System_Architecture": { "label": "历史快照", "desc": "1.x 历史自文档；当前行为请阅读工具链架构与教程" }
+  }
+}

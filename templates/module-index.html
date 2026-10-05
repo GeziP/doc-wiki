@@ -438,7 +438,7 @@
     <div class="feature-card">
       <span class="feature-icon">{ }</span>
       <div class="feature-title">代码语法高亮</div>
-      <div class="feature-desc">C++ / JSON / Bash<br>highlight.js 自动识别</div>
+      <div class="feature-desc">文档内代码块<br>支持的语言使用本地高亮</div>
     </div>
     <div class="feature-card">
       <span class="feature-icon">◐</span>
@@ -448,36 +448,12 @@
     <div class="feature-card">
       <span class="feature-icon">▦</span>
       <div class="feature-title">单文件 HTML</div>
-      <div class="feature-desc">零外部依赖<br>可离线浏览 / 分享</div>
+      <div class="feature-desc">随页面保留本地资产<br>可离线浏览 / 分享</div>
     </div>
     <div class="feature-card">
       <span class="feature-icon">▾</span>
       <div class="feature-title">可折叠章节</div>
-      <div class="feature-desc">12 章结构化文档<br>按需展开 / 收起</div>
-    </div>
-  </section>
-
-  <section class="demo-section">
-    <div class="demo-block">
-      <div class="demo-bar">
-        <span class="demo-dot r"></span><span class="demo-dot y"></span><span class="demo-dot g"></span>
-        <span>CycleScheduler.cpp — 生成效果预览</span>
-      </div>
-      <pre class="demo-code"><span class="pp">#include</span> <span class="st">"CycleScheduler.h"</span>
-
-<span class="kw">void</span> <span class="ty">CycleScheduler</span>::<span class="fn">startCycle</span>(<span class="ty">CycleId</span> cycleId) {
-    m_eventLog.<span class="fn">record</span>(<span class="ty">Event</span>::CYCLE_START, cycleId);
-
-    <span class="cm">// 1. 检查前置条件</span>
-    <span class="kw">if</span> (!m_cycleGate.<span class="fn">allReady</span>()) {
-        m_eventLog.<span class="fn">record</span>(<span class="ty">Event</span>::BLOCKED, cycleId);
-        <span class="kw">return</span>;
-    }
-
-    <span class="cm">// 2. 规划任务 → 入队 → 开门</span>
-    m_tms.<span class="fn">planAndEnqueue</span>(cycleId);
-    m_cycleGate.<span class="fn">open</span>(cycleId);
-}</pre>
+      <div class="feature-desc">按内容组织章节<br>按需展开 / 收起</div>
     </div>
   </section>
 
@@ -492,7 +468,7 @@
   </main>
 
   <footer>
-    {{PROJECT_NAME}} 技术文档 · 由 <a href="https://github.com/GeziP/deepwiki-module-skill">deepwiki-module-skill</a> 生成
+    {{PROJECT_NAME}} 技术文档 · 由 <a href="https://github.com/GeziP/doc-wiki">doc-writer</a> 生成
   </footer>
 
   <script>

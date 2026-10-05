@@ -1,0 +1,51 @@
+diff --git a/docs/validation/2.0-full/maintenance/before.md b/docs/validation/2.0-full/maintenance/after.md
+index f4981b0..caaf71c 100644
+--- a/docs/validation/2.0-full/maintenance/before.md
++++ b/docs/validation/2.0-full/maintenance/after.md
+@@ -6,7 +6,7 @@
+ |------|------|
+ | 文档版本 | 1.1 |
+ | 编写日期 | 2026-10-04 |
+-| 源码快照 | 基于 `d6f3a63` 的细节复查及语言检查修复；文件版本以验收记录的 SHA-256 为准 |
++| 源码快照 | 隔离维护验证：基于 `eae95fe`，仅 strict 中文句长阈值从 50 改为 55；不代表生产实现 |
+ | 目标读者 | 调用 CLI 或维护模块的开发者 |
+ | 实现文件 | scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/quality-report.js、scripts/lib/source-reference.js |
+ | 测试文件 | tests/language.test.js、tests/quality-report.test.js、tests/cli.test.js、tests/conversion.test.js、tests/skill-e2e.test.js |
+@@ -15,11 +15,13 @@
+ 
+ 文档按模块模板选择接口、流程、实现、使用与测试章节。模块没有持久生命周期状态，故不提供状态机。下文事实来自该快照；作者历史动机和性能数据未确认。
+ 
++本次隔离维护验证仅用于实测 skill，不代表生产实现。维护只更新句长阈值及其边界说明。既有验收记录对应此前快照；本次源码核对和执行结果见[维护验证记录](../../../maintenance-log.md)。
++
+ 源码链接相对本文件回到仓库；`#L数字` 只标示阅读起点，本地浏览器不保证行号跳转。HTML 连同本地 vendor 资产交付；源码引用仍需原仓库。机械通过不能证明事实或改写语义正确。
+ 
+ ## 1. 概述与模块关系
+ 
+-> **Scope**：覆盖 lint-doc-language 的 CLI、全部导出 API、实际依赖和当前测试。输入扫描是启发式；不提供事实校验、自动改写或标准合规认证。
++> **Scope**：本页是隔离维护实测，不代表生产实现。覆盖 lint-doc-language 的 CLI、全部导出 API、实际依赖和当前测试。输入扫描是启发式；不提供事实校验、自动改写或标准合规认证。
+ 
+ 本模块对 Markdown 和 HTML 的可见正文做启发式语言检查，返回显式术语违规、未替换占位符和写作提示。它不改写输入、不校验源码事实，也不宣称符合 ASD-STE100。CLI 读取文件并输出人类文本或 JSON；维护者可直接导入 CommonJS API。
+ 
+@@ -123,18 +125,20 @@ Sources：{{../../scripts/lib/prose.js:7}}、{{../../scripts/lib/prose.js:26}}
+ |------|------|------|
+ | `placeholder` | error | 双花括号之间至少一个字符，不含花括号或换行；合法源码引用语法除外；每次匹配一项 |
+ | `forbidden-term` | error | 只检查 `terms[].forbidden`，每个别名每次匹配一项 |
+-| `long-sentence` | warning | strict：中文计数 >50 或英文词数 >20；explain：>70 或 >25 |
++| `long-sentence` | warning | strict：中文计数 >55 或英文词数 >20；explain：>70 或 >25 |
+ | `marketing` | warning | 英文 `seamless/seamlessly`、`effortless/effortlessly`、`blazing-fast`、`world-class`、`cutting-edge`；中文 `无缝`、`极致`、`业界领先`、`完美无缺` |
+ | `vague-reference` | warning | 只在 strict：必要时、适当处理、相关操作、视情况而定、as needed/as appropriate |
+ | `multi-action` | warning | 只在 strict：然后、接着、随后、and then/then；每个段最多一项 |
+ 
+ 长句按中文句号/问叹号及英文 `. ! ?` 分隔，不跨行拼接。中文计数仅含 `U+3400..U+9FFF`；英文词使用字母及内部撇号/连字符，不是分词器。两种计数任一超阈值就提示；中文字符数不是全部字符长度。
+ 
++在本隔离快照的 strict 模式中，51 至 55 个计入范围的中文字符不再单独触发句长 warning；56 个仍会触发。英文词数超过 20 仍独立触发；explain 阈值保持中文 70、英文 25。`--strict` 只决定 warning 是否阻断。
++
+ 禁用词匹配使用原始文字串上的不区分大小写字面量匹配，不改变原文字串。词首或词尾为 ASCII `\w` 时，对应边界旁不能也是 `\w`。例如 `erase` 匹配 `Erase`，不匹配 `eraser` 或 `erase_id`；中文别名按子串匹配。每次搜索从本次匹配末尾继续，不匹配重叠副本。
+ 
+ 规则不提示“可能”、may、might、could。提示应保留条件、否定和不确定性。英文宣传词的词边界与禁用词标识边界并非同一个实现，维护时不能假定二者完全一致。
+ 
+-Sources：{{../../scripts/lint-doc-language.js:10}}、{{../../scripts/lint-doc-language.js:34}}、{{../../scripts/lint-doc-language.js:47}}。
++Sources：{{../../scripts/lint-doc-language.js:10}}、{{../../scripts/lint-doc-language.js:34}}、{{../../scripts/lint-doc-language.js:47}}、{{../../scripts/lint-doc-language.js:73-80}}。
+ 
+ ## 4. 术语、问题与报告的数据契约
+ 

@@ -1,0 +1,10 @@
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const dir = __dirname;
+const target = path.join(dir, 'doc/tech-docs');
+fs.mkdirSync(target, {recursive:true});
+const source = '# Example 模块使用示例\n\n## 1. 概述\n\n> **Scope**：说明问题身份的演示调用，不提供源码事实自动校验。\n\n问题身份不包含行号。移动行不改变身份。\n\n身份依据：{{../../../../scripts/lib/quality-report.js:22-28}}。\n\n## 4. 术语表\n\n| 术语 | 定义 |\n|---|---|\n| 问题 | 一项检测结果 |\n| 基线 | 同配置的先前报告 |\n\n本例将问题和基线分别保存。正文示例没有禁用名称。\n\n```json\n{"version":1,"terms":[{"canonical":"问题","forbidden":["缺陷项"]}]}\n```\n\nSources：{{../../../../scripts/lib/quality-report.js:55-83}}。\n\n## 8. API 示例\n\n下面展示身份输入字段。代码中的占位符不会当正文检查。\n\n```javascript\nconst { issue } = require("./scripts/lib/quality-report");\nconst finding = issue({file:"example.md", rule:"placeholder", severity:"error", message:"{{CODE_ONLY}}"});\n```\n\n返回对象包含 id、file、rule、severity 和 message。位置字段只有显式提供时才附加。\n\nSources：{{../../../../scripts/lib/quality-report.js:22-28}}。\n';
+fs.writeFileSync(path.join(target, 'Example_Design.md'), source);
+fs.writeFileSync(path.join(dir, 'terms.json'), JSON.stringify({version:1,terms:[{canonical:'问题',aliases:['issue'],identifiers:['issue_id'],forbidden:['缺陷项']}]},null,2));
+console.log('Created examples/full-validation/doc/tech-docs/Example_Design.md and terms.json');

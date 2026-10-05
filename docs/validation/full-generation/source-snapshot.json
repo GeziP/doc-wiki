@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-05T11:33:21.482Z",
+  "node": "v20.20.2",
+  "base": "eae95fe plus parent working-tree converter fixes",
+  "files": [
+    {
+      "file": "scripts/md-to-html.js",
+      "sha256": "f5307912a846a3d619641d1a7d5c82eff03e0e1578581280f3824a4885fde28d",
+      "lines": 932
+    },
+    {
+      "file": "scripts/lint-doc-language.js",
+      "sha256": "489e42f748983fc8ecc14b472849437cbc167f8c6cf72e4f2b48080e37001b9b",
+      "lines": 141
+    },
+    {
+      "file": "scripts/validate-doc.js",
+      "sha256": "3b2c98ca04a5f743d2a71f54e747d76ae8c52cb238e68217a1d50eb7302df579",
+      "lines": 1204
+    },
+    {
+      "file": "scripts/lib/prose.js",
+      "sha256": "8d2d7b3e4b956f13a9d117141c55085e0d80bdf6761c36788911423e90b05711",
+      "lines": 102
+    },
+    {
+      "file": "scripts/lib/quality-report.js",
+      "sha256": "27fd857d2c15e4656e790ac4349cbc5d5b49af0751cfd0876e76d9edbff8291c",
+      "lines": 87
+    },
+    {
+      "file": "scripts/lib/source-reference.js",
+      "sha256": "76d28098b5d7bc9a5b07deba869d8c4c7daa4c976698cba181865c7dfffe7724",
+      "lines": 16
+    }
+  ]
+}

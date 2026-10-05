@@ -1,0 +1,60 @@
+TAP version 13
+# Subtest: Chinese/English warnings are advisory; hedges and conditions are preserved
+ok 1 - Chinese/English warnings are advisory; hedges and conditions are preserved
+  ---
+  duration_ms: 3.5052
+  ...
+# Subtest: unresolved placeholders fail only in prose, including visible table cells
+ok 2 - unresolved placeholders fail only in prose, including visible table cells
+  ---
+  duration_ms: 0.4499
+  ...
+# Subtest: converter source shorthand is resolved syntax, not an unfinished template
+ok 3 - converter source shorthand is resolved syntax, not an unfinished template
+  ---
+  duration_ms: 0.6997
+  ...
+# Subtest: source reference paths are identifiers; adjacent prose still has original positions
+ok 4 - source reference paths are identifiers; adjacent prose still has original positions
+  ---
+  duration_ms: 0.474
+  ...
+# Subtest: term matching preserves offsets after Unicode case expansion and literal punctuation
+ok 5 - term matching preserves offsets after Unicode case expansion and literal punctuation
+  ---
+  duration_ms: 0.2333
+  ...
+# Subtest: Markdown fences, inline code, URLs, images and frontmatter do not produce findings
+ok 6 - Markdown fences, inline code, URLs, images and frontmatter do not produce findings
+  ---
+  duration_ms: 0.9659
+  ...
+# Subtest: visible link labels remain prose; destination and identifier code do not
+ok 7 - visible link labels remain prose; destination and identifier code do not
+  ---
+  duration_ms: 1.1029
+  ...
+# Subtest: HTML excludes code/runtime/SVG/Mermaid but checks visible prose and entities
+ok 8 - HTML excludes code/runtime/SVG/Mermaid but checks visible prose and entities
+  ---
+  duration_ms: 0.6115
+  ...
+# Subtest: explicit terms respect English identifier boundaries, permitted aliases and Chinese terms
+ok 9 - explicit terms respect English identifier boundaries, permitted aliases and Chinese terms
+  ---
+  duration_ms: 0.8047
+  ...
+# Subtest: sentence length is a configurable-mode advisory, not a reason to drop precision
+ok 10 - sentence length is a configurable-mode advisory, not a reason to drop precision
+  ---
+  duration_ms: 0.3987
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 115.8636

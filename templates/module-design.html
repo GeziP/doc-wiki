@@ -162,14 +162,14 @@ body {
   border-bottom: 1px solid var(--border);
   font-size: 13px;
 }
-.topbar-brand { font-weight: 700; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; font-size: 0.72rem; white-space: nowrap; }
+.topbar-brand { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; font-size: 0.72rem; white-space: nowrap; }
 .topbar-sep { color: var(--text-faint); }
-.topbar-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }
-.topbar-actions { display: flex; gap: 6px; }
+.topbar-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }
+.topbar-actions { display: flex; flex-shrink: 0; gap: 6px; }
 .topbar-btn,
 .btn-icon {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px;
+  width: 32px; height: 32px; flex-shrink: 0;
   border: 1px solid var(--border); border-radius: 6px;
   background: var(--bg); color: var(--text-muted);
   cursor: pointer; font-size: 16px;

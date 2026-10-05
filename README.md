@@ -9,6 +9,8 @@
 - [开发路线与验收计划](docs/plans/2.0-development-plan.md)
 - [2.0 实际 skill 验收与复现步骤](docs/validation/2.0/README.md)
 - [借鉴取舍与细节复查](docs/validation/2.0-refinement/README.md)
+- [完整实际验收与修复记录](docs/validation/2.0-full/README.md)
+- [当前工具链架构](doc/Quality_Tooling_System.html) · [上手教程](guide.html) · [模块索引](doc/tech-docs/index.html)
 - [由 skill 实际生成的语言检查器模块文档](doc/tech-docs/Lint_Doc_Language_Design.md) · [HTML](doc/tech-docs/Lint_Doc_Language_Design.html)
 - [写作质量规则](references/writing-quality.md)
 - [检查工具、JSON 与基线迁移](references/quality-tooling.md)

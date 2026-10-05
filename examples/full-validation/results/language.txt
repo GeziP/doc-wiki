@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "tool": "doc-language",
+  "targets": [
+    "examples/full-validation/doc/tech-docs/Example_Design.md"
+  ],
+  "profile": {
+    "disabled": [],
+    "engine": 3,
+    "mode": "strict",
+    "strict": true,
+    "terms": "604b76f4ebf233b16f009a5144bc711d8392d70a73368fcc7ecf70c683e512fd"
+  },
+  "issues": [],
+  "summary": {
+    "files": 1,
+    "errors": 0,
+    "warnings": 0
+  }
+}
+

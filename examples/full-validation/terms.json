@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "terms": [
+    {
+      "canonical": "问题",
+      "aliases": [
+        "issue"
+      ],
+      "identifiers": [
+        "issue_id"
+      ],
+      "forbidden": [
+        "缺陷项"
+      ]
+    }
+  ]
+}
