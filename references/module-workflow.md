@@ -60,7 +60,7 @@ Phase 0 共同要求见 [authoring-workflow.md](authoring-workflow.md)。本文�
 
 ## Phase 2: 内容生成
 
-**同时生成 Markdown 和 HTML 两种格式。**
+Markdown 是维护来源，HTML 由转换器生成。用户指定单一格式时按共享流程执行。
 
 ### Markdown
 
@@ -72,18 +72,18 @@ Phase 0 共同要求见 [authoring-workflow.md](authoring-workflow.md)。本文�
 - `{{RELATED_DOCS}}` — 关联文档列表
 - `{{TEST_FILE}}` — 测试文件路径
 
-图表使用 ASCII 风格。
+图表优先使用转换器支持的 Mermaid 或独立 raw HTML 块中的内联 SVG，配图说与源码依据。也可用 ASCII 表达简单关系；选定后保持两种产物中的节点、箭头和条件一致。
 
 ### HTML
 
-使用 `templates/module-design.html` 作为骨架（CSS + JS 已嵌入），替换占位符。
+通过 `md-to-html.js --type module` 使用 `templates/module-design.html` 骨架生成（CSS + JS 已嵌入）。需要调整内容或图表时改 Markdown，再转换；不手改 HTML 创建第二份维护来源。只支持 HTML 的高级组件可作为独立 raw HTML 块保存在 Markdown 中。
 
 HTML 特有能力：
 - 内联 SVG 图表（适合表示关系与状态，复杂图可折叠）
 - `<details open>` / `<details>` 可折叠章节（重要章节展开，FAQ/附录折叠）
 - Tabs 组件用于 API 参考和使用指南
 
-### ASCII 图表风格（MD 用）
+### ASCII 图表示例（简单关系的可选表达）
 
 **架构图：**
 ```
@@ -212,7 +212,7 @@ task->setOnSuccess([](const TaskHookContext& ctx) {
 
 ### HTML 实体转义
 
-C++ 代码中 `<`、`>`、`&` 必须转义：
+Markdown 围栏内写原始 C++ 源码，由转换器转义，不预先写 HTML 实体。仅手写 raw HTML 代码块时，代码中的 `<`、`>`、`&` 必须转义：
 - `std::shared_ptr<T>` → `std::shared_ptr&lt;T&gt;`
 - `a && b` → `a &amp;&amp; b`
 

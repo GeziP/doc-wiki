@@ -33,21 +33,23 @@ function validateTerms(config) {
 }
 function termMatches(text, term) {
   const result = [];
-  const haystack = text.toLowerCase(), needle = term.toLowerCase();
-  let from = 0, pos;
-  while ((pos = haystack.indexOf(needle, from)) !== -1) {
+  // Match on the original string: lowercasing Unicode can change its length.
+  const pattern = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+  for (const match of text.matchAll(pattern)) {
+    const pos = match.index;
     // ASCII names must match whole identifier words (task != task_id or multitask).
     const leftOK = !/^[\w]/.test(term) || !/[\w]/.test(text[pos - 1] || '');
     const rightOK = !/[\w]$/.test(term) || !/[\w]/.test(text[pos + term.length] || '');
     if (leftOK && rightOK) result.push(pos);
-    from = pos + needle.length;
   }
   return result;
 }
 function lint(source, { file = '<stdin>', format = 'markdown', mode = 'explain', terms = { version: 1, terms: [] }, disabled = [] } = {}) {
   const findings = [];
   for (const segment of proseSegments(source, format)) {
-    const text = segment.text;
+    // Source paths are code identifiers, not prose; retain offsets for nearby text.
+    const text = segment.text.replace(/\{\{([^{}\n]+)\}\}/g, (whole, value) =>
+      parseSourceReference(value) ? ' '.repeat(whole.length) : whole);
     const add = (rule, severity, message, index = 0, key) => {
       if (!disabled.includes(rule)) findings.push(issue({ file, rule, severity, message,
         ...location(source, segment.offset + (segment.offsets[index] ?? index)), context: text.replace(/\s+/g, ' ').trim(), key }));
@@ -119,7 +121,7 @@ function main(args) {
       } catch (error) { return [issue({ file, rule: 'input/read', severity: 'error', message: error.message })]; }
     });
     const report = makeReport('doc-language', targets.map(f => relativeFile(f, opts.root)),
-      { engine: 2, mode: opts.mode, terms: digest(terms), disabled: [...new Set(opts.disabled)].sort(), strict: !!opts.strict }, issues);
+      { engine: 3, mode: opts.mode, terms: digest(terms), disabled: [...new Set(opts.disabled)].sort(), strict: !!opts.strict }, issues);
     const code = gate(report, opts);
     if (opts.json) console.log(JSON.stringify(report, null, 2));
     else {

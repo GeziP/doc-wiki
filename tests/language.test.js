@@ -29,6 +29,27 @@ test('converter source shorthand is resolved syntax, not an unfinished template'
   assert(invalid.every(i => i.rule === 'placeholder'));
 });
 
+test('source reference paths are identifiers; adjacent prose still has original positions', () => {
+  const terms = validateTerms({version:1,terms:[{canonical:'任务',forbidden:['task']}]});
+  const source = '对应 {{scripts/task-seamless.js:1-3}}，seamless task。';
+  const problems = lint(source,{terms});
+  assert.deepEqual(problems.map(i=>i.rule).sort(),['forbidden-term','marketing']);
+  assert.equal(problems.find(i=>i.rule==='marketing').column,source.indexOf('，seamless')+2);
+  assert.equal(problems.find(i=>i.rule==='forbidden-term').column,source.lastIndexOf('task')+1);
+  assert(lint('错误 {{scripts/seamless.js:3-1}}').some(i=>i.rule==='placeholder'));
+});
+
+test('term matching preserves offsets after Unicode case expansion and literal punctuation', () => {
+  const terms = validateTerms({version:1,terms:[
+    {canonical:'任务',forbidden:['task']}, {canonical:'new_name',forbidden:['old.name']},
+  ]});
+  const source = 'İ TASK，old.name，oldXname，task_id。';
+  const findings = lint(source,{terms}).filter(i=>i.rule==='forbidden-term');
+  assert.equal(findings.length,2);
+  assert.equal(findings[0].column,3);
+  assert.equal(findings[1].column,8);
+});
+
 test('Markdown fences, inline code, URLs, images and frontmatter do not produce findings', () => {
   const source = [
     '---', 'title: seamless {{TITLE}}', '---',

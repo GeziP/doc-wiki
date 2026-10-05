@@ -1,0 +1,136 @@
+{
+  "date": "2026-10-04T13:40:58.095Z",
+  "baseCommit": "d6f3a634645d3a37e8265271898342236d6c6f89",
+  "node": "v20.20.2",
+  "platform": "win32",
+  "sourceReferences": 50,
+  "commands": [
+    {
+      "command": "node --test tests",
+      "exit": 0,
+      "evidence": "tests.txt"
+    },
+    {
+      "command": "node scripts/validate-doc.js --new-doc --strict --json doc/tech-docs/Lint_Doc_Language_Design.html",
+      "exit": 0,
+      "evidence": "html.json"
+    },
+    {
+      "command": "node scripts/lint-doc-language.js --mode explain --strict --json doc/tech-docs/Lint_Doc_Language_Design.md doc/tech-docs/Lint_Doc_Language_Design.html",
+      "exit": 0,
+      "evidence": "language.json"
+    },
+    {
+      "command": "node scripts/validate-doc.js --all --json",
+      "exit": 0,
+      "evidence": "all-html.json"
+    },
+    {
+      "command": "node scripts/lint-doc-language.js --strict --json SKILL.md references/authoring-workflow.md references/fullpower-workflow.md references/maintenance-workflow.md",
+      "exit": 0,
+      "evidence": "core-language.json"
+    }
+  ],
+  "files": [
+    {
+      "file": "SKILL.md",
+      "sha256": "0d3a6c6cb63f559b3fca5cabd92ee3be54564effe5b16bad3baf554c89f366cd"
+    },
+    {
+      "file": "doc/tech-docs/Lint_Doc_Language_Design.html",
+      "sha256": "cea01cb06e71650f1bded50eab099a984d4c11b845430827301fcfa3abb57bc9"
+    },
+    {
+      "file": "doc/tech-docs/Lint_Doc_Language_Design.md",
+      "sha256": "b2504c2c5f3d24a8b522dc154a79b8ba9751f75a628d210aa4859c4c5e0f825f"
+    },
+    {
+      "file": "references/authoring-workflow.md",
+      "sha256": "9378fc68d571bcd926f097675f0e9371c0f0c37677f88bb85deb2f9184d6e280"
+    },
+    {
+      "file": "references/fullpower-workflow.md",
+      "sha256": "b47ef1bbb939648a62c61badbc7d61fc5486ba18349685daf4654ecc726fad8d"
+    },
+    {
+      "file": "references/guide-workflow.md",
+      "sha256": "ae1cbb770c93a78078f55f58087250dffe704d34d37c08b9982e3b5c845d5e77"
+    },
+    {
+      "file": "references/html-components.md",
+      "sha256": "4ba51d35341089e7ccc9e4d270063b89ddb1b09d3b0e0331bcda8e424e003254"
+    },
+    {
+      "file": "references/maintenance-workflow.md",
+      "sha256": "51f61e761d9f46c89da2eaab5b93bbd2b40efdc22c2cb5a427a4a3a419e8b2ee"
+    },
+    {
+      "file": "references/module-workflow.md",
+      "sha256": "5cf122322d7396b48444e483459135758bdb45f07616e07f0e1a98cb97c1dd84"
+    },
+    {
+      "file": "references/quality-tooling.md",
+      "sha256": "d47eee8075ede87a613647bbab11da2095b03fb10c0cb22b36123fd3a52b40f7"
+    },
+    {
+      "file": "references/system-workflow.md",
+      "sha256": "66d45d6aac43d97693f4de5f2e7b8ed53f94c9119efecd1bb5eb0419a424ae1c"
+    },
+    {
+      "file": "references/tooling-notes.md",
+      "sha256": "707f8a65791d1fc07a55fe6caa2626aa16a31747e6f4116ef6874dccac371fc8"
+    },
+    {
+      "file": "references/writing-quality.md",
+      "sha256": "d4a9152d3db3bedbc896c34df30409f8900f722af2d5638f4f87332f4c45a328"
+    },
+    {
+      "file": "scripts/lib/prose.js",
+      "sha256": "8d2d7b3e4b956f13a9d117141c55085e0d80bdf6761c36788911423e90b05711"
+    },
+    {
+      "file": "scripts/lib/quality-report.js",
+      "sha256": "27fd857d2c15e4656e790ac4349cbc5d5b49af0751cfd0876e76d9edbff8291c"
+    },
+    {
+      "file": "scripts/lib/source-reference.js",
+      "sha256": "76d28098b5d7bc9a5b07deba869d8c4c7daa4c976698cba181865c7dfffe7724"
+    },
+    {
+      "file": "scripts/lint-doc-language.js",
+      "sha256": "489e42f748983fc8ecc14b472849437cbc167f8c6cf72e4f2b48080e37001b9b"
+    },
+    {
+      "file": "scripts/md-to-html.js",
+      "sha256": "756a948e7016f72656695a49a7a252377ebec1322dad8111b95b93f1cf83f76c"
+    },
+    {
+      "file": "scripts/validate-doc.js",
+      "sha256": "3b2c98ca04a5f743d2a71f54e747d76ae8c52cb238e68217a1d50eb7302df579"
+    },
+    {
+      "file": "templates/module-design.html",
+      "sha256": "fbd0d84d7e7f4107279eb94dda186312aefe9c90406a75bc7c6e17475f506108"
+    },
+    {
+      "file": "tests/cli.test.js",
+      "sha256": "7a76503ac8ed6da7566ea6af3bb7de7b25b8eca1c57ee3b75c15e5bd9ee55712"
+    },
+    {
+      "file": "tests/conversion.test.js",
+      "sha256": "11259def4eb472373ac318a17ffdaadd9b421cc8b4ae1b2161c3979a0079746c"
+    },
+    {
+      "file": "tests/language.test.js",
+      "sha256": "004421bccae50edc9c06d1127b11026c5cb739fefa3f30a53349f68e092b2cc1"
+    },
+    {
+      "file": "tests/quality-report.test.js",
+      "sha256": "1bde0aeb09fccbdae090156ef7becfd75316b4aedb589bb6c303707e7aedd4bd"
+    },
+    {
+      "file": "tests/skill-e2e.test.js",
+      "sha256": "d0dd836cc555db35f99f58a30b7157ab26b63bb0f6b35cd73d7a16db6965892e"
+    }
+  ]
+}

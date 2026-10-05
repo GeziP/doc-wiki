@@ -304,7 +304,7 @@ function readTemplate(templatePath) {
 function parseMdMeta(lines, typeConfig) {
   const meta = {};
   for (const line of lines) {
-    if (/^\|\s*文档版本/.test(line) || /^\|\s*项目\s*\|/.test(line)) continue;
+    if (/^\|\s*项目\s*\|/.test(line)) continue;
     if (/^\|[-\s|]+\|$/.test(line)) continue;
     const m = line.match(/^\|\s*(.+?)\s*\|\s*(.+?)\s*\|$/);
     if (m) {

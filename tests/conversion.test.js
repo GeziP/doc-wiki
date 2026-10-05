@@ -13,7 +13,17 @@ test('actual source references survive language lint -> conversion -> HTML valid
   const targetDir = path.join(dir, 'doc', 'tech-docs');
   fs.mkdirSync(targetDir, { recursive: true });
   const file = path.join(targetDir, 'QualityReport_Design.md');
-  const text = '# QualityReport 技术设计文档\n\n## 1. 概述\n\n> **Scope**：覆盖问题身份生成，其他行为不在本例范围。\n\n问题身份不包含行号。\n\n对应实现 {{scripts/lib/quality-report.js:22-28}}。\n\n```javascript\nconst example = "{{CODE_ONLY}}";\n```\n\n## 术语表\n\n问题身份用于基线匹配。\n\n| 术语 | 定义 | 出处 |\n|---|---|---|\n| 问题身份 | 内容摘要 | {{scripts/lib/quality-report.js:22}} |\n';
+  const text = [
+    '# QualityReport 技术设计文档', '', '## 文档信息', '',
+    '| 项目 | 内容 |', '|---|---|', '| 文档版本 | V2.7 |', '', '## 1. 概述', '',
+    '> **Scope**：覆盖问题身份生成，其他行为不在本例范围。', '',
+    '问题身份不包含行号。', '', '对应实现 {{scripts/lib/quality-report.js:22-28}}。', '',
+    '```javascript', 'const example = "{{CODE_ONLY}}";', '```', '',
+    '```cpp', 'std::shared_ptr<T> x; a && b;', '```', '',
+    '## 术语表', '', '问题身份用于基线匹配。', '',
+    '| 术语 | 定义 | 出处 |', '|---|---|---|',
+    '| 问题身份 | 内容摘要 | {{scripts/lib/quality-report.js:22}} |', '',
+  ].join('\n');
   fs.writeFileSync(file, text);
   const run = (script, args) => spawnSync(process.execPath, [path.join(root, 'scripts', script), ...args], { cwd: root, encoding: 'utf8' });
   const language = run('lint-doc-language.js', ['--json', file]);
@@ -27,6 +37,9 @@ test('actual source references survive language lint -> conversion -> HTML valid
   assert(html.includes('href="scripts/lib/quality-report.js#L22"'));
   assert(!html.includes('#L22-L-28'));
   assert(html.includes('{{CODE_ONLY}}'));
+  assert(html.includes('<span class="doc-version">V2.7</span>'));
+  assert(html.includes('std::shared_ptr&lt;T&gt; x; a &amp;&amp; b;'));
+  assert(!html.includes('&amp;lt;T'));
   assert(fs.existsSync(path.join(dir, 'doc', 'assets', 'vendor', 'mermaid.min.js')));
   const checked = run('validate-doc.js', ['--json', '--new-doc', htmlFile]);
   assert.equal(checked.status, 0, checked.stdout + checked.stderr);

@@ -4,14 +4,14 @@
 
 | 项目 | 内容 |
 |------|------|
-| 文档版本 | 1.0，源码快照文档 |
+| 文档版本 | 1.1 |
 | 编写日期 | 2026-10-04 |
-| 源码快照 | 基于 `39bffdb` 的实际试跑及引用修复；文件版本以验收记录的 SHA-256 为准 |
+| 源码快照 | 基于 `d6f3a63` 的细节复查及语言检查修复；文件版本以验收记录的 SHA-256 为准 |
 | 目标读者 | 调用 CLI 或维护模块的开发者 |
-| 实现文件 | `scripts/lint-doc-language.js`、`scripts/lib/prose.js`、`scripts/lib/quality-report.js`、`scripts/lib/source-reference.js` |
-| 测试文件 | `tests/language.test.js`、`tests/quality-report.test.js`、`tests/cli.test.js`、`tests/conversion.test.js`、`tests/skill-e2e.test.js` |
+| 实现文件 | scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/quality-report.js、scripts/lib/source-reference.js |
+| 测试文件 | tests/language.test.js、tests/quality-report.test.js、tests/cli.test.js、tests/conversion.test.js、tests/skill-e2e.test.js |
 | 运行环境 | Windows PowerShell；Node.js `v20.20.2`；项目根 `E:\gezi\doc-wiki` |
-| 验证记录 | [实际验收报告](../../docs/validation/2.0/README.md)、[源码散列](../../docs/validation/2.0/source-snapshot.json) |
+| 验证记录 | [实际验收报告](../../docs/validation/2.0-refinement/README.md)、[源码散列](../../docs/validation/2.0-refinement/source-snapshot.json) |
 
 文档按模块模板选择接口、流程、实现、使用与测试章节。模块没有持久生命周期状态，故不提供状态机。下文事实来自该快照；作者历史动机和性能数据未确认。
 
@@ -43,7 +43,7 @@
 <path d="M230 62 L205 62 L205 135 L155 135 L155 155" fill="none" stroke="var(--text,#1a2332)" marker-end="url(#dep-arrow)"/>
 <text x="320" y="245" text-anchor="middle" fill="var(--text-secondary,#475569)" font-size="14">箭头表示调用；main 使用报告门禁，lint 使用问题构造</text>
 </svg>
-<figcaption>图 1.1 — CLI 与三个本地依赖的调用关系。来源：scripts/lint-doc-language.js:5-7,47-82,103-138。</figcaption>
+<figcaption>图 1.1 — CLI 与三个本地依赖的调用关系。来源：scripts/lint-doc-language.js:5-7,47-84,105-140。</figcaption>
 </figure>
 
 `prose.js` 将不检查的语法替换成空格，保留原始 UTF-16 偏移。`quality-report.js` 生成稳定问题身份，比较基线并计算门禁。`source-reference.js` 被 lint 与转换器共用，识别源码引用语法，供 placeholder 规则排除合法引用。外部依赖只有 Node.js 内建模块：`fs`、`path`、`crypto`；检查器没有第三方解析库。
@@ -99,7 +99,7 @@ node scripts/lint-doc-language.js --terms examples/validation/language/terms.jso
 
 目标文件读取和该文件内 `lint` 异常共用同一个 catch，因此都会包装成 `input/read`。正常 JSON 与 fatal JSON 的结构不同。人类格式给没有位置的输入错误显示 `1:1`，不意味着找到了正文第一行的问题。
 
-Sources：{{../../scripts/lint-doc-language.js:84}}、{{../../scripts/lint-doc-language.js:103}}、{{../../scripts/lib/quality-report.js:78}}、[quality-tooling.md](../../references/quality-tooling.md)。
+Sources：{{../../scripts/lint-doc-language.js:86}}、{{../../scripts/lint-doc-language.js:105}}、{{../../scripts/lib/quality-report.js:78}}、[quality-tooling.md](../../references/quality-tooling.md)。
 
 ## 3. 检查范围与规则
 
@@ -130,7 +130,7 @@ Sources：{{../../scripts/lib/prose.js:7}}、{{../../scripts/lib/prose.js:26}}�
 
 长句按中文句号/问叹号及英文 `. ! ?` 分隔，不跨行拼接。中文计数仅含 `U+3400..U+9FFF`；英文词使用字母及内部撇号/连字符，不是分词器。两种计数任一超阈值就提示；中文字符数不是全部字符长度。
 
-禁用词匹配统一转小写。词首或词尾为 ASCII `\w` 时，对应边界旁不能也是 `\w`。例如 `erase` 匹配 `Erase`，不匹配 `eraser` 或 `erase_id`；中文别名按子串匹配。每次搜索从本次匹配末尾继续，不匹配重叠副本。
+禁用词匹配使用原始文字串上的不区分大小写字面量匹配，不改变原文字串。词首或词尾为 ASCII `\w` 时，对应边界旁不能也是 `\w`。例如 `erase` 匹配 `Erase`，不匹配 `eraser` 或 `erase_id`；中文别名按子串匹配。每次搜索从本次匹配末尾继续，不匹配重叠副本。
 
 规则不提示“可能”、may、might、could。提示应保留条件、否定和不确定性。英文宣传词的词边界与禁用词标识边界并非同一个实现，维护时不能假定二者完全一致。
 
@@ -158,9 +158,11 @@ Sources：{{../../scripts/lint-doc-language.js:10}}、{{../../scripts/lint-doc-l
 
 `version` 必须为数字 1，`terms` 必须是数组。每项 `canonical` 为非空字符串且没有首尾空白，忽略大小写后不能重名。`aliases/forbidden/identifiers` 若提供，必须是数组，各元素是没有首尾空白的非空字符串；空数组合法。
 
+禁用术语按原文字串进行不区分大小写的字面量匹配，使用匹配到的原始偏移定位。不能先将整段文字转小写再使用新字符串的索引：例如 `İ` 转小写后长度会增加，可能使后续禁用词漏检。
+
 同一合法名称不能映射到不同 canonical 概念。重复禁用名称会失败；禁用词与任意 canonical、alias 或 identifier 冲突也失败。同一概念内的 alias 重复不单独拒绝。`definition/source` 和其他附加字段不校验；工具不验证定义或来源真实性，也不要求合法术语出现。
 
-Sources：{{../../scripts/lint-doc-language.js:11}}、{{../../scripts/lint-doc-language.js:55}}。
+Sources：{{../../scripts/lint-doc-language.js:11}}、{{../../scripts/lint-doc-language.js:57}}。
 
 ### 4.2 问题与普通报告
 
@@ -171,7 +173,7 @@ Sources：{{../../scripts/lint-doc-language.js:11}}、{{../../scripts/lint-doc-l
 | issue | `line/column/context` | 可选；lint 正文问题带位置与压缩空白后的上下文 |
 | report | `schemaVersion/tool` | 1 / `doc-language` |
 | report | `targets` | 去重并排序的相对文件集合 |
-| report | `profile` | `engine:2`、mode、术语 digest、去重排序的 disabled、strict 布尔值 |
+| report | `profile` | `engine:3`、mode、术语 digest、去重排序的 disabled、strict 布尔值 |
 | report | `issues` | 按目标处理顺序及规则追加顺序保存，未额外排序 |
 | report | `summary` | 文件数、当前全部 error 数、当前全部 warning 数 |
 | report | `baseline` | 仅比较后存在；`added/resolved` 为问题数组，`unchanged` 为数量 |
@@ -180,7 +182,7 @@ Sources：{{../../scripts/lint-doc-language.js:11}}、{{../../scripts/lint-doc-l
 
 `digest` 递归排序对象键，保留数组顺序。术语数组重排会改变 profile 散列；目标 CLI 输入重排不会改变排序后的 targets。报告 summary 表示当前全部问题，与最终基线门禁是否通过是两件事。
 
-Sources：{{../../scripts/lib/quality-report.js:8}}、{{../../scripts/lib/quality-report.js:22}}、{{../../scripts/lint-doc-language.js:51}}、{{../../scripts/lint-doc-language.js:122}}。
+Sources：{{../../scripts/lib/quality-report.js:8}}、{{../../scripts/lib/quality-report.js:22}}、{{../../scripts/lint-doc-language.js:53}}、{{../../scripts/lint-doc-language.js:124}}。
 
 ## 5. CommonJS API 参考
 
@@ -212,7 +214,7 @@ assert.equal(findings[0].column, 4);
 
 该片段已运行；行内代码占位符被排除。同步函数没有共享可变检查器状态；线程安全及并发调用压力测试未进行，不能据此给出跨线程保障。
 
-Sources：{{../../scripts/lint-doc-language.js:47}}、{{../../scripts/lint-doc-language.js:84}}、{{../../scripts/lint-doc-language.js:103}}、{{../../scripts/lint-doc-language.js:137}}。
+Sources：{{../../scripts/lint-doc-language.js:47}}、{{../../scripts/lint-doc-language.js:86}}、{{../../scripts/lint-doc-language.js:105}}、{{../../scripts/lint-doc-language.js:139}}。
 
 ### 5.2 prose.js 的全部导出
 
@@ -246,11 +248,11 @@ Sources：{{../../scripts/lib/quality-report.js:8}}、{{../../scripts/lib/qualit
 
 `parseSourceReference(value)` 接受不含外层双花括号的字符串。合法语法为文件名、冒号、从 1 开始的起始行以及可选的结束行；结束行不能小于起始行。返回 `{file,start,end,label,href}`；start/end 是匹配得到的字符串，单行引用的 end 为 undefined。非法语法返回 null；非字符串输入不在契约内，可能抛 TypeError。
 
-例如 `scripts/lib/prose.js:75-95` 返回 label 同原字符串、href 为 `scripts/lib/prose.js#L75-L95`。文件部分不允许花括号或换行，但没有路径存在性、权限、扩展名或源码内容校验。解析成功只说明语法合法，不能证明引用支持结论。lint 仅排除该引用的 placeholder 提示，其他规则仍扫描片段。
+例如 `scripts/lib/prose.js:75-95` 返回 label 同原字符串、href 为 `scripts/lib/prose.js#L75-L95`。文件部分不允许花括号或换行，但没有路径存在性、权限、扩展名或源码内容校验。解析成功只说明语法合法，不能证明引用支持结论。lint 将合法源码引用整体作为标识掩码，排除所有语言规则；相邻正文仍按原位置检查，非法标记仍触发 placeholder。
 
-本工作树将语言 profile engine 从 1 升为 2。旧 engine=1 的基线不能直接比较；应在同一新工具下重跑修订前后。新增测试在 `tests/language.test.js:25-30` 验证合法单行/范围引用、倒序范围、零行和未完成变量。
+语言 profile engine 当前为 3。旧 engine=1/2 的基线不能直接比较；应在同一新工具下重跑修订前后。新增测试在 `tests/language.test.js:25-30` 验证合法单行/范围引用、倒序范围、零行和未完成变量。
 
-Sources：{{../../scripts/lib/source-reference.js:5}}、{{../../scripts/lint-doc-language.js:55}}、{{../../scripts/lint-doc-language.js:123}}、{{../../tests/language.test.js:25}}。
+Sources：{{../../scripts/lib/source-reference.js:5}}、{{../../scripts/lint-doc-language.js:57}}、{{../../scripts/lint-doc-language.js:125}}、{{../../tests/language.test.js:25}}。
 
 ## 6. 实现流程与基线操作
 
@@ -259,7 +261,7 @@ Sources：{{../../scripts/lib/source-reference.js:5}}、{{../../scripts/lint-doc
 定位使用下面的实际核心表达式。先用偏移映射把实体解码后的匹配位置还原为片段输入位置，再加片段起点：
 
 ```javascript
-// 来源：scripts/lint-doc-language.js:51-53
+// 来源：scripts/lint-doc-language.js:53-55
 ...location(source, segment.offset + (segment.offsets[index] ?? index))
 ```
 
@@ -279,7 +281,7 @@ node scripts/lint-doc-language.js --json --baseline examples/validation/language
 
 该语义已实际执行，PowerShell 管道保存片段也已逐字重放。移动行、替换内容、追加同身份副本和切换模式分别得到 0、1、1、fatal/1。请先执行保存命令生成 `before.json`，该文件不是预置基线。
 
-Sources：{{../../scripts/lint-doc-language.js:103}}、{{../../scripts/lib/quality-report.js:42}}、{{../../scripts/lib/quality-report.js:55}}、{{../../scripts/lib/quality-report.js:78}}。
+Sources：{{../../scripts/lint-doc-language.js:105}}、{{../../scripts/lib/quality-report.js:42}}、{{../../scripts/lib/quality-report.js:55}}、{{../../scripts/lib/quality-report.js:78}}。
 
 ## 7. 排障与维护边界
 
@@ -294,23 +296,24 @@ Sources：{{../../scripts/lint-doc-language.js:103}}、{{../../scripts/lib/quali
 | 一段正文没被扫描 | 检查未闭合围栏/frontmatter/HTML 排除块 | 修正语法；对跨行长句人工复核 |
 | `.HTML` 与未知扩展名行为不同 | 查看 target 后缀 | HTML/HTM 大小写均支持，其他后缀按 Markdown |
 
-这些是由实现推导的排查场景，不是已确认历史事故。维护规则要同步更新 RULES、CLI 校验、profile engine 策略和测试；改变问题 key 或规则算法时重新生成同版本下的前后基线。engine 当前固定 2，没有自动依据代码版本失效基线的机制。
+这些是由实现推导的排查场景，不是已确认历史事故。维护规则要同步更新 RULES、CLI 校验、profile engine 策略和测试；改变问题 key 或规则算法时重新生成同版本下的前后基线。engine 当前固定 3，没有自动依据代码版本失效基线的机制。
 
-Sources：{{../../scripts/lint-doc-language.js:10}}、{{../../scripts/lint-doc-language.js:84}}、{{../../scripts/lint-doc-language.js:118}}、{{../../scripts/lint-doc-language.js:122}}、{{../../scripts/lib/quality-report.js:78}}。
+Sources：{{../../scripts/lint-doc-language.js:10}}、{{../../scripts/lint-doc-language.js:86}}、{{../../scripts/lint-doc-language.js:120}}、{{../../scripts/lint-doc-language.js:124}}、{{../../scripts/lib/quality-report.js:78}}。
 
 ## 8. 当前测试与验证记录
 
-查看[实际验收报告](../../docs/validation/2.0/README.md)、[源码散列](../../docs/validation/2.0/source-snapshot.json)及[独立复审](../../docs/validation/2.0/review.md)。这些记录对应本次实际运行，不能替代未来改动后的复验。
+查看[实际验收报告](../../docs/validation/2.0-refinement/README.md)、[源码散列](../../docs/validation/2.0-refinement/source-snapshot.json)及[独立复审](../../docs/validation/2.0-refinement/review.md)。这些记录对应本次实际运行，不能替代未来改动后的复验。
 
 测试覆盖及最终运行结果见实际验收报告。测试数量不是覆盖率测量，HTML 专属检查不算作语言规则覆盖。
 
 | 测试来源 | 已覆盖行为 |
 |------|------|
 | `tests/language.test.js:6-16` | 中英文提示、strict 模式规则、保留 hedges/条件 |
-| `tests/language.test.js:18-46` | 正文/表格占位符、代码与 frontmatter 排除、CRLF 位置 |
+| `tests/language.test.js:18-67` | 正文/表格占位符、代码与 frontmatter 排除、CRLF 位置 |
 | `tests/language.test.js:25-30` | 源码引用合法语法、倒序范围、零行和变量错误 |
-| `tests/language.test.js:48-69` | 链接标签、HTML 实体、SVG/Mermaid 排除、未闭合 pre |
-| `tests/language.test.js:71-94` | 术语边界与配置错误、模式句长和禁用规则 |
+| `tests/language.test.js:69-90` | 链接标签、HTML 实体、SVG/Mermaid 排除、未闭合 pre |
+| `tests/language.test.js:92-115` | 术语边界与配置错误、模式句长和禁用规则 |
+| `tests/language.test.js:32-51` | 合法引用路径不误报、邻近正文位置、Unicode 大小写展开及术语字面量匹配 |
 | `tests/quality-report.test.js:9-39` | 文件路径身份、移动行、替换新问题、重复副本、配置/schema 拒绝 |
 | `tests/cli.test.js` | 退出码、错误参数、基线新增/修复/移动/重复/模式变化 |
 | `tests/cli.test.js` | 缺失文件、未知参数；空扫描是 HTML CLI 场景 |

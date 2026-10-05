@@ -750,11 +750,11 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
 
     <article class="main" id="content">
       <header class="doc-meta">
-        <span class="doc-version">V1.0</span>
+        <span class="doc-version">1.1</span>
         <h1>lint-doc-language 技术设计文档</h1>
         <dl class="meta-grid">
-          <dt>实现文件</dt><dd><code>`scripts/lint-doc-language.js`、`scripts/lib/prose.js`、`scripts/lib/quality-report.js`、`scripts/lib/source-reference.js`</code></dd>
-          <dt>测试文件</dt><dd><code>`tests/language.test.js`、`tests/quality-report.test.js`、`tests/cli.test.js`、`tests/conversion.test.js`、`tests/skill-e2e.test.js`</code></dd>
+          <dt>实现文件</dt><dd><code>scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/quality-report.js、scripts/lib/source-reference.js</code></dd>
+          <dt>测试文件</dt><dd><code>tests/language.test.js、tests/quality-report.test.js、tests/cli.test.js、tests/conversion.test.js、tests/skill-e2e.test.js</code></dd>
           <dt>编写日期</dt><dd>2026-10-04</dd>
         </dl>
       </header>
@@ -785,7 +785,7 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
 <path d="M230 62 L205 62 L205 135 L155 135 L155 155" fill="none" stroke="var(--text,#1a2332)" marker-end="url(#dep-arrow)"/>
 <text x="320" y="245" text-anchor="middle" fill="var(--text-secondary,#475569)" font-size="14">箭头表示调用；main 使用报告门禁，lint 使用问题构造</text>
 </svg>
-<figcaption>图 1.1 — CLI 与三个本地依赖的调用关系。来源：scripts/lint-doc-language.js:5-7,47-82,103-138。</figcaption>
+<figcaption>图 1.1 — CLI 与三个本地依赖的调用关系。来源：scripts/lint-doc-language.js:5-7,47-84,105-140。</figcaption>
 </figure>
 <p><code>prose.js</code> 将不检查的语法替换成空格，保留原始 UTF-16 偏移。<code>quality-report.js</code> 生成稳定问题身份，比较基线并计算门禁。<code>source-reference.js</code> 被 lint 与转换器共用，识别源码引用语法，供 placeholder 规则排除合法引用。外部依赖只有 Node.js 内建模块：<code>fs</code>、<code>path</code>、<code>crypto</code>；检查器没有第三方解析库。</p>
 <p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L5"><code>../../scripts/lint-doc-language.js:5</code></a>、<a class="source-ref" href="../../scripts/lib/prose.js#L3"><code>../../scripts/lib/prose.js:3</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L3"><code>../../scripts/lib/quality-report.js:3</code></a>。</p>
@@ -837,7 +837,7 @@ node scripts/lint-doc-language.js --terms examples/validation/language/terms.jso
 <tr><td>单个目标读失败</td><td><code>input/read</code> error；继续汇总其他目标</td></tr>
 </tbody></table></div>
 <p>目标文件读取和该文件内 <code>lint</code> 异常共用同一个 catch，因此都会包装成 <code>input/read</code>。正常 JSON 与 fatal JSON 的结构不同。人类格式给没有位置的输入错误显示 <code>1:1</code>，不意味着找到了正文第一行的问题。</p>
-<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L84"><code>../../scripts/lint-doc-language.js:84</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L103"><code>../../scripts/lint-doc-language.js:103</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L78"><code>../../scripts/lib/quality-report.js:78</code></a>、<a href="../../references/quality-tooling.md">quality-tooling.md</a>。</p>
+<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L86"><code>../../scripts/lint-doc-language.js:86</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L105"><code>../../scripts/lint-doc-language.js:105</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L78"><code>../../scripts/lib/quality-report.js:78</code></a>、<a href="../../references/quality-tooling.md">quality-tooling.md</a>。</p>
         </div>
       </details>
 
@@ -863,7 +863,7 @@ node scripts/lint-doc-language.js --terms examples/validation/language/terms.jso
 <tr><td><code>multi-action</code></td><td>warning</td><td>只在 strict：然后、接着、随后、and then/then；每个段最多一项</td></tr>
 </tbody></table></div>
 <p>长句按中文句号/问叹号及英文 <code>. ! ?</code> 分隔，不跨行拼接。中文计数仅含 <code>U+3400..U+9FFF</code>；英文词使用字母及内部撇号/连字符，不是分词器。两种计数任一超阈值就提示；中文字符数不是全部字符长度。</p>
-<p>禁用词匹配统一转小写。词首或词尾为 ASCII <code>\w</code> 时，对应边界旁不能也是 <code>\w</code>。例如 <code>erase</code> 匹配 <code>Erase</code>，不匹配 <code>eraser</code> 或 <code>erase_id</code>；中文别名按子串匹配。每次搜索从本次匹配末尾继续，不匹配重叠副本。</p>
+<p>禁用词匹配使用原始文字串上的不区分大小写字面量匹配，不改变原文字串。词首或词尾为 ASCII <code>\w</code> 时，对应边界旁不能也是 <code>\w</code>。例如 <code>erase</code> 匹配 <code>Erase</code>，不匹配 <code>eraser</code> 或 <code>erase_id</code>；中文别名按子串匹配。每次搜索从本次匹配末尾继续，不匹配重叠副本。</p>
 <p>规则不提示“可能”、may、might、could。提示应保留条件、否定和不确定性。英文宣传词的词边界与禁用词标识边界并非同一个实现，维护时不能假定二者完全一致。</p>
 <p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L10"><code>../../scripts/lint-doc-language.js:10</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L34"><code>../../scripts/lint-doc-language.js:34</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L47"><code>../../scripts/lint-doc-language.js:47</code></a>。</p>
         </div>
@@ -886,8 +886,9 @@ node scripts/lint-doc-language.js --terms examples/validation/language/terms.jso
 }</code></pre></div>
 <p>这份演示配置不定义仓库真实领域概念。本文术语映射：问题为 <code>issue</code>，报告为 <code>report</code>，基线为 <code>baseline</code>，正文片段为 <code>segment</code>；合法英文名称在代码引用中保留。没有额外禁止别名的证据，故文档自身不编造禁用词清单。</p>
 <p><code>version</code> 必须为数字 1，<code>terms</code> 必须是数组。每项 <code>canonical</code> 为非空字符串且没有首尾空白，忽略大小写后不能重名。<code>aliases/forbidden/identifiers</code> 若提供，必须是数组，各元素是没有首尾空白的非空字符串；空数组合法。</p>
+<p>禁用术语按原文字串进行不区分大小写的字面量匹配，使用匹配到的原始偏移定位。不能先将整段文字转小写再使用新字符串的索引：例如 <code>İ</code> 转小写后长度会增加，可能使后续禁用词漏检。</p>
 <p>同一合法名称不能映射到不同 canonical 概念。重复禁用名称会失败；禁用词与任意 canonical、alias 或 identifier 冲突也失败。同一概念内的 alias 重复不单独拒绝。<code>definition/source</code> 和其他附加字段不校验；工具不验证定义或来源真实性，也不要求合法术语出现。</p>
-<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L11"><code>../../scripts/lint-doc-language.js:11</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L55"><code>../../scripts/lint-doc-language.js:55</code></a>。</p>
+<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L11"><code>../../scripts/lint-doc-language.js:11</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L57"><code>../../scripts/lint-doc-language.js:57</code></a>。</p>
 <h3 id="sec-42问题与普通报告">4.2 问题与普通报告</h3>
 <div class="table-wrapper"><table>
 <thead><tr><th>对象</th><th>字段</th><th>含义</th></tr></thead>
@@ -897,14 +898,14 @@ node scripts/lint-doc-language.js --terms examples/validation/language/terms.jso
 <tr><td>issue</td><td><code>line/column/context</code></td><td>可选；lint 正文问题带位置与压缩空白后的上下文</td></tr>
 <tr><td>report</td><td><code>schemaVersion/tool</code></td><td>1 / <code>doc-language</code></td></tr>
 <tr><td>report</td><td><code>targets</code></td><td>去重并排序的相对文件集合</td></tr>
-<tr><td>report</td><td><code>profile</code></td><td><code>engine:2</code>、mode、术语 digest、去重排序的 disabled、strict 布尔值</td></tr>
+<tr><td>report</td><td><code>profile</code></td><td><code>engine:3</code>、mode、术语 digest、去重排序的 disabled、strict 布尔值</td></tr>
 <tr><td>report</td><td><code>issues</code></td><td>按目标处理顺序及规则追加顺序保存，未额外排序</td></tr>
 <tr><td>report</td><td><code>summary</code></td><td>文件数、当前全部 error 数、当前全部 warning 数</td></tr>
 <tr><td>report</td><td><code>baseline</code></td><td>仅比较后存在；<code>added/resolved</code> 为问题数组，<code>unchanged</code> 为数量</td></tr>
 </tbody></table></div>
 <p>身份散列输入是 <code>{file,rule,severity,key}</code>。<code>key</code> 优先取显式 key，缺少时依次取 context、message；不是输出字段。行列和 message 不直接进入身份；message 仅在前两项都缺少时参与。多数 lint key 包含该正文片段及触发内容，移动行不变，但修改同段其他文字可能产生新身份。<code>multi-action</code> 使用 context；长句 key 使用规范化句子。</p>
 <p><code>digest</code> 递归排序对象键，保留数组顺序。术语数组重排会改变 profile 散列；目标 CLI 输入重排不会改变排序后的 targets。报告 summary 表示当前全部问题，与最终基线门禁是否通过是两件事。</p>
-<p>Sources：<a class="source-ref" href="../../scripts/lib/quality-report.js#L8"><code>../../scripts/lib/quality-report.js:8</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L22"><code>../../scripts/lib/quality-report.js:22</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L51"><code>../../scripts/lint-doc-language.js:51</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L122"><code>../../scripts/lint-doc-language.js:122</code></a>。</p>
+<p>Sources：<a class="source-ref" href="../../scripts/lib/quality-report.js#L8"><code>../../scripts/lib/quality-report.js:8</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L22"><code>../../scripts/lib/quality-report.js:22</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L53"><code>../../scripts/lint-doc-language.js:53</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L124"><code>../../scripts/lint-doc-language.js:124</code></a>。</p>
         </div>
       </details>
 
@@ -933,7 +934,7 @@ assert.equal(findings[0].rule, 'placeholder');
 assert.equal(findings[0].line, 1);
 assert.equal(findings[0].column, 4);</code></pre></div>
 <p>该片段已运行；行内代码占位符被排除。同步函数没有共享可变检查器状态；线程安全及并发调用压力测试未进行，不能据此给出跨线程保障。</p>
-<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L47"><code>../../scripts/lint-doc-language.js:47</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L84"><code>../../scripts/lint-doc-language.js:84</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L103"><code>../../scripts/lint-doc-language.js:103</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L137"><code>../../scripts/lint-doc-language.js:137</code></a>。</p>
+<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L47"><code>../../scripts/lint-doc-language.js:47</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L86"><code>../../scripts/lint-doc-language.js:86</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L105"><code>../../scripts/lint-doc-language.js:105</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L139"><code>../../scripts/lint-doc-language.js:139</code></a>。</p>
 <h3 id="sec-52prosejs的全部导出">5.2 prose.js 的全部导出</h3>
 <div class="table-wrapper"><table>
 <thead><tr><th>签名</th><th>返回值</th><th>边界与失败</th></tr></thead>
@@ -960,9 +961,9 @@ assert.equal(findings[0].column, 4);</code></pre></div>
 <p>Sources：<a class="source-ref" href="../../scripts/lib/quality-report.js#L8"><code>../../scripts/lib/quality-report.js:8</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L18"><code>../../scripts/lib/quality-report.js:18</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L29"><code>../../scripts/lib/quality-report.js:29</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L42"><code>../../scripts/lib/quality-report.js:42</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L55"><code>../../scripts/lib/quality-report.js:55</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L78"><code>../../scripts/lib/quality-report.js:78</code></a>。</p>
 <h3 id="sec-54sourcereferencejs的全部导出">5.4 source-reference.js 的全部导出</h3>
 <p><code>parseSourceReference(value)</code> 接受不含外层双花括号的字符串。合法语法为文件名、冒号、从 1 开始的起始行以及可选的结束行；结束行不能小于起始行。返回 <code>{file,start,end,label,href}</code>；start/end 是匹配得到的字符串，单行引用的 end 为 undefined。非法语法返回 null；非字符串输入不在契约内，可能抛 TypeError。</p>
-<p>例如 <code>scripts/lib/prose.js:75-95</code> 返回 label 同原字符串、href 为 <code>scripts/lib/prose.js#L75-L95</code>。文件部分不允许花括号或换行，但没有路径存在性、权限、扩展名或源码内容校验。解析成功只说明语法合法，不能证明引用支持结论。lint 仅排除该引用的 placeholder 提示，其他规则仍扫描片段。</p>
-<p>本工作树将语言 profile engine 从 1 升为 2。旧 engine=1 的基线不能直接比较；应在同一新工具下重跑修订前后。新增测试在 <code>tests/language.test.js:25-30</code> 验证合法单行/范围引用、倒序范围、零行和未完成变量。</p>
-<p>Sources：<a class="source-ref" href="../../scripts/lib/source-reference.js#L5"><code>../../scripts/lib/source-reference.js:5</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L55"><code>../../scripts/lint-doc-language.js:55</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L123"><code>../../scripts/lint-doc-language.js:123</code></a>、<a class="source-ref" href="../../tests/language.test.js#L25"><code>../../tests/language.test.js:25</code></a>。</p>
+<p>例如 <code>scripts/lib/prose.js:75-95</code> 返回 label 同原字符串、href 为 <code>scripts/lib/prose.js#L75-L95</code>。文件部分不允许花括号或换行，但没有路径存在性、权限、扩展名或源码内容校验。解析成功只说明语法合法，不能证明引用支持结论。lint 将合法源码引用整体作为标识掩码，排除所有语言规则；相邻正文仍按原位置检查，非法标记仍触发 placeholder。</p>
+<p>语言 profile engine 当前为 3。旧 engine=1/2 的基线不能直接比较；应在同一新工具下重跑修订前后。新增测试在 <code>tests/language.test.js:25-30</code> 验证合法单行/范围引用、倒序范围、零行和未完成变量。</p>
+<p>Sources：<a class="source-ref" href="../../scripts/lib/source-reference.js#L5"><code>../../scripts/lib/source-reference.js:5</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L57"><code>../../scripts/lint-doc-language.js:57</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L125"><code>../../scripts/lint-doc-language.js:125</code></a>、<a class="source-ref" href="../../tests/language.test.js#L25"><code>../../tests/language.test.js:25</code></a>。</p>
         </div>
       </details>
 
@@ -971,7 +972,7 @@ assert.equal(findings[0].column, 4);</code></pre></div>
         <div class="section-body">
 <p>正常 CLI 流程为：解析参数 → 校验术语 → 绝对化并去重目标 → 读取并扫描 → 构造报告 → 基线与门禁 → 输出报告。参数/术语/基线失败转 fatal；目标失败记 input/read。没有持久状态或后台任务。</p>
 <p>定位使用下面的实际核心表达式。先用偏移映射把实体解码后的匹配位置还原为片段输入位置，再加片段起点：</p>
-<div class="code-block" data-lang="javascript"><pre><code class="language-javascript">// 来源：scripts/lint-doc-language.js:51-53
+<div class="code-block" data-lang="javascript"><pre><code class="language-javascript">// 来源：scripts/lint-doc-language.js:53-55
 ...location(source, segment.offset + (segment.offsets[index] ?? index))</code></pre></div>
 <p>基线要求 <code>schemaVersion=1</code>、tool 为字符串、targets 为字符串数组、profile 存在、issues 为数组。每个 issue 必须有合法 64 位小写散列、file 属于 targets、字符串 rule/message、合法 severity。比较 tool、targets 和 profile 的 digest 都要相同，否则拒绝。</p>
 <p>身份以多重集合比较。同身份出现次数增加产生 added；删除副本产生 resolved。门禁默认只阻断 added 的 error；strict 还阻断 added 的 warning。任何当前 <code>input/</code> 问题始终返回 1，即使基线记录了同类问题。</p>
@@ -983,7 +984,7 @@ node scripts/lint-doc-language.js --json examples/validation/language/baseline.m
 node scripts/lint-doc-language.js --json --baseline examples/validation/language/before.json examples/validation/language/baseline.md
 # 未修改内容：error 数仍为 1，但 added=0、unchanged=1，退出 0。</code></pre></div>
 <p>该语义已实际执行，PowerShell 管道保存片段也已逐字重放。移动行、替换内容、追加同身份副本和切换模式分别得到 0、1、1、fatal/1。请先执行保存命令生成 <code>before.json</code>，该文件不是预置基线。</p>
-<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L103"><code>../../scripts/lint-doc-language.js:103</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L42"><code>../../scripts/lib/quality-report.js:42</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L55"><code>../../scripts/lib/quality-report.js:55</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L78"><code>../../scripts/lib/quality-report.js:78</code></a>。</p>
+<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L105"><code>../../scripts/lint-doc-language.js:105</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L42"><code>../../scripts/lib/quality-report.js:42</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L55"><code>../../scripts/lib/quality-report.js:55</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L78"><code>../../scripts/lib/quality-report.js:78</code></a>。</p>
         </div>
       </details>
 
@@ -1002,24 +1003,25 @@ node scripts/lint-doc-language.js --json --baseline examples/validation/language
 <tr><td>一段正文没被扫描</td><td>检查未闭合围栏/frontmatter/HTML 排除块</td><td>修正语法；对跨行长句人工复核</td></tr>
 <tr><td><code>.HTML</code> 与未知扩展名行为不同</td><td>查看 target 后缀</td><td>HTML/HTM 大小写均支持，其他后缀按 Markdown</td></tr>
 </tbody></table></div>
-<p>这些是由实现推导的排查场景，不是已确认历史事故。维护规则要同步更新 RULES、CLI 校验、profile engine 策略和测试；改变问题 key 或规则算法时重新生成同版本下的前后基线。engine 当前固定 2，没有自动依据代码版本失效基线的机制。</p>
-<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L10"><code>../../scripts/lint-doc-language.js:10</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L84"><code>../../scripts/lint-doc-language.js:84</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L118"><code>../../scripts/lint-doc-language.js:118</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L122"><code>../../scripts/lint-doc-language.js:122</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L78"><code>../../scripts/lib/quality-report.js:78</code></a>。</p>
+<p>这些是由实现推导的排查场景，不是已确认历史事故。维护规则要同步更新 RULES、CLI 校验、profile engine 策略和测试；改变问题 key 或规则算法时重新生成同版本下的前后基线。engine 当前固定 3，没有自动依据代码版本失效基线的机制。</p>
+<p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L10"><code>../../scripts/lint-doc-language.js:10</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L86"><code>../../scripts/lint-doc-language.js:86</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L120"><code>../../scripts/lint-doc-language.js:120</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L124"><code>../../scripts/lint-doc-language.js:124</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L78"><code>../../scripts/lib/quality-report.js:78</code></a>。</p>
         </div>
       </details>
 
       <details open id="sec-api">
         <summary><h2 id="sec-api-h">8. 当前测试与验证记录</h2></summary>
         <div class="section-body">
-<p>查看<a href="../../docs/validation/2.0/README.md">实际验收报告</a>、<a href="../../docs/validation/2.0/source-snapshot.json">源码散列</a>及<a href="../../docs/validation/2.0/review.md">独立复审</a>。这些记录对应本次实际运行，不能替代未来改动后的复验。</p>
+<p>查看<a href="../../docs/validation/2.0-refinement/README.md">实际验收报告</a>、<a href="../../docs/validation/2.0-refinement/source-snapshot.json">源码散列</a>及<a href="../../docs/validation/2.0-refinement/review.md">独立复审</a>。这些记录对应本次实际运行，不能替代未来改动后的复验。</p>
 <p>测试覆盖及最终运行结果见实际验收报告。测试数量不是覆盖率测量，HTML 专属检查不算作语言规则覆盖。</p>
 <div class="table-wrapper"><table>
 <thead><tr><th>测试来源</th><th>已覆盖行为</th></tr></thead>
 <tbody>
 <tr><td><code>tests/language.test.js:6-16</code></td><td>中英文提示、strict 模式规则、保留 hedges/条件</td></tr>
-<tr><td><code>tests/language.test.js:18-46</code></td><td>正文/表格占位符、代码与 frontmatter 排除、CRLF 位置</td></tr>
+<tr><td><code>tests/language.test.js:18-67</code></td><td>正文/表格占位符、代码与 frontmatter 排除、CRLF 位置</td></tr>
 <tr><td><code>tests/language.test.js:25-30</code></td><td>源码引用合法语法、倒序范围、零行和变量错误</td></tr>
-<tr><td><code>tests/language.test.js:48-69</code></td><td>链接标签、HTML 实体、SVG/Mermaid 排除、未闭合 pre</td></tr>
-<tr><td><code>tests/language.test.js:71-94</code></td><td>术语边界与配置错误、模式句长和禁用规则</td></tr>
+<tr><td><code>tests/language.test.js:69-90</code></td><td>链接标签、HTML 实体、SVG/Mermaid 排除、未闭合 pre</td></tr>
+<tr><td><code>tests/language.test.js:92-115</code></td><td>术语边界与配置错误、模式句长和禁用规则</td></tr>
+<tr><td><code>tests/language.test.js:32-51</code></td><td>合法引用路径不误报、邻近正文位置、Unicode 大小写展开及术语字面量匹配</td></tr>
 <tr><td><code>tests/quality-report.test.js:9-39</code></td><td>文件路径身份、移动行、替换新问题、重复副本、配置/schema 拒绝</td></tr>
 <tr><td><code>tests/cli.test.js</code></td><td>退出码、错误参数、基线新增/修复/移动/重复/模式变化</td></tr>
 <tr><td><code>tests/cli.test.js</code></td><td>缺失文件、未知参数；空扫描是 HTML CLI 场景</td></tr>
