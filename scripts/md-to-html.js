@@ -353,6 +353,21 @@ function uniqueId(id) {
   usedIds.add(candidate);
   return candidate;
 }
+// GitHub 风格锚点（github-slugger 规则）：作者在 MD 里写 [x](#ui-参数--mc-字段映射表) 用的就是它。
+// 转换器自己的 id 是 sec-…；标题里再放一个空锚点，同一条链接才能在 GitHub 和 HTML 孪生里都可达。
+// 重复标题按 GitHub 规则追加 -1、-2…；与已用 id 冲突时继续顺延，保证 id 唯一。
+let ghSeen = new Map();
+function ghAnchor(heading) {
+  const base = heading.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/<[^>]+>/g, '').replace(/[`*~]/g, '')
+    .trim().toLowerCase().replace(/[^\p{L}\p{M}\p{N}\p{Pc}\- ]/gu, '').replace(/ /g, '-');
+  if (!base) return '';
+  let n = ghSeen.get(base) || 0;
+  let slug = n ? `${base}-${n}` : base;
+  while (usedIds.has(slug)) slug = `${base}-${++n}`;
+  ghSeen.set(base, n + 1);
+  usedIds.add(slug);
+  return `<a id="${slug}"></a>`;
+}
 function uniqueSectionId(heading, typeConfig) {
   const id = uniqueId(sectionId(heading, typeConfig));
   usedIds.add(`${id}-h`);   // h2 的派生 id 一并占位
@@ -506,6 +521,26 @@ function sourceRefAnchor(source) {
   return `<a class="source-ref" href="${external ? '' : currentSourceBase}${source.href}"><code>${source.label}</code></a>`;
 }
 
+// 相对 .md 链接 → 同名 .html 孪生。仅当目标 .html 已存在才改写：指向 md-only 文档的链接保持原样，不制造死链。
+// 协议链接（http:/mailto:）、绝对路径、纯锚点不处理。
+let currentDocDir = null;
+function rewriteMdHref(href) {
+  const m = currentDocDir && href.match(/^([^:#?]+)\.md(#.*)?$/i);
+  if (!m || href.startsWith('/')) return href;
+  try {
+    return fs.existsSync(path.resolve(currentDocDir, decodeURI(m[1])) + '.html') ? `${m[1]}.html${m[2] || ''}` : href;
+  } catch (e) {
+    return href;   // 畸形 %-编码：保持原样
+  }
+}
+
+// 跨行 raw HTML 元素（典型：手写 <figcaption> 折成两行）的续行要直通到闭合标签或空行；
+// raw HTML 里的 <a href="x.md"> 同样改指 HTML 孪生。
+const MULTILINE_RAW_TAGS = new Set(['figcaption', 'p', 'summary', 'caption', 'dt', 'dd', 'li', 'td', 'th', 'span', 'a', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+function rawHtmlLine(line) {
+  return line.replace(/(<a\b[^>]*\bhref=")([^"]+)(")/gi, (_, open, href, close) => open + rewriteMdHref(href) + close);
+}
+
 function inlineMarkdown(text) {
   // 行内代码先摘出占位：其内容不得被强调/链接/{{引用}} 规则改写。
   // 旧顺序（先强调后代码）会把 C++ 指针签名 `T*, U*` 里的 * 当成 *斜体*：吞掉星号并插入 <em>，
@@ -522,7 +557,7 @@ function inlineMarkdown(text) {
     .replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(?=[^\s*])(.+?)(?<=[^\s*])\*/g, '<em>$1</em>')   // 强调不跨空白边界：`2 * 3 * 4` 不是斜体
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => `<a href="${rewriteMdHref(href)}">${label}</a>`);
   // {{file:line}} source references in prose
   out = out.replace(/\{\{([^}]+?)\}\}/g, (_, ref) => {
     const source = parseSourceReference(ref);
@@ -560,8 +595,32 @@ function fixMermaidContent(content) {
   return content;
 }
 
+// 硬换行把一段 **加粗** 切在两行：逐行成 <p> 会让 ** 原样外泄到页面。
+// 仅当“并入后确实闭合”才合并（最多续 3 行）；孤立的 **（如 glob src/**/*.h）合并不闭合，原样保留。
+function joinWrappedBold(lines) {
+  const odd = s => (s.replace(/(`+)[\s\S]*?\1/g, '').match(/\*\*/g) || []).length % 2 === 1;
+  const noJoinStart = /^\s*(?:#{1,6}\s|\||>|<)/;
+  const blockStart = /^\s*(?:#{1,6}\s|```|~~~|\||>|[-*+]\s|\d+[.)]\s|(?:-{3,}|\*{3,}|_{3,})\s*$|<)/;
+  const out = [];
+  let fence = null;
+  for (let i = 0; i < lines.length; i++) {
+    const inFence = fence !== null;
+    fence = nextFenceState(fence, lines[i]);
+    if (!inFence && !fence && !noJoinStart.test(lines[i]) && odd(lines[i])) {
+      let merged = lines[i];
+      let j = i;
+      while (odd(merged) && j - i < 3 && j + 1 < lines.length && lines[j + 1].trim() && !blockStart.test(lines[j + 1])) {
+        merged = `${merged.trimEnd()} ${lines[++j].trim()}`;
+      }
+      if (j > i && !odd(merged)) { out.push(merged); i = j; continue; }
+    }
+    out.push(lines[i]);
+  }
+  return out;
+}
+
 function mdBodyToHtml(body, needsMermaid) {
-  const lines = body.split('\n');
+  const lines = joinWrappedBold(body.split('\n'));
   // 本段末尾仍在围栏内（作者漏写了关闭围栏）：补一个关闭围栏，代码原样保留；否则这段代码会被静默丢弃。
   const unclosed = lines.reduce(nextFenceState, null);
   if (unclosed) lines.push('`'.repeat(unclosed.len));
@@ -579,6 +638,7 @@ function mdBodyToHtml(body, needsMermaid) {
   let inBlockquote = false;
   let blockquoteLines = [];
   let pendingFigcaption = null;
+  let rawUntilClose = null;   // 正在直通的跨行 raw HTML 元素（标签名）
 
   // 图注只服务紧随其后的 mermaid；后面不是 mermaid 时按普通说明文字输出，不得静默丢弃。
   function flushOrphanCaption() {
@@ -695,12 +755,28 @@ function mdBodyToHtml(body, needsMermaid) {
 
     if (inCode) { codeLines.push(line.replace(new RegExp(`^\\s{0,${fence.indent}}`), '')); continue; }
 
+    // 跨行 raw HTML 元素的续行：直通到闭合标签或空行（CommonMark 的 HTML 块在空行结束）。
+    // 不直通的话续行会被当段落转义，<a>/<b> 与闭合标签就成了页面上的可见文字。
+    if (rawUntilClose) {
+      if (line.trim() === '') {
+        rawUntilClose = null;
+      } else {
+        out.push(rawHtmlLine(line));
+        if (new RegExp(`</${rawUntilClose}\\s*>`, 'i').test(line)) rawUntilClose = null;
+        continue;
+      }
+    }
+
     // Raw HTML block: line is a standalone HTML tag like '<div ...>', '</div>',
     // '<details>', '<summary>...</summary>', '<p>...</p>'.
     // CommonMark 规范允许 markdown 中嵌入 raw HTML 块——直通不转义。
     if (/^<\/?[a-z][a-z0-9-]*\b[^>]*>(.*)$/i.test(line.trim()) && !line.trim().startsWith('<!--')) {
       flushList(); flushOl(); flushTable(); flushBlockquote();
-      out.push(line);
+      out.push(rawHtmlLine(line));
+      const opened = line.trim().match(/^<([a-z][a-z0-9-]*)\b[^>]*>/i);
+      if (opened && MULTILINE_RAW_TAGS.has(opened[1].toLowerCase()) && !new RegExp(`</${opened[1]}\\s*>`, 'i').test(line)) {
+        rawUntilClose = opened[1].toLowerCase();
+      }
       continue;
     }
 
@@ -753,14 +829,14 @@ function mdBodyToHtml(body, needsMermaid) {
       flushList(); flushOl(); flushTable();
       const heading = line.replace(/^### /, '').trim();
       const h3id = 'sec-' + heading.replace(/[^\w一-鿿]/g, '').toLowerCase().slice(0, 30);
-      out.push(`<h3 id="${uniqueId(h3id)}">${inlineMarkdown(heading)}</h3>`);
+      out.push(`<h3 id="${uniqueId(h3id)}">${ghAnchor(heading)}${inlineMarkdown(heading)}</h3>`);
       continue;
     }
 
     if (/^#### /.test(line)) {
       flushList(); flushOl(); flushTable();
       const heading = line.replace(/^#### /, '').trim();
-      out.push(`<h4>${inlineMarkdown(heading)}</h4>`);
+      out.push(`<h4>${ghAnchor(heading)}${inlineMarkdown(heading)}</h4>`);
       continue;
     }
 
@@ -791,6 +867,7 @@ function sectionId(heading, typeConfig) {
 function buildHtml(parsed, template, typeConfig) {
   const { title, meta, sections, prelude } = parsed;
   usedIds = new Set();
+  ghSeen = new Map();
   // 首个 ## 之前的内容（如“已过时”横幅）：紧随标题，始终可见，不进折叠节
   const preludeHtml = prelude ? `<div class="doc-prelude">\n${mdBodyToHtml(prelude, typeConfig.needsMermaid)}\n</div>\n` : '';
   const brand = loadDocMeta(typeConfig).brand || typeConfig.brand || 'Documentation';
@@ -807,10 +884,11 @@ const projectName = meta.projectName || title;
   if (typeConfig.layout === 'section') {
     const sectionsHtml = sections.map(s => {
       const id = uniqueSectionId(s.heading, typeConfig);
+      const anchor = ghAnchor(s.heading);
       const bodyHtml = mdBodyToHtml(s.body, typeConfig.needsMermaid);
       return `
       <section class="section doc-section" id="${id}">
-        <h2 class="section-title" id="${id}-h">${inlineMarkdown(s.heading)}</h2>
+        <h2 class="section-title" id="${id}-h">${anchor}${inlineMarkdown(s.heading)}</h2>
 ${bodyHtml}
       </section>`;
     }).join('\n');
@@ -868,11 +946,12 @@ ${preludeHtml}${sectionsHtml}
   // Default layout: details-based (module / system)
   const sectionsHtml = sections.map(s => {
     const id = uniqueSectionId(s.heading, typeConfig);
+    const anchor = ghAnchor(s.heading);
     const open = typeConfig.shouldBeOpen(s.heading) ? ' open' : '';
     const bodyHtml = mdBodyToHtml(s.body, typeConfig.needsMermaid);
     return `
       <details${open} id="${id}">
-        <summary><h2 id="${id}-h">${inlineMarkdown(s.heading)}</h2></summary>
+        <summary><h2 id="${id}-h">${anchor}${inlineMarkdown(s.heading)}</h2></summary>
         <div class="section-body">
 ${bodyHtml}
         </div>
@@ -1055,6 +1134,7 @@ if (shouldGenerateIndex) {
     // gets its own detectType + template. Prevents batch-mixed type pollution.
     const fileConfig = docType ? typeConfig : TYPE_CONFIG[resolveTypeFor(mdPath)];
     currentSourceBase = resolveSourceBase(fileConfig, htmlPath);
+    currentDocDir = path.dirname(path.resolve(mdPath));
     const fileTemplate = docType ? template : templateFor(resolveTypeFor(mdPath));
     const parsed = parseMarkdownSections(md, fileConfig);
     if (parsed.unbalancedFence) {

@@ -757,12 +757,13 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
           <dt>测试文件</dt><dd><code>tests/quality-report.test.js、tests/cli.test.js</code></dd>
           <dt>关联文档</dt><dd><a href="../Quality_Tooling_System.html">系统架构</a>、<a href="../../guide.html">上手教程</a>、<a href="Lint_Doc_Language_Design.html">语言模块</a></dd>
           <dt>编写日期</dt><dd>2026-10-05</dd>
+          <dt>目标读者</dt><dd>集成报告与基线门禁的开发者</dd>
         </dl>
       </header>
 
 
       <details open id="sec-overview">
-        <summary><h2 id="sec-overview-h">1. 概述</h2></summary>
+        <summary><h2 id="sec-overview-h"><a id="1-概述"></a>1. 概述</h2></summary>
         <div class="section-body">
 <div class="scope-block"><strong>Scope</strong>：覆盖 quality-report.js 的全部七个导出、报告结构、身份与基线门禁；不覆盖每条 HTML 或语言检测算法。</div>
 <p>语言 lint 和 HTML validator 共享本模块。检查器提供问题，本模块负责稳定散列、相对路径、汇总、基线比较和退出码。它不会决定文本事实正确性，也不会把 warning 自动改成错误问题。strict 改变的是门禁。</p>
@@ -772,21 +773,21 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
       </details>
 
       <details open id="sec-arch">
-        <summary><h2 id="sec-arch-h">3. 报告处理流程</h2></summary>
+        <summary><h2 id="sec-arch-h"><a id="3-报告处理流程"></a>3. 报告处理流程</h2></summary>
         <div class="section-body">
 <p>图示显示可选基线与门禁。</p>
 <div class="mermaid-wrap"><pre class="mermaid">
 flowchart TD
-  I[issue 数组] --> R[makeReport 汇总]
-  R --> B{提供 baseline 路径}
-  B -->|是| C[读取并校验旧报告]
-  C --> D[多重集合比较]
-  B -->|否| A[全部当前问题]
-  D --> N[仅新增问题]
-  A --> G[gate 门禁]
-  N --> G
-  R -->|全部 input 问题仍阻断| G
-  G --> O[退出码 0 或 1 或 2]
+  I[issue 数组] --&gt; R[makeReport 汇总]
+  R --&gt; B{提供 baseline 路径}
+  B --&gt;|是| C[读取并校验旧报告]
+  C --&gt; D[多重集合比较]
+  B --&gt;|否| A[全部当前问题]
+  D --&gt; N[仅新增问题]
+  A --&gt; G[gate 门禁]
+  N --&gt; G
+  R --&gt;|全部 input 问题仍阻断| G
+  G --&gt; O[退出码 0 或 1 或 2]
 </pre><figcaption>图 3.1 — 先判断 input 问题和 error，再判断 strict warning。来源 quality-report.js:55-83。</figcaption></div>
 <p>stable 递归排序对象键而保留数组顺序；digest 对稳定 JSON 做 SHA-256。问题身份包含 file、rule、severity 与 key，不包含 line/column。key 优先显式值，其次 context，最后 message。问题内容改变可能变成新身份，移动行不变。</p>
 <p>基线比较用身份计数。增加一个同身份副本仍进入 added；删除进入 resolved；unchanged 是当前问题中被旧数量抵消的数量。修掉旧错误不能抵消另一个新错误。</p>
@@ -795,7 +796,7 @@ flowchart TD
       </details>
 
       <details open id="sec-concepts">
-        <summary><h2 id="sec-concepts-h">4. 术语表与数据契约</h2></summary>
+        <summary><h2 id="sec-concepts-h"><a id="4-术语表与数据契约"></a>4. 术语表与数据契约</h2></summary>
         <div class="section-body">
 <div class="table-wrapper"><table>
 <thead><tr><th>术语</th><th>定义</th></tr></thead>
@@ -824,7 +825,7 @@ flowchart TD
       </details>
 
       <details open id="sec-api">
-        <summary><h2 id="sec-api-h">8. 全部公开 API</h2></summary>
+        <summary><h2 id="sec-api-h"><a id="8-全部公开-api"></a>8. 全部公开 API</h2></summary>
         <div class="section-body">
 <div class="table-wrapper"><table>
 <thead><tr><th>签名</th><th>参数与结果</th><th>失败/副作用</th></tr></thead>
@@ -844,7 +845,7 @@ flowchart TD
       </details>
 
       <details open id="sec-usage">
-        <summary><h2 id="sec-usage-h">9. 已运行 API 示例</h2></summary>
+        <summary><h2 id="sec-usage-h"><a id="9-已运行-api-示例"></a>9. 已运行 API 示例</h2></summary>
         <div class="section-body">
 <p>下面把历史占位符错误保留为基线，再增加一个副本。基线比较不执行检测，必须由调用者先生成当前报告。</p>
 <div class="code-block" data-lang="javascript"><pre><code class="language-javascript">// ========== 多重集合比较 ==========
@@ -867,7 +868,7 @@ assert.equal(gate(report([warning]), {strict:true}), 2);</code></pre></div>
       </details>
 
       <details open id="sec-faq">
-        <summary><h2 id="sec-faq-h">10. 门禁与排障</h2></summary>
+        <summary><h2 id="sec-faq-h"><a id="10-门禁与排障"></a>10. 门禁与排障</h2></summary>
         <div class="section-body">
 <p>无基线时 gate 使用全部 issues；有基线时使用 added。任何当前 rule 以 input/ 开头都返回 1；新增 error 返回 1；strict 且有新增 warning 返回 2；其他返回 0。summary 始终显示全部当前问题，0 不意味着历史问题清零。</p>
 <p>配置不一致时比较抛 Error，CLI 转 fatal JSON 并退出 1。若移动行导致新增，检查 context/key 是否也改动；若新增重复未阻断，检查你是否错误地对 issues 去重。HTML 检查身份部分还含结构证据，变化不必对应单一 DOM 缺陷。</p>
@@ -877,7 +878,7 @@ assert.equal(gate(report([warning]), {strict:true}), 2);</code></pre></div>
       </details>
 
       <details open id="sec-tests">
-        <summary><h2 id="sec-tests-h">11. 当前测试与验证边界</h2></summary>
+        <summary><h2 id="sec-tests-h"><a id="11-当前测试与验证边界"></a>11. 当前测试与验证边界</h2></summary>
         <div class="section-body">
 <p>quality-report.test.js 有四个顶层 test：路径和移动行身份、替换新问题、重复副本/删除、配置与非法 schema。CLI 测试另验证 JSON BOM、输入失败、warning 基线和配置变化；模块示例直接验证非基线 strict 退出码。</p>
 <p>完整命令和输出存于 docs/validation/full-generation。未测代码覆盖率、所有 JSON 非法值、并发竞争或极端大报告。本生成阶段未运行浏览器；独立审核由其他 agent 提供，机械通过不能替代审核。</p>

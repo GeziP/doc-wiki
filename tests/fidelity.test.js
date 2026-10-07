@@ -149,3 +149,72 @@ test('check-doc-fidelity reports an unclosed fence in the Markdown source and a 
   assert.equal(missing.status, 2);
   assert.equal(JSON.parse(missing.stdout).summary.missingTwin, 1);
 });
+
+test('a **bold** span hard-wrapped over lines renders as bold; a stray ** stays put', t => {
+  const { html } = convert(t, 'WrapBold', [
+    '# WrapBold 技术设计文档', '', '## 1. 概述', '',
+    '普通段落里**在换行处断开的', '加粗短语**，后面还有字。', '',
+    '1. **列表项里断开的', '   加粗续行**（带括号）。', '',
+    '孤立星号 src/**/*.h 不闭合，', '下一行必须仍是独立段落。', '',
+  ]);
+  assert(html.includes('<strong>在换行处断开的 加粗短语</strong>'), 'wrapped bold in a paragraph');
+  assert(/<li>\s*<strong>列表项里断开的 加粗续行<\/strong>/.test(html), 'wrapped bold in a list item');
+  assert(html.includes('<p>下一行必须仍是独立段落。</p>'), 'a ** that cannot close must not swallow the next line');
+});
+
+test('a multi-line raw <figcaption> keeps its inline tags; .md links follow the HTML twin only when it exists', t => {
+  const first = convert(t, 'RawHtml', [
+    '# RawHtml 技术设计文档', '', '## 1. 概述', '',
+    '参见 [Other](Other_Design.md#sec)、[外链](https://example.com/a.md)、[无孪生](Lonely_Design.md)。', '',
+    '<figure>', '',
+    '```mermaid', 'flowchart LR', '    A --> B', '```', '',
+    '<figcaption>图 1.1 — 跨行图注，', '含 <a href="Other_Design.md">链接</a> 与 <b>粗体</b></figcaption>', '',
+    '</figure>', '',
+  ]);
+  assert(first.html.includes('<b>粗体</b>') && first.html.includes('<a href="Other_Design.md">链接</a>'), 'raw tags on the continuation line must pass through');
+  assert(!first.html.includes('&lt;/figcaption&gt;') && !first.html.includes('&lt;a href'), 'escaped markup leaked into visible text');
+  // 目标孪生出现后再转一次：.md → .html；外链与无孪生链接保持原样（不制造死链）
+  fs.writeFileSync(path.join(path.dirname(first.htmlFile), 'Other_Design.html'), '<html></html>');
+  const again = first.run('md-to-html.js', ['--type', 'module', '--root', first.dir, '--force', first.file]);
+  assert.equal(again.status, 0, again.stdout + again.stderr);
+  const second = fs.readFileSync(first.htmlFile, 'utf8');
+  assert(second.includes('<a href="Other_Design.html#sec">Other</a>'), 'markdown link was not pointed at the HTML twin');
+  assert(second.includes('<a href="Other_Design.html">链接</a>'), 'raw anchor was not pointed at the HTML twin');
+  assert(second.includes('href="https://example.com/a.md"') && second.includes('href="Lonely_Design.md"'), 'external / twin-less links must stay untouched');
+});
+
+test('check-doc-fidelity flags a fence "closed" with an info string (it never closes and swallows what follows)', t => {
+  const swallowed = convert(t, 'Swallow', [
+    '# Swallow 技术设计文档', '', '## 1. 概述', '',
+    '```text', 'main()', '  └─ app.run()', '```text', '',
+    '### 1.1 被吞进代码块的小节', '', '| A | B |', '|---|---|', '| 1 | 2 |', '',
+    '```text', '后一个示例', '```', '',
+  ]);
+  const found = fidelity(swallowed.run, swallowed.dir);
+  assert.equal(found.status, 1, JSON.stringify(found.report));
+  assert(kinds(found.report).includes('fence-suspect'), JSON.stringify(found.report));
+
+  // 负对照：更长的外层围栏里嵌套示例是合法写法；``` markdown 外层同样放行
+  const nested = convert(t, 'Nested', [
+    '# Nested 技术设计文档', '', '## 1. 概述', '',
+    '````text', '```text', '内层示例', '```', '````', '',
+    '```markdown', '```text', 'x', '```', '```', '',
+  ]);
+  const clean = fidelity(nested.run, nested.dir);
+  assert(!kinds(clean.report).includes('fence-suspect'), JSON.stringify(clean.report));
+});
+
+test('headings also carry GitHub-style anchors, so a Markdown #slug link resolves in the HTML twin', t => {
+  const { html, dir } = convert(t, 'Anchors', [
+    '# Anchors 技术设计文档', '', '## 1. 概述', '',
+    '见 [映射表](#ui-参数--mc-字段映射表)，另见 [第二个重复](#重复-1)。', '',
+    '### UI 参数 → MC 字段映射表', '', '内容。', '',
+    '### 重复', '', 'a', '', '### 重复', '', 'b', '',
+    '#### 四级 标题', '', 'c', '',
+  ]);
+  assert(html.includes('<a id="ui-参数--mc-字段映射表"></a>'), 'GitHub slug of a heading with an arrow');
+  assert(html.includes('<a id="重复"></a>') && html.includes('<a id="重复-1"></a>'), 'repeated headings follow the GitHub -1 suffix');
+  assert(html.includes('<a id="四级-标题"></a>'), 'h4 headings get anchors too');
+  const links = spawnSync(process.execPath, [path.join(root, 'scripts', 'check-doc-links.js'), '--root', dir, '--all'], { encoding: 'utf8' });
+  assert.equal(links.status, 0, links.stdout + links.stderr);
+});

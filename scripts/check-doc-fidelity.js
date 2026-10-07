@@ -75,9 +75,12 @@ function markdownFacts(source) {
   let fence = null;
   let skipToc = false, inMeta = false, inComment = false;
   let tableOpen = false, tableSkipped = false;
+  const suspects = [];   // 围栏内部出现“带 info string 的开启行”：关闭围栏不能带 info string，多半是把关闭围栏误写成了 ```text
   const all = lines(source);
+  let lineNo = 0;
 
   for (const line of all) {
+    lineNo++;
     const body = line.replace(/^\s*(?:>\s*)*/, '').replace(/^\s*(?:[-+*]|\d+[.)])\s+/, '');
     let marker = body.match(/^\s*(`{3,}|~{3,})(.*)$/);
     // CommonMark：反引号围栏的 info string 不能含反引号（```x``` 是行内代码，不是围栏开启行）
@@ -86,12 +89,19 @@ function markdownFacts(source) {
       if (marker && marker[1][0] === fence.char && marker[1].length >= fence.length && !marker[2].trim()) {
         if (!fence.skip) fences.push({ key: fence.lang === 'mermaid' ? mermaidKey(decodeMermaid(fence.text.join('\n'))) : blockKey(fence.text.join('\n')) });
         fence = null;
-      } else fence.text.push(fence.quoted ? line.replace(/^\s*(?:>\s?)+/, '') : line);
+      } else {
+        fence.text.push(fence.quoted ? line.replace(/^\s*(?:>\s?)+/, '') : line);
+        // 误写的关闭围栏一定不短于开启围栏；更短的反引号串是合法嵌套示例，不报
+        if (marker && marker[1][0] === '`' && marker[1].length >= fence.length && marker[2].trim() && !fence.suspect && !/^(?:markdown|md)$/i.test(fence.lang)) {
+          fence.suspect = true;
+          suspects.push({ open: fence.openLine, at: lineNo, text: line.trim().slice(0, 40) });
+        }
+      }
       continue;
     }
     if (marker) {
       fence = {
-        char: marker[1][0], length: marker[1].length, text: [], skip: skipToc,
+        char: marker[1][0], length: marker[1].length, text: [], skip: skipToc, openLine: lineNo,
         lang: marker[2].trim().split(/\s+/)[0], quoted: /^\s*>/.test(line),
       };
       tableOpen = false;
@@ -134,7 +144,7 @@ function markdownFacts(source) {
       if (source) spans.push(source.label);
     }
   }
-  return { spans, fences, headings, tables, rows, unclosedFence: Boolean(fence) };
+  return { spans, fences, headings, tables, rows, suspects, unclosedFence: Boolean(fence) };
 }
 
 // ---------- HTML side ----------
@@ -191,6 +201,10 @@ function compare(md, html) {
   const issues = [];
   // Markdown 自身围栏不配对（文末仍在围栏内）：之后的内容都会被当成代码，比对结果不可信，单独报告
   if (md.unclosedFence) issues.push({ kind: 'fence-unbalanced', detail: 'a code fence is never closed; everything after it renders as code' });
+  // 配对“成功”但错位：关闭围栏写成了 ```text，后面的章节被吞进代码块；MD 与 HTML 一致，所以只有这条能发现
+  for (const s of md.suspects) {
+    issues.push({ kind: 'fence-suspect', detail: `line ${s.at} (${s.text}) looks like a fence opener inside the fence opened at line ${s.open}; a closing fence cannot carry an info string, so that fence is probably still open and swallows what follows` });
+  }
   for (const span of multisetMissing(md.spans, html.codes)) issues.push({ kind: 'code-missing', detail: span });
   const available = html.blocks.map(b => b.key);
   for (const key of multisetMissing(md.fences.map(f => f.key), available)) {

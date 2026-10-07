@@ -191,3 +191,17 @@ test('legacy validator handles escaped code, real escaped markup and legal excep
     assert.equal(r.issues.some(i => i.rule === 'html/HTML 转义回归' && i.severity === 'error'), shouldFail);
   }
 });
+
+test('mermaid caption check inspects every diagram, whether the caption is in the wrap or in an enclosing figure', t => {
+  const dir = workspace(t), file = path.join(dir, 'doc.html');
+  const wrap = (cap = '') => `<div class="mermaid-wrap"><pre class="mermaid">\nflowchart LR\n  A --&gt; B\n</pre>${cap}</div>`;
+  const body = [
+    wrap('<figcaption>图 1.1 — 有图注</figcaption>'),
+    wrap(),                                                          // 第 2 张没有图注：旧的贪婪窗口会把它吞进第 1 张的窗口而漏报
+    `<figure>${wrap()}<figcaption>图 2：手写 figure 里的图注</figcaption></figure>`,
+    wrap('<figcaption>没有编号的图注</figcaption>'),
+  ].join('\n');
+  fs.writeFileSync(file, `<html><head><title>Test</title></head><body>${body}</body></html>`);
+  const messages = json(run('validate-doc.js', ['--json', file], dir)).issues.filter(i => i.rule === 'html/Figure Captions').map(i => i.message);
+  assert.deepEqual(messages.map(m => m.match(/#(\d+)/)[1]), ['2', '4'], messages.join(' | '));
+});

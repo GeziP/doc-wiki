@@ -22,6 +22,7 @@ node scripts/lint-doc-language.js --mode explain doc/Design.md
 node scripts/lint-doc-language.js --mode strict --terms doc/terms.json doc/API.md
 node scripts/validate-doc.js --json doc/Design.html
 node scripts/check-doc-fidelity.js doc/Design.md
+node scripts/check-doc-links.js doc/Design.html
 node --test
 ```
 
@@ -138,6 +139,7 @@ doc-writer/
 │   ├── md-to-html.js             # MD → HTML 转换
 │   ├── validate-doc.js           # HTML 校验与 JSON 基线
 │   ├── check-doc-fidelity.js     # MD ↔ HTML 往返保真度检查
+│   ├── check-doc-links.js        # 链接 / 锚点 / 源码引用可达性检查
 │   ├── lint-doc-language.js      # 中英文语言与术语检查
 │   ├── lib/                     # 共用报告与正文扫描工具
 │   └── inline-shared.js          # CSS/JS → 模板同步
@@ -216,6 +218,17 @@ node scripts/check-doc-fidelity.js --all --json
 ```
 
 退出码 0 保真、1 发现丢失、2 参数错误或缺少 HTML 孪生。
+
+### check-doc-links.js — 链接检查
+
+校验器不知道 `href` 指向的文件或锚点是否存在。本脚本检查生成后 HTML 里的相对链接：目标文件、目标 `#锚点`、指向 `.md` 却已有 HTML 孪生的链接，以及源码引用 `#L10-L20` 是否越过目标文件的行数（详见 [quality-tooling.md](references/quality-tooling.md)）：
+
+```bash
+node scripts/check-doc-links.js doc/tech-docs/Task_Design.html
+node scripts/check-doc-links.js --all --json
+```
+
+退出码 0 通过、1 有死链（`--strict` 下含行号越界警告）、2 用法错误。
 
 ### SKILL.md — 路由与规则
 

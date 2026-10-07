@@ -672,7 +672,9 @@ function checkFigCaptions(html, report, isNewDoc) {
 
   // SVG diagrams in <figure class="diagram"> should have <figcaption>
   const svgFigures = body.match(/<figure[^>]*class="[^"]*diagram[^"]*"[^>]*>[\s\S]*?<\/figure>/gi) || [];
-  const figNumRe = /图\s*\d+[\.\-]\d+\s*[—–-]/;
+  // 与 converter 的图注识别一致（图 N — / 图 N.M — / 图 3.29a-1 — / 图 N：），不再强制 X.X 双段编号——
+  // 旧正则比 converter 和 30 多份真实文档的写法都严，且只对少数图生效，等于随机误报。
+  const figNumRe = /图\s*\d+(?:\.\d+)?[a-z]?(?:-\d+)?\s*[—–:：-]/;
   svgFigures.forEach((fig, i) => {
     if (!/<figcaption/.test(fig)) {
       report.warn(cat, `SVG figure #${i + 1}: missing <figcaption> — add numbered caption (e.g., "图 1.1 — 描述")`);
@@ -686,10 +688,21 @@ function checkFigCaptions(html, report, isNewDoc) {
     }
   });
 
-  // Mermaid diagrams in <div class="mermaid-wrap"> should have <figcaption>
-  const mermaidWraps = body.match(/<div[^>]*class="[^"]*mermaid-wrap[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi)
-    || body.match(/<div[^>]*class="[^"]*mermaid-wrap[^"]*"[^>]*>[\s\S]*?<\/div>/gi)
-    || [];
+  // Mermaid：逐图取“自己的”图注范围。converter 产出 <div class="mermaid-wrap"><pre>…</pre>[<figcaption>]</div>（图注在 wrap 内）；
+  // 手写 <figure> 包裹时图注是 wrap 的同级元素（同一 <figure> 内、wrap 之后）。
+  // 旧实现的贪婪窗口 …</div>\s*</div> 会跨越多张图——36 张图只验到 2 个窗口，其余图的图注从未被检查。
+  const mermaidWraps = [];
+  const wrapOpenRe = /<div[^>]*class="[^"]*mermaid-wrap[^"]*"[^>]*>/gi;
+  for (let m; (m = wrapOpenRe.exec(body));) {
+    const preEnd = body.indexOf('</pre>', m.index);
+    const wrapEnd = body.indexOf('</div>', preEnd === -1 ? m.index : preEnd);
+    let scope = body.slice(m.index, wrapEnd === -1 ? undefined : wrapEnd);
+    const figClose = body.indexOf('</figure>', m.index);
+    if (!/<figcaption/.test(scope) && body.lastIndexOf('<figure', m.index) > body.lastIndexOf('</figure>', m.index) && figClose !== -1) {
+      scope = body.slice(m.index, figClose);
+    }
+    mermaidWraps.push(scope);
+  }
   mermaidWraps.forEach((wrap, i) => {
     if (!/<figcaption/.test(wrap)) {
       report.warn(cat, `Mermaid diagram #${i + 1}: missing <figcaption> inside .mermaid-wrap`);

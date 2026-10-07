@@ -90,12 +90,38 @@ node scripts/check-doc-fidelity.js --root . --all --json
 | heading-altered | 标题文字被改写 |
 | table-missing | 表格缺失，或表头被改写 |
 | fence-unbalanced | Markdown 的围栏没有闭合，其后内容都会被当成代码 |
+| fence-suspect | 围栏内出现带信息串、且足以关闭它的反引号行（如 `text`）：作者多半想关闭围栏，但带信息串的行不会关闭，其后章节被吞进代码 |
 
 退出码：0 保真；1 发现丢失；2 参数错误或缺少 HTML 孪生。`--all` 扫描 `<root>/doc/*.md` 与 `<root>/doc/tech-docs/*.md` 中已有孪生的文档。
 
 围栏按 CommonMark 解析：开启行是缩进加至少 3 个反引号，信息串不含反引号；列表项里缩进的围栏同样有效。关闭行必须是不短于开启行的纯反引号，带信息串的行（如 `text`）不会关闭围栏。转换器遇到不配对的围栏会打印 WARN，并保留其后的代码，不会丢弃。
 
+`fence-suspect` 是启发式：Markdown 与 HTML 在这种情况下完全一致，往返比对本身看不出问题。外层围栏是 `markdown`/`md` 时，内部的示例围栏是正常写法，不报。报出后按上下文判断，把那一行改成纯反引号。
+
 检查器只比对可计数的内容，不判断语义。mermaid 的 `{…}`→`【…】`、`-.>`→`-.->` 是转换器的有意修复，不算改写。
+
+## 链接与源码引用检查
+
+`validate-doc.js` 只检查单个 HTML，不知道 `href` 指向的文件或锚点是否存在。`check-doc-links.js` 检查生成后 HTML 里的相对链接，只读不改：
+
+```bash
+node scripts/check-doc-links.js doc/tech-docs/Task_Design.html
+node scripts/check-doc-links.js --root . --all --json
+node scripts/check-doc-links.js --all --strict
+```
+
+| 问题类型 | 级别 | 含义 |
+|---|---|---|
+| missing-target | error | 链接指向的文件不存在 |
+| missing-anchor | error | 目标 HTML 存在，但没有对应的 `id`/`name`；同页 `#锚点` 同理 |
+| md-link-with-twin | error | 链接指向 `.md`，而同名 `.html` 孪生已存在，读者会落在裸 Markdown 上 |
+| line-out-of-range | warning | 源码引用 `#L10-L20` 超出目标文件的行数，引用已漂移；`--strict` 下阻断 |
+
+`<script>`、`<style>` 和注释里的文本不算链接；`http(s):`、`mailto:` 和以 `/` 开头的地址无法静态判定，不检查。报告里的行号是 HTML 文件的真实行号。
+
+退出码：0 通过；1 有 error（`--strict` 下含 warning）；2 用法错误，包括没有可检查的目标。`--all` 扫描 `<root>/doc/*.html` 与 `<root>/doc/tech-docs/*.html`。
+
+转换器配合做了两件事：指向已有 HTML 孪生的 `x.md` 链接改写成 `x.html`（保留 `#锚点`）；每个 h2–h4 标题额外放一个 GitHub 规则的空锚点，重复标题按 `-1`、`-2` 顺延，所以 Markdown 里写的 `[x](#ui-参数--mc-字段映射表)` 在 GitHub 和 HTML 里都可达。
 
 ## 问题集合基线
 
