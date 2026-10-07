@@ -825,7 +825,7 @@ flowchart TD
 <p>缺失文件、非 Markdown 文件、空匹配集合、未知选项或缺少选项值返回失败。已有 HTML 且未 force 是合法 skip。显式 .MD 输入大小写均支持，输出扩展名为 .html，不修改 Markdown；--all 的模式过滤仍使用源码配置，不能据此推断会发现所有大写文件。</p>
 <p>Sources：<a class="source-ref" href="../scripts/md-to-html.js#L25-L58"><code>../scripts/md-to-html.js:25-58</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L282-L296"><code>../scripts/md-to-html.js:282-296</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L342-L441"><code>../scripts/md-to-html.js:342-441</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L869-L929"><code>../scripts/md-to-html.js:869-929</code></a>。</p>
 <h3 id="sec-语言检查器与正文扫描"><a id="语言检查器与正文扫描"></a>语言检查器与正文扫描</h3>
-<p>路径 scripts/lint-doc-language.js、scripts/lib/prose.js。lint/validateTerms/parseArgs/main 是语言模块的全部导出；正文模块导出 proseSegments/location/decodeEntities。CLI 读目标并根据后缀选 HTML 或 Markdown，提取片段，执行六条规则并构造问题。</p>
+<p>路径 scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/punctuation.js。lint/validateTerms/parseArgs/main 是语言模块的全部导出；正文模块导出 proseSegments/location/decodeEntities。CLI 读目标并根据后缀选 HTML 或 Markdown，提取片段，执行七条规则并构造问题。</p>
 <p>语言模块依赖三个库，prose 本身无外部模块依赖。目标读取/扫描异常转 input/read；配置错误转 fatal。合法源码引用中的路径被排除所有语言规则，附近正文保留位置。段落误掩码、跨行句子和异常嵌套仍需要人工复核。</p>
 <p>Sources：<a class="source-ref" href="../scripts/lint-doc-language.js#L48-L84"><code>../scripts/lint-doc-language.js:48-84</code></a>、<a class="source-ref" href="../scripts/lint-doc-language.js#L106-L140"><code>../scripts/lint-doc-language.js:106-140</code></a>、<a class="source-ref" href="../scripts/lib/prose.js#L75-L101"><code>../scripts/lib/prose.js:75-101</code></a>。完整接口见 <a href="tech-docs/Lint_Doc_Language_Design.html">语言模块</a>、<a href="tech-docs/Prose_Design.html">正文模块</a>。</p>
 <h3 id="sec-html校验器"><a id="html-校验器"></a>HTML 校验器</h3>
@@ -862,7 +862,7 @@ flowchart TD
 </tbody></table></div>
 <p>转换器 module 默认扫描 doc/tech-docs 中 <code>_Design.md</code>，后缀忽略大小写；system 扫描 doc 根所有 Markdown，排除 Guide.md 后缀；guide 的 --all 扫 doc 与项目根中 Guide.md 后缀，忽略大小写。根 guide.md 本轮另用显式文件与 --type guide 转换。索引只收集当前已存在的匹配 HTML，guide 没有索引。</p>
 <p>doc-meta.json 是可选索引品牌/分组配置，不是检查器术语配置。module 使用 modules/groups/groupOrder；system 使用 categories。非法 JSON 回退默认分类，不证明配置合法。索引不生成缺失文档。</p>
-<p>语言报告 profile engine=3；HTML profile engine=2。JSON 的 tool、targets、profile、issues、summary 不是 HTML 页面结构。fatal 只有 schemaVersion/tool/fatal，调用者不能假定每次输出都有 summary。</p>
+<p>语言报告 profile engine=4；HTML profile engine=2。JSON 的 tool、targets、profile、issues、summary 不是 HTML 页面结构。fatal 只有 schemaVersion/tool/fatal，调用者不能假定每次输出都有 summary。</p>
 <p>Sources：<a class="source-ref" href="../scripts/md-to-html.js#L60-L265"><code>../scripts/md-to-html.js:60-265</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L798-L826"><code>../scripts/md-to-html.js:798-826</code></a>、<a class="source-ref" href="../scripts/lint-doc-language.js#L85-L140"><code>../scripts/lint-doc-language.js:85-140</code></a>、<a class="source-ref" href="../scripts/validate-doc.js#L24-L62"><code>../scripts/validate-doc.js:24-62</code></a>、<a class="source-ref" href="../scripts/validate-doc.js#L1181-L1188"><code>../scripts/validate-doc.js:1181-1188</code></a>。</p>
         </div>
       </details>

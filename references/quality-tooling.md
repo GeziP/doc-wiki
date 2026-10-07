@@ -19,12 +19,13 @@ node scripts/lint-doc-language.js --disable long-sentence,marketing doc/Architec
 | marketing | warning | 短词表中的质量宣传用语，应补证据或具体描述 |
 | vague-reference | warning | strict 中“必要时/适当处理”等，需检查条件或动作 |
 | multi-action | warning | strict 中“然后/接着/then”等顺序连接词，需检查是否拆步骤 |
+| punctuation-collision | warning | 句末/分句标点紧挨另一个标点（`。。` `。，` `。；` `。、` `：。`）：句子被切断或拼接的痕迹，常见于自动改写在句中插入总结句；`？！` 并用不报 |
 
 阈值是项目启发式，不是中文受控语言标准。`--mode strict` 改变检查范围与句长提示；`--strict` 决定 warning 是否阻断，两者不同。
 不检测或删减“可能/may/might/could”等置信度表达，不修改文件。通过不证明意义或事实正确。
 
 转换器的 `{{路径:起始行-结束行}}` 和 `{{路径:行号}}` 是源码引用语法，不是待替换变量。行号从 1 开始，结束行不能小于起始行；语言 lint 与转换器共用语法解析器。通过语法检查不证明文件存在或引用支持结论。
-语言引擎 profile 当前为 3。合法源码引用中的路径作为标识排除所有语言规则，附近正文照常检查；非法引用语法仍会报 placeholder。旧 JSON 基线必须用新版本工具在修订前后重跑，不跨引擎版本直接比较。
+语言引擎 profile 当前为 4（4 新增 `punctuation-collision`）。合法源码引用中的路径作为标识排除所有语言规则，附近正文照常检查；非法引用语法仍会报 placeholder。旧 JSON 基线必须用新版本工具在修订前后重跑，不跨引擎版本直接比较。
 
 ### 扫描范围与位置
 
@@ -147,7 +148,7 @@ PowerShell 5 保存 JSON 请使用 UTF-8（如管道 `Set-Content -Encoding UTF8
 
 ## 测试与升级
 
-实际试跑后的 HTML 检查使用 profile engine=2：源码引用必须是实际标签，转义的代码示例不算引用。语言检查使用 engine=3，排除源码引用路径，并在原文字串上进行术语匹配以保持 Unicode 位置。两工具的旧基线均应在新工具下重跑修订前后。1.x 自文档因此显露一条缺少实际源码引用的历史 warning，不能沿用旧漏检结果称全过。
+实际试跑后的 HTML 检查使用 profile engine=2：源码引用必须是实际标签，转义的代码示例不算引用。语言检查使用 engine=4（3 排除源码引用路径并在原文字串上做术语匹配以保持 Unicode 位置；4 新增 `punctuation-collision`）。两工具的旧基线均应在新工具下重跑修订前后。1.x 自文档因此显露一条缺少实际源码引用的历史 warning，不能沿用旧漏检结果称全过。
 
 ```bash
 node --test

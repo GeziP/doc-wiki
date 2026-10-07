@@ -5,9 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { digest, relativeFile, issue, makeReport, gate, readJson } = require('./lib/quality-report');
 const { proseSegments, location } = require('./lib/prose');
-const { parseSourceReference } = require('./lib/source-reference');
+const { parseSourceReference } = require('./lib/source-reference'), { collisions } = require('./lib/punctuation');
 
-const RULES = ['placeholder', 'forbidden-term', 'long-sentence', 'marketing', 'vague-reference', 'multi-action'];
+const RULES = ['placeholder', 'forbidden-term', 'long-sentence', 'marketing', 'vague-reference', 'multi-action', 'punctuation-collision'];
 function validateTerms(config) {
   if (!config || config.version !== 1 || !Array.isArray(config.terms)) throw new Error('Terms config requires version: 1 and terms: []');
   const names = new Set(), reserved = new Set(), banned = new Set(), owners = new Map();
@@ -65,8 +65,8 @@ function lint(source, { file = '<stdin>', format = 'markdown', mode = 'explain',
     for (const m of text.matchAll(/\b(?:seamless(?:ly)?|effortless(?:ly)?|blazing-fast|world-class|cutting-edge)\b|无缝|极致|业界领先|完美无缺/gi)) {
       add('marketing', 'warning', 'Quality claim: provide evidence or use a concrete description', m.index, `${text}|${m[0].toLowerCase()}`);
     }
-    // Never flag modality/hedges: may, might, could, 可能 etc. are content.
-    if (mode === 'strict') {
+    for (const m of collisions(text)) add('punctuation-collision', 'warning', `Adjacent punctuation "${m[0]}": a sentence was probably cut or spliced here`, m.index, `${text}|${m[0]}`);
+    if (mode === 'strict') { // Never flag modality/hedges: may, might, could, 可能 etc. are content.
       for (const m of text.matchAll(/必要时|适当处理|相关操作|视情况而定|\bas (?:needed|appropriate)\b/gi)) add('vague-reference', 'warning', 'Specify the condition or action if the source supports it', m.index, `${text}|${m[0]}`);
       if (/然后|接着|随后|\b(?:and then|then)\b/i.test(text)) add('multi-action', 'warning', 'Review whether this procedure needs separate numbered actions');
     }
@@ -121,7 +121,7 @@ function main(args) {
       } catch (error) { return [issue({ file, rule: 'input/read', severity: 'error', message: error.message })]; }
     });
     const report = makeReport('doc-language', targets.map(f => relativeFile(f, opts.root)),
-      { engine: 3, mode: opts.mode, terms: digest(terms), disabled: [...new Set(opts.disabled)].sort(), strict: !!opts.strict }, issues);
+      { engine: 4, mode: opts.mode, terms: digest(terms), disabled: [...new Set(opts.disabled)].sort(), strict: !!opts.strict }, issues);
     const code = gate(report, opts);
     if (opts.json) console.log(JSON.stringify(report, null, 2));
     else {

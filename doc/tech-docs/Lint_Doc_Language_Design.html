@@ -753,7 +753,7 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
         <span class="doc-version">1.1</span>
         <h1>lint-doc-language 技术设计文档</h1>
         <dl class="meta-grid">
-          <dt>实现文件</dt><dd><code>scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/quality-report.js、scripts/lib/source-reference.js</code></dd>
+          <dt>实现文件</dt><dd><code>scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/quality-report.js、scripts/lib/source-reference.js、scripts/lib/punctuation.js</code></dd>
           <dt>测试文件</dt><dd><code>tests/language.test.js、tests/quality-report.test.js、tests/cli.test.js、tests/conversion.test.js、tests/skill-e2e.test.js</code></dd>
           <dt>编写日期</dt><dd>2026-10-04</dd>
           <dt>源码快照</dt><dd>基于 <code>d6f3a63</code> 的细节复查及语言检查修复；文件版本以验收记录的 SHA-256 为准</dd>
@@ -793,7 +793,7 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
 </svg>
 <figcaption>图 1.1 — CLI 与三个本地依赖的调用关系。来源：scripts/lint-doc-language.js:5-7,47-84,105-140。</figcaption>
 </figure>
-<p><code>prose.js</code> 将不检查的语法替换成空格，保留原始 UTF-16 偏移。<code>quality-report.js</code> 生成稳定问题身份，比较基线并计算门禁。<code>source-reference.js</code> 被 lint 与转换器共用，识别源码引用语法，供 placeholder 规则排除合法引用。外部依赖只有 Node.js 内建模块：<code>fs</code>、<code>path</code>、<code>crypto</code>；检查器没有第三方解析库。</p>
+<p><code>prose.js</code> 将不检查的语法替换成空格，保留原始 UTF-16 偏移。<code>quality-report.js</code> 生成稳定问题身份，比较基线并计算门禁。<code>source-reference.js</code> 被 lint 与转换器共用，识别源码引用语法，供 placeholder 规则排除合法引用。<code>punctuation.js</code> 只导出 <code>collisions</code>，用一条正则找出相邻的句末/分句标点，供 <code>punctuation-collision</code> 规则使用。外部依赖只有 Node.js 内建模块：<code>fs</code>、<code>path</code>、<code>crypto</code>；检查器没有第三方解析库。</p>
 <p>Sources：<a class="source-ref" href="../../scripts/lint-doc-language.js#L5"><code>../../scripts/lint-doc-language.js:5</code></a>、<a class="source-ref" href="../../scripts/lib/prose.js#L3"><code>../../scripts/lib/prose.js:3</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L3"><code>../../scripts/lib/quality-report.js:3</code></a>。</p>
         </div>
       </details>
@@ -857,7 +857,7 @@ node scripts/lint-doc-language.js --terms examples/validation/language/terms.jso
 <p>实体解码支持 <code>amp/lt/gt/quot/apos/nbsp</code> 和数字实体。范围为 1 到 <code>0x10ffff</code> 的数字转为代码点；范围外实体保留。映射数组使解码结果定位回实体开始位置。行号、列号从 1 开始，列按 JavaScript UTF-16 代码单元计；CRLF 不增加额外行号。</p>
 <p>扫描器通过标签排除和正则掩码近似可见正文，没有执行 CSS。例如 CSS 隐藏段落仍可能被扫描。SVG/Mermaid 的标签被跳过，不代表图文语义经过验证。</p>
 <p>Sources：<a class="source-ref" href="../../scripts/lib/prose.js#L7"><code>../../scripts/lib/prose.js:7</code></a>、<a class="source-ref" href="../../scripts/lib/prose.js#L26"><code>../../scripts/lib/prose.js:26</code></a>、<a class="source-ref" href="../../scripts/lib/prose.js#L46"><code>../../scripts/lib/prose.js:46</code></a>、<a class="source-ref" href="../../scripts/lib/prose.js#L75"><code>../../scripts/lib/prose.js:75</code></a>、<a class="source-ref" href="../../scripts/lib/prose.js#L96"><code>../../scripts/lib/prose.js:96</code></a>。</p>
-<h3 id="sec-32六条规则"><a id="32-六条规则"></a>3.2 六条规则</h3>
+<h3 id="sec-32七条规则"><a id="32-七条规则"></a>3.2 七条规则</h3>
 <div class="table-wrapper"><table>
 <thead><tr><th>ID</th><th>级别</th><th>实际匹配范围</th></tr></thead>
 <tbody>
@@ -867,6 +867,7 @@ node scripts/lint-doc-language.js --terms examples/validation/language/terms.jso
 <tr><td><code>marketing</code></td><td>warning</td><td>英文 <code>seamless/seamlessly</code>、<code>effortless/effortlessly</code>、<code>blazing-fast</code>、<code>world-class</code>、<code>cutting-edge</code>；中文 <code>无缝</code>、<code>极致</code>、<code>业界领先</code>、<code>完美无缺</code></td></tr>
 <tr><td><code>vague-reference</code></td><td>warning</td><td>只在 strict：必要时、适当处理、相关操作、视情况而定、as needed/as appropriate</td></tr>
 <tr><td><code>multi-action</code></td><td>warning</td><td>只在 strict：然后、接着、随后、and then/then；每个段最多一项</td></tr>
+<tr><td><code>punctuation-collision</code></td><td>warning</td><td>两种 mode 都检查：句末/分句标点后紧跟另一个标点（<code>。。</code> <code>。，</code> <code>。；</code> <code>。、</code> <code>：。</code> 及 <code>？。</code> 等）；<code>？！</code> 并用、省略号/括号/引号后接句号不报；每次匹配一项。常见成因是自动改写在句中插入总结句，把原句切成残句</td></tr>
 </tbody></table></div>
 <p>长句按中文句号/问叹号及英文 <code>. ! ?</code> 分隔，不跨行拼接。中文计数仅含 <code>U+3400..U+9FFF</code>；英文词使用字母及内部撇号/连字符，不是分词器。两种计数任一超阈值就提示；中文字符数不是全部字符长度。</p>
 <p>禁用词匹配使用原始文字串上的不区分大小写字面量匹配，不改变原文字串。词首或词尾为 ASCII <code>\w</code> 时，对应边界旁不能也是 <code>\w</code>。例如 <code>erase</code> 匹配 <code>Erase</code>，不匹配 <code>eraser</code> 或 <code>erase_id</code>；中文别名按子串匹配。每次搜索从本次匹配末尾继续，不匹配重叠副本。</p>
@@ -904,12 +905,12 @@ node scripts/lint-doc-language.js --terms examples/validation/language/terms.jso
 <tr><td>issue</td><td><code>line/column/context</code></td><td>可选；lint 正文问题带位置与压缩空白后的上下文</td></tr>
 <tr><td>report</td><td><code>schemaVersion/tool</code></td><td>1 / <code>doc-language</code></td></tr>
 <tr><td>report</td><td><code>targets</code></td><td>去重并排序的相对文件集合</td></tr>
-<tr><td>report</td><td><code>profile</code></td><td><code>engine:3</code>、mode、术语 digest、去重排序的 disabled、strict 布尔值</td></tr>
+<tr><td>report</td><td><code>profile</code></td><td><code>engine:4</code>、mode、术语 digest、去重排序的 disabled、strict 布尔值</td></tr>
 <tr><td>report</td><td><code>issues</code></td><td>按目标处理顺序及规则追加顺序保存，未额外排序</td></tr>
 <tr><td>report</td><td><code>summary</code></td><td>文件数、当前全部 error 数、当前全部 warning 数</td></tr>
 <tr><td>report</td><td><code>baseline</code></td><td>仅比较后存在；<code>added/resolved</code> 为问题数组，<code>unchanged</code> 为数量</td></tr>
 </tbody></table></div>
-<p>身份散列输入是 <code>{file,rule,severity,key}</code>。<code>key</code> 优先取显式 key，缺少时依次取 context、message；不是输出字段。行列和 message 不直接进入身份；message 仅在前两项都缺少时参与。多数 lint key 包含该正文片段及触发内容，移动行不变，但修改同段其他文字可能产生新身份。<code>multi-action</code> 使用 context；长句 key 使用规范化句子。</p>
+<p>身份散列输入是 <code>{file,rule,severity,key}</code>。<code>key</code> 优先取显式 key，缺少时依次取 context、message；不是输出字段。行列和 message 不直接进入身份；message 仅在前两项都缺少时参与。多数 lint key 包含该正文片段及触发内容，移动行不变，但修改同段其他文字可能产生新身份。<code>multi-action</code> 使用 context；长句 key 使用规范化句子；<code>punctuation-collision</code> 使用正文加相撞的标点对。</p>
 <p><code>digest</code> 递归排序对象键，保留数组顺序。术语数组重排会改变 profile 散列；目标 CLI 输入重排不会改变排序后的 targets。报告 summary 表示当前全部问题，与最终基线门禁是否通过是两件事。</p>
 <p>Sources：<a class="source-ref" href="../../scripts/lib/quality-report.js#L8"><code>../../scripts/lib/quality-report.js:8</code></a>、<a class="source-ref" href="../../scripts/lib/quality-report.js#L22"><code>../../scripts/lib/quality-report.js:22</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L53"><code>../../scripts/lint-doc-language.js:53</code></a>、<a class="source-ref" href="../../scripts/lint-doc-language.js#L124"><code>../../scripts/lint-doc-language.js:124</code></a>。</p>
         </div>

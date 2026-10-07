@@ -15,6 +15,22 @@ test('Chinese/English warnings are advisory; hedges and conditions are preserved
   assert(!lint('必要时适当处理，然后返回。').some(i => ['vague-reference', 'multi-action'].includes(i.rule)));
 });
 
+test('adjacent punctuation (a sentence cut or spliced mid-way) is flagged; legitimate pairs and code are not', () => {
+  for (const bad of ['完成。。', '完成。，继续', '完成。；继续', '完成。、继续', '关闭：。', '关闭，。', '真的？。']) {
+    const problems = lint(bad);
+    assert.equal(problems.length, 1, bad);
+    assert.equal(problems[0].rule, 'punctuation-collision', bad);
+    assert.equal(problems[0].severity, 'warning', bad);
+  }
+  // 合法：？！ 强调并用、省略号后的句号、括号/引号后的句号、行内代码、围栏代码。
+  assert.deepEqual(lint('真的吗？！很好！？……。后续（见附录）。“引用”。'), []);
+  assert.deepEqual(lint('`。。` 是示例\n\n```\n。。\n```\n'), []);
+  // 位置指向冲突处，多处冲突逐个报告。
+  const found = lint('第一句。第二句。。\n第三句，。');
+  assert.deepEqual(found.map(i => [i.line, i.column]), [[1, 8], [2, 4]]);
+  assert.equal(lint('完成。。', { disabled: ['punctuation-collision'] }).length, 0);
+});
+
 test('unresolved placeholders fail only in prose, including visible table cells', () => {
   const problems = lint('实际 {{NAME}}\n| 参数 | 含义 |\n| --- | --- |\n| 输入 | {{DESCRIPTION}} |\n`{{CODE}}`');
   assert.equal(problems.length, 2);

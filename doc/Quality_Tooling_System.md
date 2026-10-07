@@ -67,7 +67,7 @@ Sources：{{../scripts/md-to-html.js:25-58}}、{{../scripts/md-to-html.js:282-29
 
 ### 语言检查器与正文扫描
 
-路径 scripts/lint-doc-language.js、scripts/lib/prose.js。lint/validateTerms/parseArgs/main 是语言模块的全部导出；正文模块导出 proseSegments/location/decodeEntities。CLI 读目标并根据后缀选 HTML 或 Markdown，提取片段，执行六条规则并构造问题。
+路径 scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/punctuation.js。lint/validateTerms/parseArgs/main 是语言模块的全部导出；正文模块导出 proseSegments/location/decodeEntities。CLI 读目标并根据后缀选 HTML 或 Markdown，提取片段，执行七条规则并构造问题。
 
 语言模块依赖三个库，prose 本身无外部模块依赖。目标读取/扫描异常转 input/read；配置错误转 fatal。合法源码引用中的路径被排除所有语言规则，附近正文保留位置。段落误掩码、跨行句子和异常嵌套仍需要人工复核。
 
@@ -116,7 +116,7 @@ Sources：{{../scripts/check-doc-fidelity.js:3-16}}、{{../scripts/check-doc-lin
 
 doc-meta.json 是可选索引品牌/分组配置，不是检查器术语配置。module 使用 modules/groups/groupOrder；system 使用 categories。非法 JSON 回退默认分类，不证明配置合法。索引不生成缺失文档。
 
-语言报告 profile engine=3；HTML profile engine=2。JSON 的 tool、targets、profile、issues、summary 不是 HTML 页面结构。fatal 只有 schemaVersion/tool/fatal，调用者不能假定每次输出都有 summary。
+语言报告 profile engine=4；HTML profile engine=2。JSON 的 tool、targets、profile、issues、summary 不是 HTML 页面结构。fatal 只有 schemaVersion/tool/fatal，调用者不能假定每次输出都有 summary。
 
 Sources：{{../scripts/md-to-html.js:60-265}}、{{../scripts/md-to-html.js:798-826}}、{{../scripts/lint-doc-language.js:85-140}}、{{../scripts/validate-doc.js:24-62}}、{{../scripts/validate-doc.js:1181-1188}}。
 
