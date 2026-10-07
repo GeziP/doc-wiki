@@ -159,10 +159,9 @@ function checkMermaid(html, report, fix) {
     const block = m[1];
     const blockIssues = [];
 
-    // &lt;br/&gt; 是合法的——转换器有意实体化换行标记（防浏览器解析吃掉 br），
-    // 其余实体（&gt; 箭头等）仍不允许。
-    const entitiesWithoutBr = block.replace(/&lt;\s*br\s*\/?\s*&gt;/gi, '');
-    if (/&gt;|&lt;|&amp;/.test(entitiesWithoutBr)) blockIssues.push('contains HTML entities');
+    // 单层实体（&lt;br/&gt;、vector&lt;T&gt;、--&gt;）是合法的：转换器有意把 < > & 写成实体，防浏览器把 <br/>、<T>
+    // 当标签吞掉；mermaid 读 innerHTML 后会解码一次。只有双重转义（&amp;gt;）才会让 mermaid 读到字面量 "&gt;"。
+    if (/&amp;(?:gt|lt|amp|quot|#\d+|#x[0-9a-f]+);/i.test(block)) blockIssues.push('contains double-escaped HTML entities');
     if (/-\.\>(?!-)/.test(block)) blockIssues.push('dotted arrow should be -.-> not -.>');
     // 2026-09-16 放宽：{"..."} 引号菱形是合法语法（mermaid 10 支持）——仅禁未加引号的 {} 混进 [...] 文本
     if (/\[[^"'\]]*\{[^}]*\}[^"'\]]*\]/.test(block)) blockIssues.push('curly braces in UNQUOTED labels');
@@ -184,7 +183,7 @@ function checkMermaid(html, report, fix) {
 
     if (fix) {
       let fixed = block;
-      fixed = fixed.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+      fixed = fixed.replace(/&amp;(gt|lt|amp|quot|#\d+|#x[0-9a-f]+);/gi, '&$1;');
       fixed = fixed.replace(/-\.\>(?!-)/g, '-.->');
       fixed = fixed.replace(/\["([^"]*(?:\{[^}]*)+[^"]*)"\]/g, (_, inner) =>
         '["' + inner.replace(/\{/g, '【').replace(/\}/g, '】') + '"]'

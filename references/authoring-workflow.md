@@ -60,10 +60,12 @@ Markdown 可用 `{{../../scripts/example.js:10-20}}` 源码引用标记，路径
 ```bash
 node "$SKILL_ROOT/scripts/validate-doc.js" --new-doc <output.html>
 node "$SKILL_ROOT/scripts/lint-doc-language.js" --mode explain <source.md>
+node "$SKILL_ROOT/scripts/check-doc-fidelity.js" <source.md>
 ```
 
 步骤/API/排障按 strict 写作；需要 CLI 单独检查时选择对应文件或临时章节输入。提示需人工判断，不盲目删词。
 机械校验失败则修复并重跑；`--fix` 只修格式。
+保真度检查只比对 Markdown 与 HTML 的代码、标题和表格；退出码 1 表示内容丢失，需修转换器或源文件。
 生成 HTML 或修改模板/样式/交互时，浏览器检查代表页宽窄屏、暗色、图表、TOC 和折叠；静态检查不能代替视觉检查。
 存量文档先留基线，以相同目标和配置比较，见 [quality-tooling.md](quality-tooling.md)。
 交付文件、源码快照、覆盖范围、实际检查结果、未确认项和未运行示例。

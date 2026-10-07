@@ -21,6 +21,7 @@
 node scripts/lint-doc-language.js --mode explain doc/Design.md
 node scripts/lint-doc-language.js --mode strict --terms doc/terms.json doc/API.md
 node scripts/validate-doc.js --json doc/Design.html
+node scripts/check-doc-fidelity.js doc/Design.md
 node --test
 ```
 
@@ -136,6 +137,7 @@ doc-writer/
 │   ├── skin-switcher.js          # 6 套皮肤切换
 │   ├── md-to-html.js             # MD → HTML 转换
 │   ├── validate-doc.js           # HTML 校验与 JSON 基线
+│   ├── check-doc-fidelity.js     # MD ↔ HTML 往返保真度检查
 │   ├── lint-doc-language.js      # 中英文语言与术语检查
 │   ├── lib/                     # 共用报告与正文扫描工具
 │   └── inline-shared.js          # CSS/JS → 模板同步
@@ -203,6 +205,17 @@ node scripts/validate-doc.js --type module --new-doc doc/tech-docs/Task_Design.h
 ```
 
 校验项：Mermaid 语法、章节 ID 唯一性、代码块标签、表格结构、TOC 完整性、HTML 转义回归（结构性标签被转义成文本）、源码引用格式、术语表、Scope 声明、视觉约束（无渐变/大阴影/外链图片/硬编码色）、SVG 护栏、图说完整性、空章节、重复内容、内容密度。
+
+### check-doc-fidelity.js — 保真度检查
+
+校验器只看 HTML 自身，看不到“Markdown 里有、HTML 里没有”的内容。本脚本往返比对 `.md` 与同名 `.html`，报告丢失或被改写的代码、标题和表格（详见 [quality-tooling.md](references/quality-tooling.md)）：
+
+```bash
+node scripts/check-doc-fidelity.js doc/tech-docs/Task_Design.md
+node scripts/check-doc-fidelity.js --all --json
+```
+
+退出码 0 保真、1 发现丢失、2 参数错误或缺少 HTML 孪生。
 
 ### SKILL.md — 路由与规则
 

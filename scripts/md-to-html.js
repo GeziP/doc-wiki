@@ -80,8 +80,8 @@ const TYPE_CONFIG = {
     },
     buildMetaRows(meta) {
       const rows = [];
-      if (meta.implFile) rows.push(`<dt>实现文件</dt><dd><code>${meta.implFile}</code></dd>`);
-      if (meta.testFile) rows.push(`<dt>测试文件</dt><dd><code>${meta.testFile}</code></dd>`);
+      if (meta.implFile) rows.push(`<dt>实现文件</dt><dd>${metaCode(meta.implFile)}</dd>`);
+      if (meta.testFile) rows.push(`<dt>测试文件</dt><dd>${metaCode(meta.testFile)}</dd>`);
       if (meta.relatedDocs) rows.push(`<dt>关联文档</dt><dd>${inlineMarkdown(meta.relatedDocs)}</dd>`);
       if (meta.writeDate) rows.push(`<dt>编写日期</dt><dd>${meta.writeDate}</dd>`);
       if (meta.updateDate) rows.push(`<dt>更新日期</dt><dd>${meta.updateDate}</dd>`);
@@ -168,7 +168,7 @@ const TYPE_CONFIG = {
     buildMetaRows(meta) {
       const rows = [];
       if (meta.docType) rows.push(`<dt>文档类型</dt><dd>${meta.docType}</dd>`);
-      if (meta.srcPath) rows.push(`<dt>源码位置</dt><dd><code>${meta.srcPath}</code></dd>`);
+      if (meta.srcPath) rows.push(`<dt>源码位置</dt><dd>${metaCode(meta.srcPath)}</dd>`);
       if (meta.generatedBy) rows.push(`<dt>生成方式</dt><dd>${meta.generatedBy}</dd>`);
       if (meta.artifacts) rows.push(`<dt>关联产物</dt><dd>${inlineMarkdown(meta.artifacts)}</dd>`);
       if (meta.writeDate) rows.push(`<dt>编写日期</dt><dd>${meta.writeDate}</dd>`);
@@ -251,7 +251,7 @@ const TYPE_CONFIG = {
       const rows = [];
       if (meta.generatedBy) rows.push(`<dt>生成方式</dt><dd>${meta.generatedBy}</dd>`);
       if (meta.writeDate) rows.push(`<dt>编写日期</dt><dd>${meta.writeDate}</dd>`);
-      if (meta.srcPath) rows.push(`<dt>源码位置</dt><dd><code>${meta.srcPath}</code></dd>`);
+      if (meta.srcPath) rows.push(`<dt>源码位置</dt><dd>${metaCode(meta.srcPath)}</dd>`);
       return rows.join('\n          ');
     },
     extraMetaKeys: {
@@ -359,11 +359,18 @@ function uniqueSectionId(heading, typeConfig) {
   return id;
 }
 
+// 元数据值：作者常把路径写成 `a.h`（自带反引号）。裸值包进 <code>；已带反引号的走行内渲染，
+// 避免 <code>`a.h`</code> 把字面反引号显示给读者。
+function metaCode(value) {
+  return value.includes('`') ? inlineMarkdown(value) : `<code>${escapeHtml(value)}</code>`;
+}
+
 function parseMdMeta(lines, typeConfig) {
-  const meta = {};
-  for (const line of lines) {
+  const meta = { extra: [] };
+  for (const [i, line] of lines.entries()) {
     if (/^\|\s*项目\s*\|/.test(line)) continue;
-    if (/^\|[-\s|]+\|$/.test(line)) continue;
+    if (/^\|[-\s:|]+\|$/.test(line)) continue;
+    if (/^\|[-\s:|]+\|$/.test(lines[i + 1] || '')) continue;   // 表头行（紧邻分隔行之前），如 | 字段 | 值 |
     const m = line.match(/^\|\s*(.+?)\s*\|\s*(.+?)\s*\|$/);
     if (m) {
       const key = m[1].trim();
@@ -372,14 +379,26 @@ function parseMdMeta(lines, typeConfig) {
       if (key === '文档版本' || key === 'Version') meta.version = val;
       else if (key === '编写日期' || key === 'Date') meta.writeDate = val;
       else if (key === '更新日期' || key === 'Updated') meta.updateDate = val;
-      else if (key === '目标读者' || key === 'Audience') meta.audience = val;
       // Type-specific keys
       else if (typeConfig.extraMetaKeys[key]) {
         meta[typeConfig.extraMetaKeys[key]] = val;
       }
+      // 其余行（目标读者、关联文件、变更类型……）保留为附加元数据行，不再静默丢弃
+      else meta.extra.push([key, val]);
     }
   }
   return meta;
+}
+
+// CommonMark 围栏状态机：开启 = 缩进 + ≥3 个反引号 + 不含反引号的 info string（列表项内缩进的围栏也算）；
+// 关闭 = 反引号数 ≥ 开启行的纯反引号行。逐行推进，返回新状态（null = 围栏外）。
+function nextFenceState(fence, line) {
+  if (fence) {
+    const close = line.match(/^\s*(`{3,})\s*$/);
+    return close && close[1].length >= fence.len ? null : fence;
+  }
+  const open = line.match(/^(\s*)(`{3,})([^`]*)$/);
+  return open ? { len: open[2].length, indent: open[1].length, lang: open[3].trim() } : null;
 }
 
 function parseMarkdownSections(content, typeConfig) {
@@ -392,9 +411,24 @@ function parseMarkdownSections(content, typeConfig) {
   let inMeta = false;
   let title = '';
   let hadFirstH2 = false;
+  let fence = null;
+  // 整篇走完围栏状态机仍停在围栏内 = Markdown 本身围栏不配对：此时退回“按行切章节”的旧行为（否则未闭合围栏会吞掉全文标题），并告警。
+  const fenceAware = lines.reduce(nextFenceState, null) === null;
+  let prelude = '';
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
+    // 围栏内的 # / ## / --- 是代码内容，不是文档结构：
+    // 否则 ```markdown 示例里的 "## Cycle 1" 会把代码块劈成假章节，--- 行也会被吞掉。
+    if (fenceAware) {
+      const wasInFence = fence !== null;
+      fence = nextFenceState(fence, line);
+      if (wasInFence || fence) {
+        (inMeta ? metaLines : currentBody).push(line);
+        continue;
+      }
+    }
 
     if (/^# /.test(line) && !title) {
       title = line.replace(/^# /, '').trim();
@@ -429,6 +463,7 @@ function parseMarkdownSections(content, typeConfig) {
     }
 
     if (/^## /.test(line)) {
+      if (!hadFirstH2) prelude = currentBody.join('\n').trim();   // 首个 ## 之前的内容（标题下的横幅、导语）
       hadFirstH2 = true;
       if (currentH2) {
         sections.push({ heading: currentH2, body: currentBody.join('\n') });
@@ -444,7 +479,11 @@ function parseMarkdownSections(content, typeConfig) {
     sections.push({ heading: currentH2, body: currentBody.join('\n') });
   }
 
-  const meta = parseMdMeta(metaLines, typeConfig);
+  // 文档信息区：表格行进元数据；其余行（如 > **相关源码**：…）并回首节正文，不丢内容
+  const metaTable = metaLines.filter(l => /^\s*\|/.test(l));
+  const metaRest = metaLines.filter(l => !/^\s*\|/.test(l) && l.trim() !== '');
+  if (metaRest.length && sections.length) sections[0].body = metaRest.join('\n') + '\n\n' + sections[0].body;
+  const meta = parseMdMeta(metaTable, typeConfig);
   // Merge list-style meta (- key: value) into meta
   for (const lm of listMetaLines) {
     const m = lm.match(/^-\s+(.+?):\s+(.+)$/);
@@ -456,7 +495,7 @@ function parseMarkdownSections(content, typeConfig) {
     else if (key === '更新日期' || key === 'Updated') meta.updateDate = val;
     else if (typeConfig.extraMetaKeys[key]) meta[typeConfig.extraMetaKeys[key]] = val;
   }
-  return { title, meta, sections };
+  return { title, meta, sections, prelude, unbalancedFence: !fenceAware };
 }
 
 // {{file:line}} → <a class="source-ref">。href 前缀由当前文档的 sourceBase（doc-meta.json）决定；
@@ -472,8 +511,9 @@ function inlineMarkdown(text) {
   // 旧顺序（先强调后代码）会把 C++ 指针签名 `T*, U*` 里的 * 当成 *斜体*：吞掉星号并插入 <em>，
   // 已发布文档里的 API 签名因此是错的，且没有任何校验器能发现。
   const codes = [];
-  const shielded = text.replace(/`([^`]+)`/g, (_, code) => {
-    codes.push(code);
+  // 反引号按 CommonMark 的“等长反引号串”配对：``a`b`` 与 ```x``` 也是行内代码
+  const shielded = text.replace(/(`+)(?!`)(.+?)(?<!`)\1(?!`)/g, (_, ticks, code) => {
+    codes.push(ticks.length > 1 ? code.replace(/^ (.*\S.*) $/, '$1') : code);
     return `\uE000${codes.length - 1}\uE001`;
   });
   let out = shielded
@@ -513,17 +553,21 @@ function fixMermaidContent(content) {
       return '["' + inner.replace(/\{/g, '【').replace(/\}/g, '】') + '"]';
     });
   } while (content !== prev);
-  // <br/> 必须以 HTML 实体写入 —— 若原样输出，浏览器把它当真标签解析，
-  // mermaid.run 读 textContent 时 <br/> 消失（节点标签换行丢失）。
-  // 实体在 DOM textContent 里解码回字面量，mermaid 正常解析换行。
-  content = content.replace(/<(\s*br\s*\/?\s*)>/gi, '&lt;$1&gt;');
+  // & < > 必须全部以 HTML 实体写入 —— 若原样输出，浏览器把 <br/>、以及 a1<b2 里的 <b2 当真标签解析，
+  // mermaid.run 读 textContent 时标签内容消失（换行丢失、节点文字被吞到下一个 > 为止）。
+  // 实体在 DOM textContent 里解码回字面量，mermaid 正常解析。
+  content = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return content;
 }
 
 function mdBodyToHtml(body, needsMermaid) {
   const lines = body.split('\n');
+  // 本段末尾仍在围栏内（作者漏写了关闭围栏）：补一个关闭围栏，代码原样保留；否则这段代码会被静默丢弃。
+  const unclosed = lines.reduce(nextFenceState, null);
+  if (unclosed) lines.push('`'.repeat(unclosed.len));
   const out = [];
   let inCode = false;
+  let fence = null;   // nextFenceState 的当前围栏；content 行按开启行的缩进去缩进
   let codeLang = '';
   let codeLines = [];
   let inTable = false;
@@ -535,6 +579,13 @@ function mdBodyToHtml(body, needsMermaid) {
   let inBlockquote = false;
   let blockquoteLines = [];
   let pendingFigcaption = null;
+
+  // 图注只服务紧随其后的 mermaid；后面不是 mermaid 时按普通说明文字输出，不得静默丢弃。
+  function flushOrphanCaption() {
+    if (!pendingFigcaption) return;
+    out.push(`<p>${inlineMarkdown(pendingFigcaption)}</p>`);
+    pendingFigcaption = null;
+  }
 
   function flushList() {
     if (listItems.length) {
@@ -557,6 +608,15 @@ function mdBodyToHtml(body, needsMermaid) {
   }
 
   function flushTable() {
+    // 第二行必须是 |---|---| 分隔行，否则不是合法表格（典型：表头粘在上一段末尾，首个数据行会被当成分隔行吞掉）。
+    // 此时按文字原样输出：宁可难看，也不能静默丢数据行。
+    const isDelimiter = r => r.length > 0 && r.every(c => /^:?-+:?$/.test(c));
+    if (tableRows.length && (tableRows.length < 2 || !isDelimiter(tableRows[1]))) {
+      tableRows.forEach(r => out.push(`<p>${inlineMarkdown(`| ${r.join(' | ')} |`)}</p>`));
+      tableRows = [];
+      inTable = false;
+      return;
+    }
     if (tableRows.length < 2) { tableRows = []; inTable = false; return; }
     out.push('<div class="table-wrapper"><table>');
     const headers = tableRows[0];
@@ -573,6 +633,7 @@ function mdBodyToHtml(body, needsMermaid) {
   function flushBlockquote() {
     if (!blockquoteLines.length) { inBlockquote = false; return; }
     const content = blockquoteLines.map(l => l.replace(/^>\s?/, '')).join(' ').trim();
+    const inner = blockquoteLines.map(l => l.replace(/^>\s?/, '')).join('\n');
     blockquoteLines = [];
     inBlockquote = false;
 
@@ -593,17 +654,22 @@ function mdBodyToHtml(body, needsMermaid) {
       return;
     }
     // Generic blockquote
-    out.push(`<blockquote><p>${inlineMarkdown(content)}</p></blockquote>`);
+    // 引用块里可以有多段、列表、表格：递归按块渲染（旧实现把所有行拼成一段，表格被压成一行文字）
+    out.push(`<blockquote>\n${mdBodyToHtml(inner, needsMermaid)}\n</blockquote>`);
   }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    if (/^```/.test(line)) {
+    if (pendingFigcaption && !inCode && !inBlockquote && line.trim() !== '' && !/^\s*```\s*mermaid/.test(line)) flushOrphanCaption();
+
+    const prevFence = fence;
+    fence = nextFenceState(fence, line);
+    if (Boolean(prevFence) !== Boolean(fence)) {
       if (!inCode) {
         flushList(); flushOl(); flushTable(); flushBlockquote();
         inCode = true;
-        codeLang = line.replace(/^```/, '').trim();
+        codeLang = fence.lang;
         codeLines = [];
       } else {
         const content = codeLines.join('\n');
@@ -627,7 +693,7 @@ function mdBodyToHtml(body, needsMermaid) {
       continue;
     }
 
-    if (inCode) { codeLines.push(line); continue; }
+    if (inCode) { codeLines.push(line.replace(new RegExp(`^\\s{0,${fence.indent}}`), '')); continue; }
 
     // Raw HTML block: line is a standalone HTML tag like '<div ...>', '</div>',
     // '<details>', '<summary>...</summary>', '<p>...</p>'.
@@ -650,7 +716,7 @@ function mdBodyToHtml(body, needsMermaid) {
 
     if (/^\|/.test(line)) {
       flushList(); flushOl();
-      const cells = line.split('|').slice(1, -1).map(c => c.trim());
+      const cells = line.split(/(?<!\\)\|/).slice(1, -1).map(c => c.replace(/\\\|/g, '|').trim());   // \| 是单元格内的字面竖线
       if (!inTable) inTable = true;
       tableRows.push(cells);
       continue;
@@ -676,6 +742,13 @@ function mdBodyToHtml(body, needsMermaid) {
       flushOl();
     }
 
+    // 正文里的次级 H1（如“# 以下为 V1.0 历史内容”分隔标题）：保留为醒目的分隔行，不进入目录结构
+    if (/^# /.test(line)) {
+      flushList(); flushOl(); flushTable();
+      out.push(`<p class="doc-divider"><strong>${inlineMarkdown(line.replace(/^# /, '').trim())}</strong></p>`);
+      continue;
+    }
+
     if (/^### /.test(line)) {
       flushList(); flushOl(); flushTable();
       const heading = line.replace(/^### /, '').trim();
@@ -697,7 +770,7 @@ function mdBodyToHtml(body, needsMermaid) {
     out.push(`<p>${inlineMarkdown(line)}</p>`);
   }
 
-  flushList(); flushOl(); flushTable(); flushBlockquote();
+  flushList(); flushOl(); flushTable(); flushBlockquote(); flushOrphanCaption();
   return out.join('\n');
 }
 
@@ -716,8 +789,10 @@ function sectionId(heading, typeConfig) {
 }
 
 function buildHtml(parsed, template, typeConfig) {
-  const { title, meta, sections } = parsed;
+  const { title, meta, sections, prelude } = parsed;
   usedIds = new Set();
+  // 首个 ## 之前的内容（如“已过时”横幅）：紧随标题，始终可见，不进折叠节
+  const preludeHtml = prelude ? `<div class="doc-prelude">\n${mdBodyToHtml(prelude, typeConfig.needsMermaid)}\n</div>\n` : '';
   const brand = loadDocMeta(typeConfig).brand || typeConfig.brand || 'Documentation';
   const lang = docLang || 'zh-CN';
   // 内网可移植契约：JS/CSS 一律本地 vendor（相对输出 HTML 的 doc 根）；禁 CDN——
@@ -735,7 +810,7 @@ const projectName = meta.projectName || title;
       const bodyHtml = mdBodyToHtml(s.body, typeConfig.needsMermaid);
       return `
       <section class="section doc-section" id="${id}">
-        <h2 class="section-title" id="${id}-h">${s.heading}</h2>
+        <h2 class="section-title" id="${id}-h">${inlineMarkdown(s.heading)}</h2>
 ${bodyHtml}
       </section>`;
     }).join('\n');
@@ -775,7 +850,7 @@ ${bodyHtml}
   </aside>
 
   <main class="main-content">
-${sectionsHtml}
+${preludeHtml}${sectionsHtml}
   </main>
 </div>
 
@@ -797,14 +872,17 @@ ${sectionsHtml}
     const bodyHtml = mdBodyToHtml(s.body, typeConfig.needsMermaid);
     return `
       <details${open} id="${id}">
-        <summary><h2 id="${id}-h">${s.heading}</h2></summary>
+        <summary><h2 id="${id}-h">${inlineMarkdown(s.heading)}</h2></summary>
         <div class="section-body">
 ${bodyHtml}
         </div>
       </details>`;
   }).join('\n');
 
-  const metaRows = typeConfig.buildMetaRows(meta);
+  const extraRows = (meta.extra || [])
+    .map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${inlineMarkdown(value)}</dd>`)
+    .join('\n          ');
+  const metaRows = [typeConfig.buildMetaRows(meta), extraRows].filter(Boolean).join('\n          ');
 
   return `<!doctype html>
 <html lang="${lang}">
@@ -837,14 +915,14 @@ ${bodyHtml}
 
     <article class="main" id="content">
       <header class="doc-meta">
-        <span class="doc-version">${meta.version || 'V1.0'}</span>
+        <span class="doc-version">${inlineMarkdown(meta.version || 'V1.0')}</span>
         <h1>${escapeHtml(title)}</h1>
         <dl class="meta-grid">
           ${metaRows}
         </dl>
       </header>
 
-${sectionsHtml}
+${preludeHtml}${sectionsHtml}
 
     </article>
   </div>
@@ -979,6 +1057,9 @@ if (shouldGenerateIndex) {
     currentSourceBase = resolveSourceBase(fileConfig, htmlPath);
     const fileTemplate = docType ? template : templateFor(resolveTypeFor(mdPath));
     const parsed = parseMarkdownSections(md, fileConfig);
+    if (parsed.unbalancedFence) {
+      console.log(`  WARN  ${path.basename(mdPath)}: unbalanced code fences (odd number of triple-backtick lines) - fix the Markdown, sections and code blocks may render wrongly`);
+    }
     const html = buildHtml(parsed, fileTemplate, fileConfig);
 
     if (dryRun) {

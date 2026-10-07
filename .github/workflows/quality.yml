@@ -19,5 +19,6 @@ jobs:
       - run: node --test
       - run: node scripts/validate-doc.js --all
       - run: node scripts/validate-doc.js --new-doc --strict doc/tech-docs/Lint_Doc_Language_Design.html
+      - run: node scripts/check-doc-fidelity.js doc/tech-docs/Lint_Doc_Language_Design.md doc/tech-docs/Prose_Design.md doc/tech-docs/Quality_Report_Design.md doc/Quality_Tooling_System.md
       - run: node scripts/lint-doc-language.js --strict doc/tech-docs/Lint_Doc_Language_Design.md doc/tech-docs/Lint_Doc_Language_Design.html
       - run: node scripts/lint-doc-language.js --strict SKILL.md references/authoring-workflow.md references/fullpower-workflow.md references/maintenance-workflow.md

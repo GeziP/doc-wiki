@@ -166,6 +166,18 @@ test('same-count HTML defects cannot hide a replacement structure', t => {
   assert(json(compared).baseline.added.some(i => i.rule === 'html/表格'));
 });
 
+test('mermaid validator accepts single-level entities and rejects double escaping', t => {
+  const dir = workspace(t), file = path.join(dir, 'doc.html');
+  for (const [body, shouldFail] of [
+    ['<pre class="mermaid">flowchart LR\n  A["a&lt;br/&gt;b"] --&gt; B["vector&lt;T&gt;"]</pre>', false],
+    ['<pre class="mermaid">flowchart LR\n  A --&amp;gt; B</pre>', true],
+  ]) {
+    fs.writeFileSync(file, `<html><head><title>Test</title></head><body>${body}</body></html>`);
+    const r = json(run('validate-doc.js', ['--json', file], dir));
+    assert.equal(r.issues.some(i => i.rule === 'html/Mermaid 块' && i.severity === 'error'), shouldFail);
+  }
+});
+
 test('legacy validator handles escaped code, real escaped markup and legal exceptions', t => {
   const dir = workspace(t), file = path.join(dir, 'doc.html');
   for (const [body, shouldFail] of [

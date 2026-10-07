@@ -756,6 +756,10 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
           <dt>实现文件</dt><dd><code>scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/quality-report.js、scripts/lib/source-reference.js</code></dd>
           <dt>测试文件</dt><dd><code>tests/language.test.js、tests/quality-report.test.js、tests/cli.test.js、tests/conversion.test.js、tests/skill-e2e.test.js</code></dd>
           <dt>编写日期</dt><dd>2026-10-04</dd>
+          <dt>源码快照</dt><dd>基于 <code>d6f3a63</code> 的细节复查及语言检查修复；文件版本以验收记录的 SHA-256 为准</dd>
+          <dt>目标读者</dt><dd>调用 CLI 或维护模块的开发者</dd>
+          <dt>运行环境</dt><dd>Windows PowerShell；Node.js <code>v20.20.2</code>；项目根 <code>E:\gezi\doc-wiki</code></dd>
+          <dt>验证记录</dt><dd><a href="../../docs/validation/2.0-refinement/README.md">实际验收报告</a>、<a href="../../docs/validation/2.0-refinement/source-snapshot.json">源码散列</a></dd>
         </dl>
       </header>
 
@@ -763,6 +767,8 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
       <details open id="sec-overview">
         <summary><h2 id="sec-overview-h">1. 概述与模块关系</h2></summary>
         <div class="section-body">
+<p>文档按模块模板选择接口、流程、实现、使用与测试章节。模块没有持久生命周期状态，故不提供状态机。下文事实来自该快照；作者历史动机和性能数据未确认。</p>
+<p>源码链接相对本文件回到仓库；<code>#L数字</code> 只标示阅读起点，本地浏览器不保证行号跳转。HTML 连同本地 vendor 资产交付；源码引用仍需原仓库。机械通过不能证明事实或改写语义正确。</p>
 <div class="scope-block"><strong>Scope</strong>：覆盖 lint-doc-language 的 CLI、全部导出 API、实际依赖和当前测试。输入扫描是启发式；不提供事实校验、自动改写或标准合规认证。</div>
 <p>本模块对 Markdown 和 HTML 的可见正文做启发式语言检查，返回显式术语违规、未替换占位符和写作提示。它不改写输入、不校验源码事实，也不宣称符合 ASD-STE100。CLI 读取文件并输出人类文本或 JSON；维护者可直接导入 CommonJS API。</p>
 <figure class="diagram">

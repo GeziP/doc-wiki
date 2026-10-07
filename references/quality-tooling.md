@@ -71,6 +71,32 @@ HTML 继承部分聚合检查；相关类别额外绑定结构片段指纹，避
 
 退出码：0 表示机械门禁通过；1 表示 error 或输入/配置/基线失败；2 表示 `--strict` 下有阻断 warning。默认 warning 不阻断。缺失文件和空的 --all 扫描现在失败，避免未检查却报告通过。
 
+## 转换保真度检查
+
+`validate-doc.js` 只检查 HTML 自身，发现不了“Markdown 里有、HTML 里没有”的内容。
+`check-doc-fidelity.js` 把 `.md` 与同名 `.html` 往返比对，只读不改：
+
+```bash
+node scripts/check-doc-fidelity.js doc/tech-docs/Task_Design.md
+node scripts/check-doc-fidelity.js --root . --all --json
+```
+
+比对四类可计数的事实：行内代码、围栏代码块、h2–h4 标题和表头。`{{路径:行}}` 按展开后的标签计；文档信息表由转换器消费，不计入。
+
+| 问题类型 | 含义 |
+|---|---|
+| code-missing | Markdown 的行内代码在 HTML 中找不到 |
+| fence-missing | 围栏代码块缺失或被改写；详情指出第一处不同的行 |
+| heading-altered | 标题文字被改写 |
+| table-missing | 表格缺失，或表头被改写 |
+| fence-unbalanced | Markdown 的围栏没有闭合，其后内容都会被当成代码 |
+
+退出码：0 保真；1 发现丢失；2 参数错误或缺少 HTML 孪生。`--all` 扫描 `<root>/doc/*.md` 与 `<root>/doc/tech-docs/*.md` 中已有孪生的文档。
+
+围栏按 CommonMark 解析：开启行是缩进加至少 3 个反引号，信息串不含反引号；列表项里缩进的围栏同样有效。关闭行必须是不短于开启行的纯反引号，带信息串的行（如 `text`）不会关闭围栏。转换器遇到不配对的围栏会打印 WARN，并保留其后的代码，不会丢弃。
+
+检查器只比对可计数的内容，不判断语义。mermaid 的 `{…}`→`【…】`、`-.>`→`-.->` 是转换器的有意修复，不算改写。
+
 ## 问题集合基线
 
 先保存修订前报告（即使退出 1/2，JSON 仍是有效基线），再修订并运行同一工具、目标集合、检查配置：
