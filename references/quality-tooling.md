@@ -98,7 +98,7 @@ PowerShell 5 保存 JSON 请使用 UTF-8（如管道 `Set-Content -Encoding UTF8
 实际试跑后的 HTML 检查使用 profile engine=2：源码引用必须是实际标签，转义的代码示例不算引用。语言检查使用 engine=3，排除源码引用路径，并在原文字串上进行术语匹配以保持 Unicode 位置。两工具的旧基线均应在新工具下重跑修订前后。1.x 自文档因此显露一条缺少实际源码引用的历史 warning，不能沿用旧漏检结果称全过。
 
 ```bash
-node --test tests
+node --test
 ```
 
 1.x 迁移无需重新生成所有文档。默认先按原命令检查，在改动目标上启用语言 lint 和术语映射；提示由人工确认后再考虑严格门禁。

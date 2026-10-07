@@ -316,6 +316,49 @@ function readTemplate(templatePath) {
   };
 }
 
+// <scanDir>/doc-meta.json：项目级元数据（索引卡片分组 + 品牌名 + 源码链接前缀）。
+//   brand       顶栏品牌名（缺省用类型默认值）
+//   sourceBase  {{file:line}} 链接前缀："auto" = 从 HTML 所在目录回到项目根的相对路径；
+//               其他字符串原样作前缀；缺省 = 不加前缀（href 即 {{}} 里写的路径）
+const docMetaCache = new Map();
+function loadDocMeta(typeConfig) {
+  const metaPath = path.join(typeConfig.scanDir, 'doc-meta.json');
+  if (!docMetaCache.has(metaPath)) {
+    let meta = {};
+    if (fs.existsSync(metaPath)) {
+      try { meta = JSON.parse(fs.readFileSync(metaPath, 'utf-8')); }
+      catch (e) { console.error(`  WARN  ${path.relative(PROJECT_ROOT, metaPath)} is not valid JSON (${e.message}); ignored`); }
+    }
+    docMetaCache.set(metaPath, meta);
+  }
+  return docMetaCache.get(metaPath);
+}
+
+function resolveSourceBase(typeConfig, htmlPath) {
+  const base = loadDocMeta(typeConfig).sourceBase;
+  if (!base) return '';
+  if (base === 'auto') {
+    const rel = path.relative(path.dirname(htmlPath), PROJECT_ROOT).split(path.sep).join('/');
+    return rel ? rel + '/' : '';
+  }
+  return String(base).replace(/\/?$/, '/');
+}
+
+// 同一文档内 id 唯一：多个"附录"/"术语表"章节会映射到同一个 id（sec-appendix），
+// 导致重复 id、TOC 锚点跳错。后出现者追加 -2、-3…
+let usedIds = new Set();
+function uniqueId(id) {
+  let candidate = id, n = 2;
+  while (usedIds.has(candidate)) candidate = `${id}-${n++}`;
+  usedIds.add(candidate);
+  return candidate;
+}
+function uniqueSectionId(heading, typeConfig) {
+  const id = uniqueId(sectionId(heading, typeConfig));
+  usedIds.add(`${id}-h`);   // h2 的派生 id 一并占位
+  return id;
+}
+
 function parseMdMeta(lines, typeConfig) {
   const meta = {};
   for (const line of lines) {
@@ -416,25 +459,45 @@ function parseMarkdownSections(content, typeConfig) {
   return { title, meta, sections };
 }
 
+// {{file:line}} → <a class="source-ref">。href 前缀由当前文档的 sourceBase（doc-meta.json）决定；
+// 绝对路径 / URL / 锚点不加前缀。
+let currentSourceBase = '';
+function sourceRefAnchor(source) {
+  const external = /^(?:[a-z][a-z0-9+.-]*:|\/|#)/i.test(source.file);
+  return `<a class="source-ref" href="${external ? '' : currentSourceBase}${source.href}"><code>${source.label}</code></a>`;
+}
+
 function inlineMarkdown(text) {
-  let out = text
+  // 行内代码先摘出占位：其内容不得被强调/链接/{{引用}} 规则改写。
+  // 旧顺序（先强调后代码）会把 C++ 指针签名 `T*, U*` 里的 * 当成 *斜体*：吞掉星号并插入 <em>，
+  // 已发布文档里的 API 签名因此是错的，且没有任何校验器能发现。
+  const codes = [];
+  const shielded = text.replace(/`([^`]+)`/g, (_, code) => {
+    codes.push(code);
+    return `\uE000${codes.length - 1}\uE001`;
+  });
+  let out = shielded
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-  out = out
+    .replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*(?=[^\s*])(.+?)(?<=[^\s*])\*/g, '<em>$1</em>')   // 强调不跨空白边界：`2 * 3 * 4` 不是斜体
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-  // {{file:line}} source references
+  // {{file:line}} source references in prose
   out = out.replace(/\{\{([^}]+?)\}\}/g, (_, ref) => {
     const source = parseSourceReference(ref);
-    if (source) {
-      return `<a class="source-ref" href="${source.href}"><code>${source.label}</code></a>`;
-    }
-    return `<code>${escapeHtml(ref)}</code>`;
+    return source ? sourceRefAnchor(source) : `<code>${escapeHtml(ref)}</code>`;
   });
-  return out;
+  // 还原行内代码。整段只含一个 {{file:line}} 的代码（`{{src/a.h:1}}`，作者常见写法）渲染为源码引用锚点，
+  // 不再产生 <code><a><code>…</code></a></code> 嵌套——validate-doc 会剥掉 <code> 内的锚点，
+  // 嵌套输出曾让 HDSA 134 份文档被误报"无源码引用"。
+  return out.replace(/\uE000(\d+)\uE001/g, (_, i) => {
+    const code = codes[Number(i)];
+    const lone = code.match(/^\{\{([^{}\n]+)\}\}$/);
+    const source = lone && parseSourceReference(lone[1]);
+    if (source) return sourceRefAnchor(source);
+    return `<code>${code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code>`;
+  });
 }
 
 /**
@@ -617,7 +680,7 @@ function mdBodyToHtml(body, needsMermaid) {
       flushList(); flushOl(); flushTable();
       const heading = line.replace(/^### /, '').trim();
       const h3id = 'sec-' + heading.replace(/[^\w一-鿿]/g, '').toLowerCase().slice(0, 30);
-      out.push(`<h3 id="${h3id}">${inlineMarkdown(heading)}</h3>`);
+      out.push(`<h3 id="${uniqueId(h3id)}">${inlineMarkdown(heading)}</h3>`);
       continue;
     }
 
@@ -654,7 +717,8 @@ function sectionId(heading, typeConfig) {
 
 function buildHtml(parsed, template, typeConfig) {
   const { title, meta, sections } = parsed;
-  const brand = typeConfig.brand || 'Documentation';
+  usedIds = new Set();
+  const brand = loadDocMeta(typeConfig).brand || typeConfig.brand || 'Documentation';
   const lang = docLang || 'zh-CN';
   // 内网可移植契约：JS/CSS 一律本地 vendor（相对输出 HTML 的 doc 根）；禁 CDN——
 // validate-doc.js checkNoCdnAssets 在校验层拒绝回归。资产见 doc/assets/vendor/。
@@ -667,7 +731,7 @@ const projectName = meta.projectName || title;
   // Guide layout uses <section> instead of <details>
   if (typeConfig.layout === 'section') {
     const sectionsHtml = sections.map(s => {
-      const id = sectionId(s.heading, typeConfig);
+      const id = uniqueSectionId(s.heading, typeConfig);
       const bodyHtml = mdBodyToHtml(s.body, typeConfig.needsMermaid);
       return `
       <section class="section doc-section" id="${id}">
@@ -728,7 +792,7 @@ ${sectionsHtml}
 
   // Default layout: details-based (module / system)
   const sectionsHtml = sections.map(s => {
-    const id = sectionId(s.heading, typeConfig);
+    const id = uniqueSectionId(s.heading, typeConfig);
     const open = typeConfig.shouldBeOpen(s.heading) ? ' open' : '';
     const bodyHtml = mdBodyToHtml(s.body, typeConfig.needsMermaid);
     return `
@@ -912,6 +976,7 @@ if (shouldGenerateIndex) {
     // Per-file type (2026-09-24): when --type not explicitly set, each file
     // gets its own detectType + template. Prevents batch-mixed type pollution.
     const fileConfig = docType ? typeConfig : TYPE_CONFIG[resolveTypeFor(mdPath)];
+    currentSourceBase = resolveSourceBase(fileConfig, htmlPath);
     const fileTemplate = docType ? template : templateFor(resolveTypeFor(mdPath));
     const parsed = parseMarkdownSections(md, fileConfig);
     const html = buildHtml(parsed, fileTemplate, fileConfig);

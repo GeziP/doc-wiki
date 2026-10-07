@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node --test tests
+      - run: node --test
       - run: node scripts/validate-doc.js --all
       - run: node scripts/validate-doc.js --new-doc --strict doc/tech-docs/Lint_Doc_Language_Design.html
       - run: node scripts/lint-doc-language.js --strict doc/tech-docs/Lint_Doc_Language_Design.md doc/tech-docs/Lint_Doc_Language_Design.html

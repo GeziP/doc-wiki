@@ -21,7 +21,7 @@
 node scripts/lint-doc-language.js --mode explain doc/Design.md
 node scripts/lint-doc-language.js --mode strict --terms doc/terms.json doc/API.md
 node scripts/validate-doc.js --json doc/Design.html
-node --test tests
+node --test
 ```
 
 语言检查独立于 HTML 校验；warning 默认不阻断，`--strict` 可将 warning 作为门禁。两工具都支持 JSON 与问题集合基线，不会用已修复的旧问题抵消新增问题。机械检查不能证明事实正确或改写语义等价。

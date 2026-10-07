@@ -74,5 +74,6 @@ Markdown 正文中的源码链接使用引用简写或 Markdown 链接。不要�
 
 - 转换：`node "$SKILL_ROOT/scripts/md-to-html.js" --type module|system|guide <input.md>`。
 - 索引：`node "$SKILL_ROOT/scripts/md-to-html.js" --type module --index "项目名" "描述"`；可用 `doc-meta.json` 沿用项目品牌与链接。
+- `doc-meta.json` 放在扫描目录（module 为 `doc/tech-docs/`，system 与 guide 为 `doc/`），均为可选。`modules`、`groups`、`groupOrder` 控制 module 索引分组；`categories` 控制 system 索引分类。`brand` 设置顶栏品牌名。`sourceBase` 决定 `{{文件:行}}` 的链接前缀：`"auto"` 表示从 HTML 所在目录回到项目根，其他字符串原样作前缀，缺省不加前缀。
 - CSS/JS 同步：`node "$SKILL_ROOT/scripts/inline-shared.js" --sync`；重新生成受影响产物并验证。
 - 修工具前读 tooling-notes，不顺手重刷无关文档或改无关 vendored 副本。
