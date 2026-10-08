@@ -218,3 +218,23 @@ test('headings also carry GitHub-style anchors, so a Markdown #slug link resolve
   const links = spawnSync(process.execPath, [path.join(root, 'scripts', 'check-doc-links.js'), '--root', dir, '--all'], { encoding: 'utf8' });
   assert.equal(links.status, 0, links.stdout + links.stderr);
 });
+
+test('check-doc-fidelity flags real content parked under the 目录 heading: the converter drops it with the generated sidebar', t => {
+  const parked = convert(t, 'Parked', [
+    '# Parked 技术设计文档', '', '## 目录', '', '- [1. 概述](#1-概述)', '',
+    '**术语表**', '', '| 术语 | 含义 |', '|---|---|', '| 反应杯 | 一次性杯 |', '', '---', '',
+    '## 1. 概述', '', '正文。', '',
+  ]);
+  assert(!parked.html.includes('一次性杯'), 'precondition: the converter drops what sits under 目录');
+  const found = fidelity(parked.run, parked.dir);
+  assert.equal(found.status, 1, JSON.stringify(found.report));
+  assert(kinds(found.report).includes('toc-swallowed'), JSON.stringify(found.report));
+
+  // 负对照：只有目录条目（含嵌套与有序）的目录不报；`---` 之后的正文照常按保真规则比对
+  const plain = convert(t, 'PlainToc', [
+    '# PlainToc 技术设计文档', '', '## 目录', '', '- [1. 概述](#1-概述)', '  - [1.1 子节](#11-子节)', '2. [2. 细节](#2-细节)', '', '---', '',
+    '## 1. 概述', '', '正文。', '', '### 1.1 子节', '', '子节。', '', '## 2. 细节', '', '更多。', '',
+  ]);
+  const clean = fidelity(plain.run, plain.dir);
+  assert.equal(clean.status, 0, JSON.stringify(clean.report));
+});

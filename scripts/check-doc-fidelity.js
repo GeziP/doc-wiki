@@ -4,7 +4,8 @@
  * check-doc-fidelity.js — Markdown → HTML 孪生保真度检查。
  *
  * validate-doc.js 只检查 HTML 自身的结构，看不到“Markdown 里有、HTML 里没有”的内容。
- * 本脚本把 .md 与同目录同名 .html 做往返比对：行内代码、围栏代码块、标题、表格。
+ * 本脚本把 .md 与同目录同名 .html 做往返比对：行内代码、围栏代码块、标题、表格；
+ * 另外报告停在“## 目录”段里、会被转换器随生成侧栏一并丢弃的非目录内容（toc-swallowed）。
  * 不改写任何文件；只报告丢失或被改写的内容。
  *
  * Usage:
@@ -65,6 +66,10 @@ const mermaidKey = (text) => blockKey(text).replace(/【/g, '{').replace(/】/g,
 const decodeMermaid = (text) => text.replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
 const tableCells = (line) => line.split(/(?<!\\)\|/).slice(1, -1).map(c => plain(c.replace(/\\\|/g, '|')));
 
+// 目录条目：`- [标题](#锚点)`，可嵌套、可有序。转换器把“## 目录”到第一条 `---`（或下一个 ## 标题）之间的内容
+// 整段换成生成的侧栏目录，所以这个区间里除条目以外的任何内容（术语表、说明、代码块…）都会无声丢失。
+const TOC_ITEM = /^\s*(?:[-*+]|\d+[.)])\s+\[[^\]]*\]\([^)]*\)\s*$/;
+
 // ---------- Markdown side ----------
 function markdownFacts(source) {
   const spans = [];      // 行内代码（含 {{file:line}} 展开后的标签）
@@ -78,6 +83,11 @@ function markdownFacts(source) {
   const suspects = [];   // 围栏内部出现“带 info string 的开启行”：关闭围栏不能带 info string，多半是把关闭围栏误写成了 ```text
   const all = lines(source);
   let lineNo = 0;
+  const swallowed = { count: 0, first: null };   // 目录段里“不是目录条目”的内容
+  const swallow = (text) => {
+    swallowed.count++;
+    swallowed.first = swallowed.first || { at: lineNo, text: text.trim().slice(0, 60) };
+  };
 
   for (const line of all) {
     lineNo++;
@@ -100,6 +110,7 @@ function markdownFacts(source) {
       continue;
     }
     if (marker) {
+      if (skipToc) swallow(line);
       fence = {
         char: marker[1][0], length: marker[1].length, text: [], skip: skipToc, openLine: lineNo,
         lang: marker[2].trim().split(/\s+/)[0], quoted: /^\s*>/.test(line),
@@ -116,7 +127,11 @@ function markdownFacts(source) {
       skipToc = /^(目录|Table of Contents)$/i.test(h2[1].trim());
       inMeta = /^(文档信息|Document Info)/i.test(h2[1].trim());
     }
-    if (skipToc) continue;
+    if (skipToc) {
+      if (/^---$/.test(line)) skipToc = false;   // 转换器：目录段吞到第一条 --- 为止（含该行），其后恢复正常转换
+      else if (line.trim() && !h2 && !TOC_ITEM.test(line)) swallow(line);
+      continue;
+    }
 
     const heading = line.match(/^(#{2,4})\s+(.+?)\s*#*\s*$/);
     if (heading && !(heading[1] === '##' && inMeta)) headings.push(plain(heading[2]));
@@ -144,7 +159,7 @@ function markdownFacts(source) {
       if (source) spans.push(source.label);
     }
   }
-  return { spans, fences, headings, tables, rows, suspects, unclosedFence: Boolean(fence) };
+  return { spans, fences, headings, tables, rows, suspects, swallowed, unclosedFence: Boolean(fence) };
 }
 
 // ---------- HTML side ----------
@@ -204,6 +219,11 @@ function compare(md, html) {
   // 配对“成功”但错位：关闭围栏写成了 ```text，后面的章节被吞进代码块；MD 与 HTML 一致，所以只有这条能发现
   for (const s of md.suspects) {
     issues.push({ kind: 'fence-suspect', detail: `line ${s.at} (${s.text}) looks like a fence opener inside the fence opened at line ${s.open}; a closing fence cannot carry an info string, so that fence is probably still open and swallows what follows` });
+  }
+  // 内容停在“## 目录”段里：转换器与上面所有比对都跳过该区间，MD 与 HTML 看起来“一致”，所以只有这条能发现
+  if (md.swallowed.count) {
+    const { at, text } = md.swallowed.first;
+    issues.push({ kind: 'toc-swallowed', detail: `${md.swallowed.count} line(s) under the 目录 heading are not TOC entries (first: line ${at} "${text}"); the converter replaces that section with the generated sidebar and drops them — move them into a real section` });
   }
   for (const span of multisetMissing(md.spans, html.codes)) issues.push({ kind: 'code-missing', detail: span });
   const available = html.blocks.map(b => b.key);

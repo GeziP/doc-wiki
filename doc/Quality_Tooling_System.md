@@ -91,7 +91,7 @@ Sources：{{../scripts/lib/quality-report.js:8-86}}、{{../scripts/lib/source-re
 
 ### 保真度与链接检查
 
-check-doc-fidelity.js 把 .md 与同名 .html 往返比对，报告丢失或被改写的代码、标题、表格，并识别围栏不配对（`fence-unbalanced`）和“关闭行带信息串”造成的疑似吞章（`fence-suspect`）。check-doc-links.js 检查生成后 HTML 的相对链接、锚点和源码引用行号。两者只读不改，补上 validate-doc.js 看不到的内容丢失与死链。
+check-doc-fidelity.js 把 .md 与同名 .html 往返比对，报告丢失或被改写的代码、标题、表格，并识别围栏不配对（`fence-unbalanced`）和“关闭行带信息串”造成的疑似吞章（`fence-suspect`），以及停在“## 目录”段里、会随生成侧栏一并丢失的内容（`toc-swallowed`）。check-doc-links.js 检查生成后 HTML 的相对链接、锚点和源码引用行号。两者只读不改，补上 validate-doc.js 看不到的内容丢失与死链。
 
 退出码均为 0 通过、1 有问题、2 用法错误。外部地址和根相对路径无法静态判定，links 不检查。
 
