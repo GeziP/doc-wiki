@@ -117,7 +117,7 @@ node scripts/check-doc-links.js --all --strict
 | 问题类型 | 级别 | 含义 |
 |---|---|---|
 | missing-target | error | 链接指向的文件不存在 |
-| missing-anchor | error | 目标 HTML 存在，但没有对应的 `id`/`name`；同页 `#锚点` 同理 |
+| missing-anchor | error | 目标 HTML 存在，但没有对应的 `id`/`name`；同页 `#锚点` 同理。`class="source-ref"` 的源码引用除外：目标即使是 `.html` 源文件，`#L10` 也是行号，只按行数校验 |
 | md-link-with-twin | error | 链接指向 `.md`，而同名 `.html` 孪生已存在，读者会落在裸 Markdown 上 |
 | line-out-of-range | warning | 源码引用 `#L10-L20` 超出目标文件的行数，引用已漂移；`--strict` 下阻断 |
 

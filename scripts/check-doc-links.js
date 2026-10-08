@@ -14,6 +14,7 @@
  * 检查项（error 使退出码为 1；warning 仅在 --strict 下失败）：
  *   missing-target     error    相对链接指向的文件/目录不存在
  *   missing-anchor     error    目标是 .html 但没有对应 id/name；或同页 #锚点 不存在
+ *                               （class="source-ref" 的源码引用除外：它的 #L10 是行号，目标即便是 .html 源文件也只按行数校验）
  *   md-link-with-twin  error    链接指向 .md，而同名 .html 孪生已存在（读者会点进裸 Markdown）
  *   line-out-of-range  warning  源码引用 #L10-L20 的行号超出目标文件行数（引用已漂移）
  * 退出码：0 通过；1 有 error（--strict 时含 warning）；2 用法错误（无目标/文件不存在）。
@@ -86,6 +87,7 @@ function checkFile(file) {
     const pathPart = (hashAt === -1 ? raw : raw.slice(0, hashAt)).replace(/\?.*$/, '');
     const fragment = hashAt === -1 ? '' : safeDecodeURI(raw.slice(hashAt + 1));
     const issue = (kind, severity, message) => issues.push({ kind, severity, href: raw, line, message });
+    const sourceRef = /\bclass\s*=\s*(?:"[^"]*|'[^']*)\bsource-ref\b/i.test(tag[0]);   // {{path:line}} 生成的链接
 
     if (!pathPart) {   // 同页锚点
       if (fragment && !anchorsOf(file).has(fragment)) issue('missing-anchor', 'error', `same-page anchor #${fragment} has no matching id`);
@@ -100,7 +102,7 @@ function checkFile(file) {
       if (fs.existsSync(twin)) issue('md-link-with-twin', 'error', `points to Markdown although ${path.basename(twin)} exists`);
       continue;
     }
-    if (/\.html?$/i.test(target)) {
+    if (/\.html?$/i.test(target) && !sourceRef) {   // 源码引用指向 .html 源文件时，#L1 是行号，落到下面的行数校验
       if (fragment && !anchorsOf(target).has(fragment)) issue('missing-anchor', 'error', `${path.basename(target)} has no id/name "${fragment}"`);
       continue;
     }

@@ -58,6 +58,21 @@ test('source references: a missing file is an error, a drifted line range only f
   assert.equal(check(onlyDrift, '--all', '--strict').status, 1);
 });
 
+test('a source reference to an .html source file is a line reference, not a page anchor', t => {
+  const dir = project(t, {
+    'doc/a.html': page([
+      '<a class="source-ref" href="../web/index.html#L2">in range</a>',
+      '<a class="source-ref" href="../web/index.html#L5-L99">drifted</a>',
+      '<a href="../web/index.html#L2">ordinary page link</a>',
+    ].join('\n')),
+    'web/index.html': '<html>\n<body>\n</body>\n</html>\n',
+  });
+  const found = check(dir, '--all');
+  // source-ref 只按行数校验（#L2 通过，#L5-L99 越界告警）；没有 class="source-ref" 的普通页面链接仍按 id/name 校验
+  assert.deepEqual(kinds(found.report), ['line-out-of-range', 'missing-anchor'], JSON.stringify(found.report));
+  assert.equal(found.status, 1);
+});
+
 test('links inside script/style/comments are ignored; no targets or a missing file is exit 2, never a silent pass', t => {
   const dir = project(t, {
     'doc/a.html': page('<script>var s = \'<a href="ghost.html">x</a>\';</script><!-- <a href="ghost2.html">x</a> --><p>ok</p>'),
