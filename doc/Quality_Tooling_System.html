@@ -772,12 +772,13 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
           <dt>源码位置</dt><dd><code>scripts/md-to-html.js、scripts/lint-doc-language.js、scripts/validate-doc.js、scripts/lib</code></dd>
           <dt>关联产物</dt><dd><a href="../guide.html">教程</a>、<a href="tech-docs/index.html">模块索引</a></dd>
           <dt>编写日期</dt><dd>2026-10-05</dd>
+          <dt>目标读者</dt><dd>调用 CLI、接入检查和维护工具链的开发者</dd>
         </dl>
       </header>
 
 
       <details open id="sec-overview">
-        <summary><h2 id="sec-overview-h">1. 定位、范围与运行环境</h2></summary>
+        <summary><h2 id="sec-overview-h"><a id="1-定位范围与运行环境"></a>1. 定位、范围与运行环境</h2></summary>
         <div class="section-body">
 <div class="scope-block"><strong>Scope</strong>：覆盖当前 JavaScript Markdown 转换、语言检查和 HTML 质量工具链，包括三个 CLI、三个共享库、本地模板/vendor 与相关测试。其他辅助脚本仅列边界；不承诺全库所有 API。</div>
 <p>工具链将可维护 Markdown 转成带导航和本地资产的 HTML，并提供两个独立质量报告。语言 lint 检查正文启发式和显式术语；HTML validator 检查产物结构、资源及交互接线。事实、引用含义与改写语义仍由人工审核。</p>
@@ -788,27 +789,27 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
       </details>
 
       <details open id="sec-arch">
-        <summary><h2 id="sec-arch-h">2. 架构与依赖方向</h2></summary>
+        <summary><h2 id="sec-arch-h"><a id="2-架构与依赖方向"></a>2. 架构与依赖方向</h2></summary>
         <div class="section-body">
 <p>图示区分内容流和共享调用。</p>
 <div class="mermaid-wrap"><pre class="mermaid">
 flowchart TD
   subgraph 输入与生成
-    MD[Markdown 文件] -->|字符串| CV[md-to-html CLI]
-    TP[templates 模板] -->|CSS 与 JS| CV
-    VD[scripts/vendor 本地资产] -->|缺失时复制| CV
-    CV -->|写文件| HT[HTML 与 vendor]
+    MD[Markdown 文件] --&gt;|字符串| CV[md-to-html CLI]
+    TP[templates 模板] --&gt;|CSS 与 JS| CV
+    VD[scripts/vendor 本地资产] --&gt;|缺失时复制| CV
+    CV --&gt;|写文件| HT[HTML 与 vendor]
   end
   subgraph 两类检测
-    MD -->|正文| LL[lint-doc-language CLI]
-    HT -->|结构与资产| HV[validate-doc CLI]
-    LL -.->|正文及原位置| PR[prose.js]
-    LL -.->|引用语法| SR[source-reference.js]
-    CV -.->|引用链接| SR
-    LL -.->|问题与门禁| QR[quality-report.js]
-    HV -.->|问题与门禁| QR
+    MD --&gt;|正文| LL[lint-doc-language CLI]
+    HT --&gt;|结构与资产| HV[validate-doc CLI]
+    LL -.-&gt;|正文及原位置| PR[prose.js]
+    LL -.-&gt;|引用语法| SR[source-reference.js]
+    CV -.-&gt;|引用链接| SR
+    LL -.-&gt;|问题与门禁| QR[quality-report.js]
+    HV -.-&gt;|问题与门禁| QR
   end
-  QR -->|报告与门禁结果| O[stdout JSON 或文本与退出码]
+  QR --&gt;|报告与门禁结果| O[stdout JSON 或文本与退出码]
 </pre><figcaption>图 2.1 — 实线标注输入/产物，虚线标注共享调用。节点为实际模块或本地资产。来源三个 CLI 的 require、buildHtml 与 validateFile。</figcaption></div>
 <p>转换与检测没有自动串联入口：调用者安排 lint、转换、validator 的顺序。转换成功不能替代质量检查；validator 不重跑语言 lint。浏览器交互 JS 来自模板，Node CLI 不启动浏览器。</p>
 <p>Sources：<a class="source-ref" href="../scripts/md-to-html.js#L269-L280"><code>../scripts/md-to-html.js:269-280</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L655-L792"><code>../scripts/md-to-html.js:655-792</code></a>、<a class="source-ref" href="../scripts/lint-doc-language.js#L48-L84"><code>../scripts/lint-doc-language.js:48-84</code></a>、<a class="source-ref" href="../scripts/validate-doc.js#L1069-L1124"><code>../scripts/validate-doc.js:1069-1124</code></a>。</p>
@@ -816,30 +817,34 @@ flowchart TD
       </details>
 
       <details open id="sec-diagram">
-        <summary><h2 id="sec-diagram-h">3. 核心模块职责与故障路径</h2></summary>
+        <summary><h2 id="sec-diagram-h"><a id="3-核心模块职责与故障路径"></a>3. 核心模块职责与故障路径</h2></summary>
         <div class="section-body">
-<h3 id="sec-markdown转换器">Markdown 转换器</h3>
+<h3 id="sec-markdown转换器"><a id="markdown-转换器"></a>Markdown 转换器</h3>
 <p>路径 scripts/md-to-html.js；公开操作是 CLI，没有 module.exports。参数选类型与模板，parseMarkdownSections 提取标题/元信息/章节，mdBodyToHtml 转正文，buildHtml 组装页面并写同名 HTML。依赖 fs、path、source-reference、模板和 vendor；上游是文档作者，下游是 validator 与浏览器。</p>
 <p>显式类型 module/system/guide 优先；否则按文件路径猜类型。批量转换按类型 scanDir 与 filePattern 过滤。生成器并非完整 CommonMark 解析器：表格按竖线拆列，行内 raw HTML 不等于受支持正文语法。源码简写生成实际 source-ref 链接；语法合法不证明文件存在。</p>
 <p>缺失文件、非 Markdown 文件、空匹配集合、未知选项或缺少选项值返回失败。已有 HTML 且未 force 是合法 skip。显式 .MD 输入大小写均支持，输出扩展名为 .html，不修改 Markdown；--all 的模式过滤仍使用源码配置，不能据此推断会发现所有大写文件。</p>
 <p>Sources：<a class="source-ref" href="../scripts/md-to-html.js#L25-L58"><code>../scripts/md-to-html.js:25-58</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L282-L296"><code>../scripts/md-to-html.js:282-296</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L342-L441"><code>../scripts/md-to-html.js:342-441</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L869-L929"><code>../scripts/md-to-html.js:869-929</code></a>。</p>
-<h3 id="sec-语言检查器与正文扫描">语言检查器与正文扫描</h3>
-<p>路径 scripts/lint-doc-language.js、scripts/lib/prose.js。lint/validateTerms/parseArgs/main 是语言模块的全部导出；正文模块导出 proseSegments/location/decodeEntities。CLI 读目标并根据后缀选 HTML 或 Markdown，提取片段，执行六条规则并构造问题。</p>
+<h3 id="sec-语言检查器与正文扫描"><a id="语言检查器与正文扫描"></a>语言检查器与正文扫描</h3>
+<p>路径 scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/punctuation.js。lint/validateTerms/parseArgs/main 是语言模块的全部导出；正文模块导出 proseSegments/location/decodeEntities。CLI 读目标并根据后缀选 HTML 或 Markdown，提取片段，执行七条规则并构造问题。</p>
 <p>语言模块依赖三个库，prose 本身无外部模块依赖。目标读取/扫描异常转 input/read；配置错误转 fatal。合法源码引用中的路径被排除所有语言规则，附近正文保留位置。段落误掩码、跨行句子和异常嵌套仍需要人工复核。</p>
-<p>Sources：<a class="source-ref" href="../scripts/lint-doc-language.js#L48-L84"><code>../scripts/lint-doc-language.js:48-84</code></a>、<a class="source-ref" href="../scripts/lint-doc-language.js#L106-L141"><code>../scripts/lint-doc-language.js:106-141</code></a>、<a class="source-ref" href="../scripts/lib/prose.js#L75-L101"><code>../scripts/lib/prose.js:75-101</code></a>。完整接口见 <a href="tech-docs/Lint_Doc_Language_Design.html">语言模块</a>、<a href="tech-docs/Prose_Design.html">正文模块</a>。</p>
-<h3 id="sec-html校验器">HTML 校验器</h3>
+<p>Sources：<a class="source-ref" href="../scripts/lint-doc-language.js#L48-L84"><code>../scripts/lint-doc-language.js:48-84</code></a>、<a class="source-ref" href="../scripts/lint-doc-language.js#L106-L140"><code>../scripts/lint-doc-language.js:106-140</code></a>、<a class="source-ref" href="../scripts/lib/prose.js#L75-L101"><code>../scripts/lib/prose.js:75-101</code></a>。完整接口见 <a href="tech-docs/Lint_Doc_Language_Design.html">语言模块</a>、<a href="tech-docs/Prose_Design.html">正文模块</a>。</p>
+<h3 id="sec-html校验器"><a id="html-校验器"></a>HTML 校验器</h3>
 <p>路径 scripts/validate-doc.js；公开操作是 CLI，没有 module.exports。validateFile 执行 Mermaid、标题 ID、代码语言、表格、TOC、骨架、转义、无 CDN、本地资产、引用、术语表、Scope、视觉/图表及内容结构检查。--test-interactive 增加静态交互接线和渐进披露检查，不会操作浏览器。</p>
 <p>它依赖 fs、path 和 quality-report；下游是 CLI 门禁。--new-doc 将缺失来源/术语/Scope 等适用项作为新文档门禁。--fix 只针对实现支持的格式修复并写回 HTML，不自动修正事实。读取目标失败记 input/read，未知配置或无扫描目标失败。</p>
 <p>Sources：<a class="source-ref" href="../scripts/validate-doc.js#L24-L78"><code>../scripts/validate-doc.js:24-78</code></a>、<a class="source-ref" href="../scripts/validate-doc.js#L1069-L1124"><code>../scripts/validate-doc.js:1069-1124</code></a>、<a class="source-ref" href="../scripts/validate-doc.js#L1154-L1190"><code>../scripts/validate-doc.js:1154-1190</code></a>。</p>
-<h3 id="sec-质量报告与源码引用">质量报告与源码引用</h3>
+<h3 id="sec-质量报告与源码引用"><a id="质量报告与源码引用"></a>质量报告与源码引用</h3>
 <p>quality-report.js 导出 digest、relativeFile、issue、makeReport、compareBaseline、gate、readJson。两检测器调用它生成 schemaVersion=1 报告、相对路径、身份和基线门禁。依赖内建 fs/path/crypto；失败包含读取/JSON/基线 schema 或配置不一致。</p>
 <p>source-reference.js 只导出 parseSourceReference，返回 file/start/end/label/href 或 null，被 lint 与转换器共用。不读源文件，不验证引用含义。范围倒序或行号零无效；单行/正序范围合法。源码路径应按最终 HTML 目录计算。</p>
 <p>Sources：<a class="source-ref" href="../scripts/lib/quality-report.js#L8-L86"><code>../scripts/lib/quality-report.js:8-86</code></a>、<a class="source-ref" href="../scripts/lib/source-reference.js#L5-L15"><code>../scripts/lib/source-reference.js:5-15</code></a>。完整报告契约见 <a href="tech-docs/Quality_Report_Design.html">报告模块</a>。</p>
+<h3 id="sec-保真度与链接检查"><a id="保真度与链接检查"></a>保真度与链接检查</h3>
+<p>check-doc-fidelity.js 把 .md 与同名 .html 往返比对，报告丢失或被改写的代码、标题、表格，并识别围栏不配对（<code>fence-unbalanced</code>）和“关闭行带信息串”造成的疑似吞章（<code>fence-suspect</code>），以及停在“## 目录”段里、会随生成侧栏一并丢失的内容（<code>toc-swallowed</code>）。check-doc-links.js 检查生成后 HTML 的相对链接、锚点和源码引用行号；在 git 仓库里加 <code>--require-tracked</code>，还报“目标在本机存在、git 却不跟踪”的链接（<code>untracked-target</code>，含路径大小写与 git 不一致），这类链接在作者机器上永远不报错，别人克隆下来才是死链。两者只读不改，补上 validate-doc.js 看不到的内容丢失与死链。</p>
+<p>退出码均为 0 通过、1 有问题、2 用法错误。外部地址和根相对路径无法静态判定，links 不检查。</p>
+<p>Sources：<a class="source-ref" href="../scripts/check-doc-fidelity.js#L3-L16"><code>../scripts/check-doc-fidelity.js:3-16</code></a>、<a class="source-ref" href="../scripts/check-doc-links.js#L3-L26"><code>../scripts/check-doc-links.js:3-26</code></a>。用法与问题类型见 <a href="../references/quality-tooling.md">quality-tooling.md</a>。</p>
         </div>
       </details>
 
       <details open id="sec-modules">
-        <summary><h2 id="sec-modules-h">4. 输入、配置与输出数据</h2></summary>
+        <summary><h2 id="sec-modules-h"><a id="4-输入配置与输出数据"></a>4. 输入、配置与输出数据</h2></summary>
         <div class="section-body">
 <div class="table-wrapper"><table>
 <thead><tr><th>配置</th><th>当前行为与不当值后果</th></tr></thead>
@@ -857,13 +862,13 @@ flowchart TD
 </tbody></table></div>
 <p>转换器 module 默认扫描 doc/tech-docs 中 <code>_Design.md</code>，后缀忽略大小写；system 扫描 doc 根所有 Markdown，排除 Guide.md 后缀；guide 的 --all 扫 doc 与项目根中 Guide.md 后缀，忽略大小写。根 guide.md 本轮另用显式文件与 --type guide 转换。索引只收集当前已存在的匹配 HTML，guide 没有索引。</p>
 <p>doc-meta.json 是可选索引品牌/分组配置，不是检查器术语配置。module 使用 modules/groups/groupOrder；system 使用 categories。非法 JSON 回退默认分类，不证明配置合法。索引不生成缺失文档。</p>
-<p>语言报告 profile engine=3；HTML profile engine=2。JSON 的 tool、targets、profile、issues、summary 不是 HTML 页面结构。fatal 只有 schemaVersion/tool/fatal，调用者不能假定每次输出都有 summary。</p>
-<p>Sources：<a class="source-ref" href="../scripts/md-to-html.js#L60-L265"><code>../scripts/md-to-html.js:60-265</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L798-L826"><code>../scripts/md-to-html.js:798-826</code></a>、<a class="source-ref" href="../scripts/lint-doc-language.js#L85-L141"><code>../scripts/lint-doc-language.js:85-141</code></a>、<a class="source-ref" href="../scripts/validate-doc.js#L24-L62"><code>../scripts/validate-doc.js:24-62</code></a>、<a class="source-ref" href="../scripts/validate-doc.js#L1181-L1188"><code>../scripts/validate-doc.js:1181-1188</code></a>。</p>
+<p>语言报告 profile engine=4；HTML profile engine=2。JSON 的 tool、targets、profile、issues、summary 不是 HTML 页面结构。fatal 只有 schemaVersion/tool/fatal，调用者不能假定每次输出都有 summary。</p>
+<p>Sources：<a class="source-ref" href="../scripts/md-to-html.js#L60-L265"><code>../scripts/md-to-html.js:60-265</code></a>、<a class="source-ref" href="../scripts/md-to-html.js#L798-L826"><code>../scripts/md-to-html.js:798-826</code></a>、<a class="source-ref" href="../scripts/lint-doc-language.js#L85-L140"><code>../scripts/lint-doc-language.js:85-140</code></a>、<a class="source-ref" href="../scripts/validate-doc.js#L24-L62"><code>../scripts/validate-doc.js:24-62</code></a>、<a class="source-ref" href="../scripts/validate-doc.js#L1181-L1188"><code>../scripts/validate-doc.js:1181-1188</code></a>。</p>
         </div>
       </details>
 
       <details id="sec-dataflow">
-        <summary><h2 id="sec-dataflow-h">5. 端到端数据与报告门禁</h2></summary>
+        <summary><h2 id="sec-dataflow-h"><a id="5-端到端数据与报告门禁"></a>5. 端到端数据与报告门禁</h2></summary>
         <div class="section-body">
 <p>Markdown 的代码围栏和引用标签经过转换生成代码块和 anchor；模板 CSS/JS 及本地 vendor 使 HTML 支持导航与图表。语言扫描使用原输入字符串及实体映射，生成含 line/column/context 的 issue。HTML 检查把分类的 fail/warn 转 issue，另保留 files[].checks。</p>
 <p>quality-report 构造排序后的 targets、稳定 profile、全部当前 summary。基线用问题身份多重集合计算 added/resolved/unchanged。默认只阻断新增 error，strict 也阻断新增 warning；当前 input/ 问题总阻断。保留旧问题时退出 0 不代表全部问题消失。</p>
@@ -873,7 +878,7 @@ flowchart TD
       </details>
 
       <details id="sec-thread">
-        <summary><h2 id="sec-thread-h">6. 执行模型与资源落位</h2></summary>
+        <summary><h2 id="sec-thread-h"><a id="6-执行模型与资源落位"></a>6. 执行模型与资源落位</h2></summary>
         <div class="section-body">
 <p>所读三个 CLI 使用同步文件 I/O，按目标循环处理；没有 worker_threads、后台任务或服务监听入口。浏览器模板代码只在打开 HTML 后运行。本文不据此承诺跨进程并发写同一产物安全；未测竞态、延迟或吞吐量。</p>
 <p>stageVendorAssets 从 scripts/vendor 复制缺失文件，已存在文件不覆盖，复制错误被忽略。输出位于 module 的 ../assets/vendor 或 system/guide 的 assets/vendor。缺失或过期资产应以实际存在性与浏览器运行核对；复制“尽力而为”不是离线保证。HTML 校验只检查本地引用的存在性，不验证功能正确。</p>
@@ -882,7 +887,7 @@ flowchart TD
       </details>
 
       <details id="sec-config">
-        <summary><h2 id="sec-config-h">7. 术语表、辅助边界与验证</h2></summary>
+        <summary><h2 id="sec-config-h"><a id="7-术语表辅助边界与验证"></a>7. 术语表、辅助边界与验证</h2></summary>
         <div class="section-body">
 <div class="table-wrapper"><table>
 <thead><tr><th>术语</th><th>定义</th></tr></thead>

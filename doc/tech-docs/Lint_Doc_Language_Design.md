@@ -8,7 +8,7 @@
 | 编写日期 | 2026-10-04 |
 | 源码快照 | 基于 `d6f3a63` 的细节复查及语言检查修复；文件版本以验收记录的 SHA-256 为准 |
 | 目标读者 | 调用 CLI 或维护模块的开发者 |
-| 实现文件 | scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/quality-report.js、scripts/lib/source-reference.js |
+| 实现文件 | scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/quality-report.js、scripts/lib/source-reference.js、scripts/lib/punctuation.js |
 | 测试文件 | tests/language.test.js、tests/quality-report.test.js、tests/cli.test.js、tests/conversion.test.js、tests/skill-e2e.test.js |
 | 运行环境 | Windows PowerShell；Node.js `v20.20.2`；项目根 `E:\gezi\doc-wiki` |
 | 验证记录 | [实际验收报告](../../docs/validation/2.0-refinement/README.md)、[源码散列](../../docs/validation/2.0-refinement/source-snapshot.json) |
@@ -46,7 +46,7 @@
 <figcaption>图 1.1 — CLI 与三个本地依赖的调用关系。来源：scripts/lint-doc-language.js:5-7,47-84,105-140。</figcaption>
 </figure>
 
-`prose.js` 将不检查的语法替换成空格，保留原始 UTF-16 偏移。`quality-report.js` 生成稳定问题身份，比较基线并计算门禁。`source-reference.js` 被 lint 与转换器共用，识别源码引用语法，供 placeholder 规则排除合法引用。外部依赖只有 Node.js 内建模块：`fs`、`path`、`crypto`；检查器没有第三方解析库。
+`prose.js` 将不检查的语法替换成空格，保留原始 UTF-16 偏移。`quality-report.js` 生成稳定问题身份，比较基线并计算门禁。`source-reference.js` 被 lint 与转换器共用，识别源码引用语法，供 placeholder 规则排除合法引用。`punctuation.js` 只导出 `collisions`，用一条正则找出相邻的句末/分句标点，供 `punctuation-collision` 规则使用。外部依赖只有 Node.js 内建模块：`fs`、`path`、`crypto`；检查器没有第三方解析库。
 
 Sources：{{../../scripts/lint-doc-language.js:5}}、{{../../scripts/lib/prose.js:3}}、{{../../scripts/lib/quality-report.js:3}}。
 
@@ -117,7 +117,7 @@ HTML 跳过注释以及 `pre/code/script/style/svg/textarea` 的整块内容；�
 
 Sources：{{../../scripts/lib/prose.js:7}}、{{../../scripts/lib/prose.js:26}}、{{../../scripts/lib/prose.js:46}}、{{../../scripts/lib/prose.js:75}}、{{../../scripts/lib/prose.js:96}}。
 
-### 3.2 六条规则
+### 3.2 七条规则
 
 | ID | 级别 | 实际匹配范围 |
 |------|------|------|
@@ -127,6 +127,7 @@ Sources：{{../../scripts/lib/prose.js:7}}、{{../../scripts/lib/prose.js:26}}�
 | `marketing` | warning | 英文 `seamless/seamlessly`、`effortless/effortlessly`、`blazing-fast`、`world-class`、`cutting-edge`；中文 `无缝`、`极致`、`业界领先`、`完美无缺` |
 | `vague-reference` | warning | 只在 strict：必要时、适当处理、相关操作、视情况而定、as needed/as appropriate |
 | `multi-action` | warning | 只在 strict：然后、接着、随后、and then/then；每个段最多一项 |
+| `punctuation-collision` | warning | 两种 mode 都检查：句末/分句标点后紧跟另一个标点（`。。` `。，` `。；` `。、` `：。` 及 `？。` 等）；`？！` 并用、省略号/括号/引号后接句号不报；每次匹配一项。常见成因是自动改写在句中插入总结句，把原句切成残句 |
 
 长句按中文句号/问叹号及英文 `. ! ?` 分隔，不跨行拼接。中文计数仅含 `U+3400..U+9FFF`；英文词使用字母及内部撇号/连字符，不是分词器。两种计数任一超阈值就提示；中文字符数不是全部字符长度。
 
@@ -173,12 +174,12 @@ Sources：{{../../scripts/lint-doc-language.js:11}}、{{../../scripts/lint-doc-l
 | issue | `line/column/context` | 可选；lint 正文问题带位置与压缩空白后的上下文 |
 | report | `schemaVersion/tool` | 1 / `doc-language` |
 | report | `targets` | 去重并排序的相对文件集合 |
-| report | `profile` | `engine:3`、mode、术语 digest、去重排序的 disabled、strict 布尔值 |
+| report | `profile` | `engine:4`、mode、术语 digest、去重排序的 disabled、strict 布尔值 |
 | report | `issues` | 按目标处理顺序及规则追加顺序保存，未额外排序 |
 | report | `summary` | 文件数、当前全部 error 数、当前全部 warning 数 |
 | report | `baseline` | 仅比较后存在；`added/resolved` 为问题数组，`unchanged` 为数量 |
 
-身份散列输入是 `{file,rule,severity,key}`。`key` 优先取显式 key，缺少时依次取 context、message；不是输出字段。行列和 message 不直接进入身份；message 仅在前两项都缺少时参与。多数 lint key 包含该正文片段及触发内容，移动行不变，但修改同段其他文字可能产生新身份。`multi-action` 使用 context；长句 key 使用规范化句子。
+身份散列输入是 `{file,rule,severity,key}`。`key` 优先取显式 key，缺少时依次取 context、message；不是输出字段。行列和 message 不直接进入身份；message 仅在前两项都缺少时参与。多数 lint key 包含该正文片段及触发内容，移动行不变，但修改同段其他文字可能产生新身份。`multi-action` 使用 context；长句 key 使用规范化句子；`punctuation-collision` 使用正文加相撞的标点对。
 
 `digest` 递归排序对象键，保留数组顺序。术语数组重排会改变 profile 散列；目标 CLI 输入重排不会改变排序后的 targets。报告 summary 表示当前全部问题，与最终基线门禁是否通过是两件事。
 

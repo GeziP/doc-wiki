@@ -67,11 +67,11 @@ Sources：{{../scripts/md-to-html.js:25-58}}、{{../scripts/md-to-html.js:282-29
 
 ### 语言检查器与正文扫描
 
-路径 scripts/lint-doc-language.js、scripts/lib/prose.js。lint/validateTerms/parseArgs/main 是语言模块的全部导出；正文模块导出 proseSegments/location/decodeEntities。CLI 读目标并根据后缀选 HTML 或 Markdown，提取片段，执行六条规则并构造问题。
+路径 scripts/lint-doc-language.js、scripts/lib/prose.js、scripts/lib/punctuation.js。lint/validateTerms/parseArgs/main 是语言模块的全部导出；正文模块导出 proseSegments/location/decodeEntities。CLI 读目标并根据后缀选 HTML 或 Markdown，提取片段，执行七条规则并构造问题。
 
 语言模块依赖三个库，prose 本身无外部模块依赖。目标读取/扫描异常转 input/read；配置错误转 fatal。合法源码引用中的路径被排除所有语言规则，附近正文保留位置。段落误掩码、跨行句子和异常嵌套仍需要人工复核。
 
-Sources：{{../scripts/lint-doc-language.js:48-84}}、{{../scripts/lint-doc-language.js:106-141}}、{{../scripts/lib/prose.js:75-101}}。完整接口见 [语言模块](tech-docs/Lint_Doc_Language_Design.html)、[正文模块](tech-docs/Prose_Design.html)。
+Sources：{{../scripts/lint-doc-language.js:48-84}}、{{../scripts/lint-doc-language.js:106-140}}、{{../scripts/lib/prose.js:75-101}}。完整接口见 [语言模块](tech-docs/Lint_Doc_Language_Design.html)、[正文模块](tech-docs/Prose_Design.html)。
 
 ### HTML 校验器
 
@@ -88,6 +88,14 @@ quality-report.js 导出 digest、relativeFile、issue、makeReport、compareBas
 source-reference.js 只导出 parseSourceReference，返回 file/start/end/label/href 或 null，被 lint 与转换器共用。不读源文件，不验证引用含义。范围倒序或行号零无效；单行/正序范围合法。源码路径应按最终 HTML 目录计算。
 
 Sources：{{../scripts/lib/quality-report.js:8-86}}、{{../scripts/lib/source-reference.js:5-15}}。完整报告契约见 [报告模块](tech-docs/Quality_Report_Design.html)。
+
+### 保真度与链接检查
+
+check-doc-fidelity.js 把 .md 与同名 .html 往返比对，报告丢失或被改写的代码、标题、表格，并识别围栏不配对（`fence-unbalanced`）和“关闭行带信息串”造成的疑似吞章（`fence-suspect`），以及停在“## 目录”段里、会随生成侧栏一并丢失的内容（`toc-swallowed`）。check-doc-links.js 检查生成后 HTML 的相对链接、锚点和源码引用行号；在 git 仓库里加 `--require-tracked`，还报“目标在本机存在、git 却不跟踪”的链接（`untracked-target`，含路径大小写与 git 不一致），这类链接在作者机器上永远不报错，别人克隆下来才是死链。两者只读不改，补上 validate-doc.js 看不到的内容丢失与死链。
+
+退出码均为 0 通过、1 有问题、2 用法错误。外部地址和根相对路径无法静态判定，links 不检查。
+
+Sources：{{../scripts/check-doc-fidelity.js:3-16}}、{{../scripts/check-doc-links.js:3-26}}。用法与问题类型见 [quality-tooling.md](../references/quality-tooling.md)。
 
 ## 4. 输入、配置与输出数据
 
@@ -108,9 +116,9 @@ Sources：{{../scripts/lib/quality-report.js:8-86}}、{{../scripts/lib/source-re
 
 doc-meta.json 是可选索引品牌/分组配置，不是检查器术语配置。module 使用 modules/groups/groupOrder；system 使用 categories。非法 JSON 回退默认分类，不证明配置合法。索引不生成缺失文档。
 
-语言报告 profile engine=3；HTML profile engine=2。JSON 的 tool、targets、profile、issues、summary 不是 HTML 页面结构。fatal 只有 schemaVersion/tool/fatal，调用者不能假定每次输出都有 summary。
+语言报告 profile engine=4；HTML profile engine=2。JSON 的 tool、targets、profile、issues、summary 不是 HTML 页面结构。fatal 只有 schemaVersion/tool/fatal，调用者不能假定每次输出都有 summary。
 
-Sources：{{../scripts/md-to-html.js:60-265}}、{{../scripts/md-to-html.js:798-826}}、{{../scripts/lint-doc-language.js:85-141}}、{{../scripts/validate-doc.js:24-62}}、{{../scripts/validate-doc.js:1181-1188}}。
+Sources：{{../scripts/md-to-html.js:60-265}}、{{../scripts/md-to-html.js:798-826}}、{{../scripts/lint-doc-language.js:85-140}}、{{../scripts/validate-doc.js:24-62}}、{{../scripts/validate-doc.js:1181-1188}}。
 
 ## 5. 端到端数据与报告门禁
 

@@ -757,12 +757,13 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
           <dt>测试文件</dt><dd><code>tests/language.test.js</code></dd>
           <dt>关联文档</dt><dd><a href="../Quality_Tooling_System.html">系统架构</a>、<a href="Lint_Doc_Language_Design.html">语言模块</a>、<a href="../../guide.html">上手教程</a></dd>
           <dt>编写日期</dt><dd>2026-10-05</dd>
+          <dt>目标读者</dt><dd>扩展语言检查与原始文件定位的开发者</dd>
         </dl>
       </header>
 
 
       <details open id="sec-overview">
-        <summary><h2 id="sec-overview-h">1. 概述与边界</h2></summary>
+        <summary><h2 id="sec-overview-h"><a id="1-概述与边界"></a>1. 概述与边界</h2></summary>
         <div class="section-body">
 <div class="scope-block"><strong>Scope</strong>：覆盖 prose.js 全部三个导出和内部掩码流程；不承诺完整 Markdown/HTML 解析或浏览器可见性判断。</div>
 <p>语言 lint 需要正文和原文件位置。prose 把代码、运行时文本和语法替换成等长空格，而不是删除；换行保留。它返回正文片段及 UTF-16 偏移映射，lint 用映射报告原文件行列。模块不读文件，不输出日志，也不改变传入字符串。</p>
@@ -772,19 +773,19 @@ details.faq > div { padding: 12px 16px; font-size: 0.88rem; color: var(--text-se
       </details>
 
       <details open id="sec-arch">
-        <summary><h2 id="sec-arch-h">3. 数据流与实现</h2></summary>
+        <summary><h2 id="sec-arch-h"><a id="3-数据流与实现"></a>3. 数据流与实现</h2></summary>
         <div class="section-body">
 <p>图示说明转换顺序。</p>
 <div class="mermaid-wrap"><pre class="mermaid">
 flowchart TD
-  S[原始字符串] --> F{format 精确 html}
-  F -->|是| H[HTML 掩码]
-  F -->|否| M[Markdown 掩码]
-  M --> H
-  H --> U[URL 掩码]
-  U --> C[物理行与竖线单元格]
-  C --> E[实体解码与映射]
-  E --> R[正文片段数组]
+  S[原始字符串] --&gt; F{format 精确 html}
+  F --&gt;|是| H[HTML 掩码]
+  F --&gt;|否| M[Markdown 掩码]
+  M --&gt; H
+  H --&gt; U[URL 掩码]
+  U --&gt; C[物理行与竖线单元格]
+  C --&gt; E[实体解码与映射]
+  E --&gt; R[正文片段数组]
 </pre><figcaption>图 3.1 — 实线是数据转换；实体映射用于回到原文件。来源 prose.js:75-100。</figcaption></div>
 <p>Markdown 排除从首行开始的 frontmatter、围栏、行内反引号代码、4 空格或 tab 缩进代码、链接定义和图片。围栏可带列表或引用前缀，结束标记必须同字符、长度不小于起始标记且没有其他尾随内容。frontmatter 首行 trim 后为三个短横线，结束行是三个短横线或三个点。</p>
 <p>链接目标与 Markdown 分隔符被掩去，链接标签保留。HTML 掩码在两种格式下均执行：先去注释，再排除 pre、code、script、style、svg、textarea 整块。class 含 mermaid 的 div/pre 按同标签嵌套深度寻找结束位置；最后掩去其余标签。</p>
@@ -795,7 +796,7 @@ flowchart TD
       </details>
 
       <details open id="sec-concepts">
-        <summary><h2 id="sec-concepts-h">4. 术语表与片段契约</h2></summary>
+        <summary><h2 id="sec-concepts-h"><a id="4-术语表与片段契约"></a>4. 术语表与片段契约</h2></summary>
         <div class="section-body">
 <div class="table-wrapper"><table>
 <thead><tr><th>术语/字段</th><th>类型</th><th>定义</th></tr></thead>
@@ -814,7 +815,7 @@ flowchart TD
       </details>
 
       <details open id="sec-api">
-        <summary><h2 id="sec-api-h">8. 完整公开 API</h2></summary>
+        <summary><h2 id="sec-api-h"><a id="8-完整公开-api"></a>8. 完整公开 API</h2></summary>
         <div class="section-body">
 <div class="table-wrapper"><table>
 <thead><tr><th>签名</th><th>输入、默认与返回</th><th>失败/副作用</th></tr></thead>
@@ -830,7 +831,7 @@ flowchart TD
       </details>
 
       <details open id="sec-usage">
-        <summary><h2 id="sec-usage-h">9. 已运行示例与调用约束</h2></summary>
+        <summary><h2 id="sec-usage-h"><a id="9-已运行示例与调用约束"></a>9. 已运行示例与调用约束</h2></summary>
         <div class="section-body">
 <p>在项目根运行下面的断言。样例使用 CRLF 和实体来验证原位置，不要求浏览器或安装包。</p>
 <div class="code-block" data-lang="javascript"><pre><code class="language-javascript">// ========== 位置信息示例 ==========
@@ -848,7 +849,7 @@ assert.equal(parts[0].offset + parts[0].offsets[1], 4);</code></pre></div>
       </details>
 
       <details open id="sec-tests">
-        <summary><h2 id="sec-tests-h">11. 测试与限制</h2></summary>
+        <summary><h2 id="sec-tests-h"><a id="11-测试与限制"></a>11. 测试与限制</h2></summary>
         <div class="section-body">
 <p>tests/language.test.js 通过 lint 间接测试正文占位符、表格、围栏、frontmatter、链接标签、HTML 实体和代码/runtime/SVG/Mermaid 排除。CRLF 与实体位置有断言。本文 API 例子另直接运行三个导出，不把它说成生产测试文件。</p>
 <p>未确认完整解析语法覆盖、所有非法嵌套和 Unicode 边界；当前没有独立 prose.test.js。浏览器渲染及语义独立复审由其他 agent 执行，本生成记录不能代替它们。</p>

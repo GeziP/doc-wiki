@@ -21,7 +21,9 @@
 node scripts/lint-doc-language.js --mode explain doc/Design.md
 node scripts/lint-doc-language.js --mode strict --terms doc/terms.json doc/API.md
 node scripts/validate-doc.js --json doc/Design.html
-node --test tests
+node scripts/check-doc-fidelity.js doc/Design.md
+node scripts/check-doc-links.js doc/Design.html
+node --test
 ```
 
 语言检查独立于 HTML 校验；warning 默认不阻断，`--strict` 可将 warning 作为门禁。两工具都支持 JSON 与问题集合基线，不会用已修复的旧问题抵消新增问题。机械检查不能证明事实正确或改写语义等价。
@@ -136,6 +138,8 @@ doc-writer/
 │   ├── skin-switcher.js          # 6 套皮肤切换
 │   ├── md-to-html.js             # MD → HTML 转换
 │   ├── validate-doc.js           # HTML 校验与 JSON 基线
+│   ├── check-doc-fidelity.js     # MD ↔ HTML 往返保真度检查
+│   ├── check-doc-links.js        # 链接 / 锚点 / 源码引用可达性检查
 │   ├── lint-doc-language.js      # 中英文语言与术语检查
 │   ├── lib/                     # 共用报告与正文扫描工具
 │   └── inline-shared.js          # CSS/JS → 模板同步
@@ -203,6 +207,29 @@ node scripts/validate-doc.js --type module --new-doc doc/tech-docs/Task_Design.h
 ```
 
 校验项：Mermaid 语法、章节 ID 唯一性、代码块标签、表格结构、TOC 完整性、HTML 转义回归（结构性标签被转义成文本）、源码引用格式、术语表、Scope 声明、视觉约束（无渐变/大阴影/外链图片/硬编码色）、SVG 护栏、图说完整性、空章节、重复内容、内容密度。
+
+### check-doc-fidelity.js — 保真度检查
+
+校验器只看 HTML 自身，看不到“Markdown 里有、HTML 里没有”的内容。本脚本往返比对 `.md` 与同名 `.html`，报告丢失或被改写的代码、标题和表格（详见 [quality-tooling.md](references/quality-tooling.md)）：
+
+```bash
+node scripts/check-doc-fidelity.js doc/tech-docs/Task_Design.md
+node scripts/check-doc-fidelity.js --all --json
+```
+
+退出码 0 保真、1 发现丢失、2 参数错误或缺少 HTML 孪生。
+
+### check-doc-links.js — 链接检查
+
+校验器不知道 `href` 指向的文件或锚点是否存在。本脚本检查生成后 HTML 里的相对链接：目标文件、目标 `#锚点`、指向 `.md` 却已有 HTML 孪生的链接，以及源码引用 `#L10-L20` 是否越过目标文件的行数（详见 [quality-tooling.md](references/quality-tooling.md)）：
+
+```bash
+node scripts/check-doc-links.js doc/tech-docs/Task_Design.html
+node scripts/check-doc-links.js --all --json
+node scripts/check-doc-links.js --all --require-tracked   # git 仓库里：目标必须已入库，别人克隆下来才点得开
+```
+
+退出码 0 通过、1 有死链（`--strict` 下含行号越界警告；`--require-tracked` 下含“目标存在但 git 不跟踪”）、2 用法错误。
 
 ### SKILL.md — 路由与规则
 
