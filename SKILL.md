@@ -74,7 +74,7 @@ node "$SKILL_ROOT/scripts/check-doc-links.js" doc/tech-docs/Example_Design.html
 
 `check-doc-fidelity.js` 往返比对 Markdown 与 HTML，报告丢失的代码、表格和标题；校验器看不到这类丢失。退出码 1 时修转换器或 Markdown 源文件，不要改 HTML 绕过。
 
-`check-doc-links.js` 检查生成后 HTML 的相对链接、`#锚点`和源码引用行号，报出死链、指向 `.md`（HTML 孪生已存在）的链接和越界的行号。退出码 1 时修 Markdown 里的链接或引用，不要手改 HTML。
+`check-doc-links.js` 检查生成后 HTML 的相对链接、`#锚点`和源码引用行号，报出死链、指向 `.md`（HTML 孪生已存在）的链接和越界的行号；在 git 仓库里加 `--require-tracked`，还会报“目标在本机存在、但没入库（被忽略或从没 `git add`）”的链接——别人克隆下来点不开。退出码 1 时修 Markdown 里的链接或引用，不要手改 HTML。
 
 语言 lint 只做启发式与显式术语检查，不证明事实正确、改写语义等价或 ASD-STE100 标准合规。混合文档的步骤/API/排障按 strict 写作，架构解释按 explain 写作；CLI 模式作用于整个输入，不自动分类章节。
 

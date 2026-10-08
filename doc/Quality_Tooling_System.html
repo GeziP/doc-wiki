@@ -837,9 +837,9 @@ flowchart TD
 <p>source-reference.js 只导出 parseSourceReference，返回 file/start/end/label/href 或 null，被 lint 与转换器共用。不读源文件，不验证引用含义。范围倒序或行号零无效；单行/正序范围合法。源码路径应按最终 HTML 目录计算。</p>
 <p>Sources：<a class="source-ref" href="../scripts/lib/quality-report.js#L8-L86"><code>../scripts/lib/quality-report.js:8-86</code></a>、<a class="source-ref" href="../scripts/lib/source-reference.js#L5-L15"><code>../scripts/lib/source-reference.js:5-15</code></a>。完整报告契约见 <a href="tech-docs/Quality_Report_Design.html">报告模块</a>。</p>
 <h3 id="sec-保真度与链接检查"><a id="保真度与链接检查"></a>保真度与链接检查</h3>
-<p>check-doc-fidelity.js 把 .md 与同名 .html 往返比对，报告丢失或被改写的代码、标题、表格，并识别围栏不配对（<code>fence-unbalanced</code>）和“关闭行带信息串”造成的疑似吞章（<code>fence-suspect</code>）。check-doc-links.js 检查生成后 HTML 的相对链接、锚点和源码引用行号。两者只读不改，补上 validate-doc.js 看不到的内容丢失与死链。</p>
+<p>check-doc-fidelity.js 把 .md 与同名 .html 往返比对，报告丢失或被改写的代码、标题、表格，并识别围栏不配对（<code>fence-unbalanced</code>）和“关闭行带信息串”造成的疑似吞章（<code>fence-suspect</code>），以及停在“## 目录”段里、会随生成侧栏一并丢失的内容（<code>toc-swallowed</code>）。check-doc-links.js 检查生成后 HTML 的相对链接、锚点和源码引用行号；在 git 仓库里加 <code>--require-tracked</code>，还报“目标在本机存在、git 却不跟踪”的链接（<code>untracked-target</code>，含路径大小写与 git 不一致），这类链接在作者机器上永远不报错，别人克隆下来才是死链。两者只读不改，补上 validate-doc.js 看不到的内容丢失与死链。</p>
 <p>退出码均为 0 通过、1 有问题、2 用法错误。外部地址和根相对路径无法静态判定，links 不检查。</p>
-<p>Sources：<a class="source-ref" href="../scripts/check-doc-fidelity.js#L3-L16"><code>../scripts/check-doc-fidelity.js:3-16</code></a>、<a class="source-ref" href="../scripts/check-doc-links.js#L3-L20"><code>../scripts/check-doc-links.js:3-20</code></a>。用法与问题类型见 <a href="../references/quality-tooling.md">quality-tooling.md</a>。</p>
+<p>Sources：<a class="source-ref" href="../scripts/check-doc-fidelity.js#L3-L16"><code>../scripts/check-doc-fidelity.js:3-16</code></a>、<a class="source-ref" href="../scripts/check-doc-links.js#L3-L26"><code>../scripts/check-doc-links.js:3-26</code></a>。用法与问题类型见 <a href="../references/quality-tooling.md">quality-tooling.md</a>。</p>
         </div>
       </details>
 

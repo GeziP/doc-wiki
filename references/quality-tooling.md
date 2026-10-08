@@ -112,6 +112,7 @@ node scripts/check-doc-fidelity.js --root . --all --json
 node scripts/check-doc-links.js doc/tech-docs/Task_Design.html
 node scripts/check-doc-links.js --root . --all --json
 node scripts/check-doc-links.js --all --strict
+node scripts/check-doc-links.js --all --require-tracked   # git 仓库里：目标必须已入库
 ```
 
 | 问题类型 | 级别 | 含义 |
@@ -120,10 +121,13 @@ node scripts/check-doc-links.js --all --strict
 | missing-anchor | error | 目标 HTML 存在，但没有对应的 `id`/`name`；同页 `#锚点` 同理。`class="source-ref"` 的源码引用除外：目标即使是 `.html` 源文件，`#L10` 也是行号，只按行数校验 |
 | md-link-with-twin | error | 链接指向 `.md`，而同名 `.html` 孪生已存在，读者会落在裸 Markdown 上 |
 | line-out-of-range | warning | 源码引用 `#L10-L20` 超出目标文件的行数，引用已漂移；`--strict` 下阻断 |
+| untracked-target | warning | 目标在磁盘上存在，但 git 不跟踪它：被 `.gitignore` / `.git/info/exclude` 排除或从没 `git add`，或路径大小写与 git 里的不一致（Windows/macOS 能点开，Linux 是死链）。作者机器上一切正常，别人克隆下来就是死链。`--require-tracked` 下为 error |
+
+`untracked-target` 只读 git 索引（一次 `git ls-files -s -z`）：已 `git add` 未提交的算已跟踪；子模块内部的文件 git 不列出，一律放行；被标记的目标再用 `git check-ignore -v` 给出是哪条规则排除的。不在 git 工作区（或没有 git）时默认静默跳过；显式传了 `--require-tracked` 却不在 git 工作区，则退出码 2，不会静默通过。JSON 摘要里的 `summary.tracking` 回报实际模式（`required` / `checked` / `skipped`）：旧版工具会静默忽略不认识的 `--require-tracked`，门禁应据此确认这项检查确实执行了。
 
 `<script>`、`<style>` 和注释里的文本不算链接；`http(s):`、`mailto:` 和以 `/` 开头的地址无法静态判定，不检查。报告里的行号是 HTML 文件的真实行号。
 
-退出码：0 通过；1 有 error（`--strict` 下含 warning）；2 用法错误，包括没有可检查的目标。`--all` 扫描 `<root>/doc/*.html` 与 `<root>/doc/tech-docs/*.html`。
+退出码：0 通过；1 有 error（`--strict` 下含 warning）；2 用法错误，包括没有可检查的目标、`--require-tracked` 但不在 git 工作区。`--all` 扫描 `<root>/doc/*.html` 与 `<root>/doc/tech-docs/*.html`。
 
 转换器配合做了两件事：指向已有 HTML 孪生的 `x.md` 链接改写成 `x.html`（保留 `#锚点`）；每个 h2–h4 标题额外放一个 GitHub 规则的空锚点，重复标题按 `-1`、`-2` 顺延，所以 Markdown 里写的 `[x](#ui-参数--mc-字段映射表)` 在 GitHub 和 HTML 里都可达。
 

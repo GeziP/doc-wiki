@@ -226,9 +226,10 @@ node scripts/check-doc-fidelity.js --all --json
 ```bash
 node scripts/check-doc-links.js doc/tech-docs/Task_Design.html
 node scripts/check-doc-links.js --all --json
+node scripts/check-doc-links.js --all --require-tracked   # git 仓库里：目标必须已入库，别人克隆下来才点得开
 ```
 
-退出码 0 通过、1 有死链（`--strict` 下含行号越界警告）、2 用法错误。
+退出码 0 通过、1 有死链（`--strict` 下含行号越界警告；`--require-tracked` 下含“目标存在但 git 不跟踪”）、2 用法错误。
 
 ### SKILL.md — 路由与规则
 

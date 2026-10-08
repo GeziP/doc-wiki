@@ -91,11 +91,11 @@ Sources：{{../scripts/lib/quality-report.js:8-86}}、{{../scripts/lib/source-re
 
 ### 保真度与链接检查
 
-check-doc-fidelity.js 把 .md 与同名 .html 往返比对，报告丢失或被改写的代码、标题、表格，并识别围栏不配对（`fence-unbalanced`）和“关闭行带信息串”造成的疑似吞章（`fence-suspect`），以及停在“## 目录”段里、会随生成侧栏一并丢失的内容（`toc-swallowed`）。check-doc-links.js 检查生成后 HTML 的相对链接、锚点和源码引用行号。两者只读不改，补上 validate-doc.js 看不到的内容丢失与死链。
+check-doc-fidelity.js 把 .md 与同名 .html 往返比对，报告丢失或被改写的代码、标题、表格，并识别围栏不配对（`fence-unbalanced`）和“关闭行带信息串”造成的疑似吞章（`fence-suspect`），以及停在“## 目录”段里、会随生成侧栏一并丢失的内容（`toc-swallowed`）。check-doc-links.js 检查生成后 HTML 的相对链接、锚点和源码引用行号；在 git 仓库里加 `--require-tracked`，还报“目标在本机存在、git 却不跟踪”的链接（`untracked-target`，含路径大小写与 git 不一致），这类链接在作者机器上永远不报错，别人克隆下来才是死链。两者只读不改，补上 validate-doc.js 看不到的内容丢失与死链。
 
 退出码均为 0 通过、1 有问题、2 用法错误。外部地址和根相对路径无法静态判定，links 不检查。
 
-Sources：{{../scripts/check-doc-fidelity.js:3-16}}、{{../scripts/check-doc-links.js:3-20}}。用法与问题类型见 [quality-tooling.md](../references/quality-tooling.md)。
+Sources：{{../scripts/check-doc-fidelity.js:3-16}}、{{../scripts/check-doc-links.js:3-26}}。用法与问题类型见 [quality-tooling.md](../references/quality-tooling.md)。
 
 ## 4. 输入、配置与输出数据
 
