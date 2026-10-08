@@ -100,3 +100,14 @@ test('doc-meta.json sets the top-bar brand and an auto source-link base', t => {
   assert(html.includes('<span class="topbar-brand">ACME</span>'));
   assert(html.includes('href="../../src/a.h#L3-L5"'), 'doc/tech-docs/X.html -> project root is ../..');
 });
+
+test('figure captions: every accepted numbering form becomes a <figcaption> the validator accepts', t => {
+  const forms = ['图 1 — 单段编号', '图 1.1 — 双段编号', '图 3.29a-1 — 字母加子序号', '图 4.2a — 字母后缀', '图 5：全角冒号'];
+  const md = ['# Captions 技术设计文档', '', '## 1. 概述', '', '> **Scope**：覆盖图注编号形式的转换保真，其他行为不在范围。', ''];
+  for (const caption of forms) md.push(`> ${caption}`, '', '```mermaid', 'flowchart LR', '  A --> B', '```', '');
+  const { html, htmlFile, run } = convertModuleDoc(t, 'Captions', md);
+  const captions = [...html.matchAll(/<figcaption>([^<]*)<\/figcaption>/g)].map(m => m[1]);
+  assert.deepEqual(captions, forms, 'a caption form was dropped (rendered as a plain blockquote instead of a figcaption)');
+  const report = JSON.parse(run('validate-doc.js', ['--json', htmlFile]).stdout);
+  assert(!report.issues.some(i => i.rule === 'html/Figure Captions'), JSON.stringify(report.issues.filter(i => i.rule === 'html/Figure Captions')));
+});

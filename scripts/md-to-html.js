@@ -537,6 +537,11 @@ function rewriteMdHref(href) {
 // 跨行 raw HTML 元素（典型：手写 <figcaption> 折成两行）的续行要直通到闭合标签或空行；
 // raw HTML 里的 <a href="x.md"> 同样改指 HTML 孪生。
 const MULTILINE_RAW_TAGS = new Set(['figcaption', 'p', 'summary', 'caption', 'dt', 'dd', 'li', 'td', 'th', 'span', 'a', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+
+// 图注行（blockquote 首行）：图 1 — / 图 1.1 — / 图 3.29a-1 — / 图 4.2a — / 图 1：
+// 与 validate-doc.js 的 figNumRe 同口径；旧正则只认 \d(.\d)? 后直接跟破折号，章节号带字母后缀的图（图 4.2a —）静默丢图注。
+const FIG_CAPTION_RE = /^图\s*\d+(?:\.\d+)?[a-z]?(?:-\d+)?\s*[—–:：-]/;
+
 function rawHtmlLine(line) {
   return line.replace(/(<a\b[^>]*\bhref=")([^"]+)(")/gi, (_, open, href, close) => open + rewriteMdHref(href) + close);
 }
@@ -703,7 +708,7 @@ function mdBodyToHtml(body, needsMermaid) {
       return;
     }
     // Figcaption: > 图 X.X — ... (store for next mermaid)
-    if (/^图\s*\d+(\.\d+)?\s*[—–\-]/.test(content)) {
+    if (FIG_CAPTION_RE.test(content)) {
       pendingFigcaption = content;
       return;
     }
